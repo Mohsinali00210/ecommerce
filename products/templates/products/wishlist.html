@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>My Wishlist</h3>
+
+    {% if wishlist_items %}
+    <table class="table table-bordered table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>#</th>
+                <th>Product Image</th>
+                <th>Product Name</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Subtotal</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in wishlist_items %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td><img src="{{ item.product__image.url }}" style="height:50px;"></td>
+                <td>{{ item.product__name }}</td>
+                <td>Rs {{ item.product__price }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>Rs {{ item.subtotal|floatformat:2 }}</td>
+                <td>
+                    <button class="btn btn-sm btn-danger remove-btn" data-id="{{ item.product__id }}">
+                        Remove
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <th colspan="5" class="text-end">Total</th>
+                <th colspan="2">Rs {{ total_price|floatformat:2 }}</th>
+            </tr>
+        </tfoot>
+    </table>
+    {% else %}
+        <p>No products in wishlist.</p>
+    {% endif %}
+</div>
+{% endblock %}

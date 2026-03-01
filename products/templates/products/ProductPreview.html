@@ -1,0 +1,2672 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Style UI</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/fontawesome.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/solid.min.css">
+    <style>
+        body {
+            background: #f3f3f3;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+        }
+
+        .top-banner {
+            /* background: url('https://via.placeholder.com/1600x400/CE1B3B/fff?text=Holiday+Gift+Guide+Banner') no-repeat center; */
+            background-size: cover;
+            /* height: 350px; */
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .product-box {
+            background: #fff;
+            border-radius: 6px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: .2s;
+            height: 100%;
+        }
+
+        .product-box:hover {
+            transform: scale(1.03);
+        }
+
+        .product-box img {
+            width: 100%;
+            border-radius: 4px;
+        }
+
+        footer {
+            background: #8f8f8f;
+            color: #fff;
+            padding: 40px 0;
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+      <!-- ========== AMAZON STYLE SECONDARY NAVBAR ========== -->
+<style>
+    .navbar{
+        background: #8f8f8f;    
+    }
+    .sub-navbar {
+        background: #009896; /* Amazon greenish-blue */
+        color: #fff;
+        padding: 10px 20px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 25px;
+        border-bottom: 3px solid #c60; /* orange underline */
+    }
+
+    .sub-navbar a {
+        color: #fff;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .sub-navbar a:hover {
+        text-decoration: underline;
+    }
+
+    .menu-icon {
+        font-size: 22px;
+        cursor: pointer;
+    }
+
+    /* ========== SIDEBAR STYLES ========== */
+    .sidebar {
+        width: 260px;
+        background: #fff;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: -260px;
+        padding: 20px;
+        overflow-y: auto;
+        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+        transition: 0.3s ease-in-out;
+        z-index: 2000;
+    }
+
+    .sidebar.open {
+        left: 0;
+    }
+
+    .sidebar h4 {
+        margin-bottom: 20px;
+    }
+
+    .sidebar a {
+        display: block;
+        padding: 8px 0;
+        color: #333;
+        text-decoration: none;
+        border-bottom: 1px solid #eaeaea;
+    }
+
+    .sidebar a:hover {
+        background: #f3f3f3;
+    }
+
+    .sidebar-close {
+        font-size: 22px;
+        float: right;
+        cursor: pointer;
+    }
+
+    /* Background overlay */
+    .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        /* z-index: 1500; */
+    }
+     .mycontainer{
+        min-height: 80vh;
+    }
+    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/brands.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/solid.min.css">
+<style>
+    .product-card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 0px;
+        transition: all .2s ease-in-out;
+
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 18px rgba(0,0,0,.1);
+    }
+
+    .product-img {
+        width: 100%;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
+    .sale-badge {
+        background: #e00;
+        color: #fff;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+.price {
+        font-weight: bold;
+        color: #e85858;
+        font-size: 11px;
+    }
+
+     .old-price {
+        text-decoration: line-through;
+        color: gray;
+        margin-left: 4px;
+    }
+
+    .sold-text {
+        color: #555;
+        margin-left: 8px;
+    }
+
+    .rating-stars {
+        color: #f5b301;
+        font-size: 11px;
+    }
+    .rating-stars span{
+        font-size: 11px;
+    }
+    .add-cart-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 1px solid #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 14px;
+        background: #fff;
+    }
+.add-cart-btn:hover{
+    transform: translateY(-5px);
+        box-shadow: 0 5px 18px rgba(0,0,0,.1);
+}
+    .view-more-btn {
+        width: 200px;
+        border-radius: 30px;
+        padding: 10px;
+        border: 1px solid #222;
+        background: #fff;
+        font-size: 14px;
+        cursor: pointer;
+        transition: .2s;
+    }
+
+    .view-more-btn:hover {
+        background: #f2f2f2;
+    }
+    .product-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 0px;
+    transition: all .2s ease-in-out;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+            z-index: 2001 !important;
+
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 18px rgba(0,0,0,.1);
+}
+
+/* FIX: Same image height for all */
+.product-img {
+    width: 100%;
+    height: 150px;       /* set equal height */
+    border-radius: 8px;
+    object-fit: cover;   /* crop nicely */
+}
+
+/* FIX: Make content grow evenly */
+.product-info {
+    flex-grow: 1;
+    padding: 0px 9px;
+}
+.product-title {
+    font-size: 12px;
+}
+/* FIX: Align cart button at bottom */
+.add-cart-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    background: #fff;
+    margin-top: auto;  /* pushes button to bottom */
+    position: relative;
+    top:-20px;
+}
+.carousel-item img{
+    width: 98%;
+
+}
+.product-container{
+                z-index: 2001 !important;
+
+}
+
+
+/* Top Navbar */
+/* .topnav-main {
+    background: #8f8f8f;
+    color: white;
+} */
+
+/* Sub Navbar (desktop) */
+.sub-navbar {
+    background: #5f5f5f;
+    padding: 8px 15px;
+}
+.sub-navbar a {
+    color: white;
+    margin-right: 20px;
+    text-decoration: none;
+}
+
+/* Mobile Sidebar */
+.mobile-sidebar {
+    width: 270px;
+    height: 100vh;
+    background: white;
+    position: fixed;
+    top: 0;
+    left: -300px;
+    padding-top: 20px;
+    overflow-y: auto;
+    transition: all .3s ease-in-out;
+    z-index: 2000;
+    border-right: 1px solid #ddd;
+}
+
+/* Show Sidebar */
+.mobile-sidebar.open {
+    left: 0;
+}
+
+/* Sidebar links */
+.mobile-sidebar a {
+    display: block;
+    padding: 10px 20px;
+    color: #333;
+    text-decoration: none;
+}
+.mobile-sidebar a:hover {
+    background: #f2f2f2;
+}
+
+/* Close button */
+.close-btn {
+    font-size: 18px;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+}
+
+/* Mobile Search box */
+.search-mobile input {
+    border: 1px solid #999;
+    margin-bottom: 15px;
+}
+
+/* Hamburger icon */
+.menu-toggle {
+    font-size: 22px;
+    cursor: pointer;
+}
+
+/* Hide sidebar on desktop */
+@media (min-width: 992px) {
+    .mobile-sidebar.open .mobile-nav-items {
+        display: none;
+    }
+}
+ .old-price {
+        text-decoration: line-through;
+        color: gray;
+        font-size: 12px;
+        margin-left: 4px;
+    }
+ div#sliderProducts
+ {
+    height: 200px;
+}
+    
+</style>
+
+</head>
+
+<body>
+
+   
+ 
+<!-- ================== TOP NAV ================== -->
+<nav class="navbar navbar-dark navbar-expand-lg px-4 topnav-main">
+    <span class="menu-toggle " id="openSidebar">&#9776;</span>
+
+    <a class="navbar-brand ms-2" href="#">Amazon Clone</a>
+
+    <form class="d-none d-lg-flex w-50 mx-auto">
+        <div class="input-group">
+            <input class="form-control" type="search" placeholder="Search products...">
+            <button class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </div>
+    </form>
+
+    <ul class="navbar-nav ms-auto d-none d-lg-flex">
+        <li class="nav-item"><a href="./accounts/MyAccount.html" class="nav-link text-white"><i class="fa-solid fa-user"></i></a></li>
+         <li class="nav-item"><a href="./accounts/login.html" class="nav-link text-white"><i class="fa-solid fa-right-to-bracket"></i></a></li>
+        <li class="nav-item"><a href="./MyOrders.html" class="nav-link text-white">Orders / Returns</a></li>
+        <li class="nav-item"><a href="./cart.html" class="nav-link text-white"><i class="fa-solid fa-cart-shopping"></i></a></li>
+         <li class="nav-item">
+            <div class="dropdown">
+            <button class="btn position-relative" data-bs-toggle="dropdown">
+                <i class="fa-solid fa-bell text-white"></i>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">5</span>
+            </button>
+
+            <ul class="dropdown-menu dropdown-menu-end p-2" style="width: 350px;">
+
+                <!-- Order Placed -->
+                <li class="notification-item unread">
+                <div class="d-flex">
+                    <div class="icon bg-primary">
+                    <i class="bi bi-bag-check"></i>
+                    </div>
+                    <div class="ms-3">
+                    <div class="fw-semibold">Order Placed</div>
+                    <div class="small text-muted">
+                        Your order <b>#TMU1007</b> has been placed successfully.
+                    </div>
+                    <small class="text-muted">2 mins ago</small>
+                    </div>
+                </div>
+                </li>
+
+                <!-- Order Dispatched -->
+                <li class="notification-item unread">
+                <div class="d-flex">
+                    <div class="icon bg-info">
+                    <i class="bi bi-truck"></i>
+                    </div>
+                    <div class="ms-3">
+                    <div class="fw-semibold">Order Dispatched</div>
+                    <div class="small text-muted">
+                        Order <b>#TMU1005</b> is on the way.
+                    </div>
+                    <small class="text-muted">1 hour ago</small>
+                    </div>
+                </div>
+                </li>
+
+                <!-- Order Delivered -->
+                <li class="notification-item">
+                <div class="d-flex">
+                    <div class="icon bg-success">
+                    <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div class="ms-3">
+                    <div class="fw-semibold">Order Delivered</div>
+                    <div class="small text-muted">
+                        Order <b>#TMU1001</b> has been delivered.
+                    </div>
+                    <small class="text-muted">Yesterday</small>
+                    </div>
+                </div>
+                </li>
+
+                <!-- Order Canceled -->
+                <li class="notification-item">
+                <div class="d-flex">
+                    <div class="icon bg-danger">
+                    <i class="bi bi-x-circle"></i>
+                    </div>
+                    <div class="ms-3">
+                    <div class="fw-semibold">Order Canceled</div>
+                    <div class="small text-muted">
+                        Order <b>#TMU1002</b> has been canceled.
+                    </div>
+                    <small class="text-muted">2 days ago</small>
+                    </div>
+                </div>
+                </li>
+
+                <!-- Offer -->
+                <li class="notification-item">
+                <div class="d-flex">
+                    <div class="icon bg-warning">
+                    <i class="bi bi-percent"></i>
+                    </div>
+                    <div class="ms-3">
+                    <div class="fw-semibold">Special Offer 🎉</div>
+                    <div class="small text-muted">
+                        Flat <b>20% OFF</b> on Smart Watches. Limited time!
+                    </div>
+                    <small class="text-muted">Today</small>
+                    </div>
+                </div>
+                </li>
+
+                <li><hr class="dropdown-divider"></li>
+                <li class="text-center">
+                <a href="./Notifications.html" class="small text-decoration-none">
+                    View All Notifications
+                </a>
+                </li>
+
+            </ul>
+            </div>
+        </li>
+    </ul>
+</nav>
+
+
+<!-- ========== SECONDARY NAVBAR (Desktop Only) ========== -->
+<div class="sub-navbar d-none d-lg-flex">
+      <a href="./index.html">All</a>
+    <a href="./TodayDeal.html">Today's Deals</a>
+    <a href="#">Gift Cards</a>
+    <a href="./Contact.html">Contact</a>
+</div>
+
+
+<!-- ========== MOBILE ASIDE (Sidebar 2) ========== -->
+<aside class="mobile-sidebar" id="sidebarMenu">
+
+    <span class="close-btn" id="closeSidebar">&times;</span>
+
+    <!-- Combined Navbar Content -->
+     <div class="mobile-nav-items" >
+         <h4 class="ps-3 mt-2">Amazon Clone</h4>
+     
+         <div class="search-mobile px-3">
+             <input type="text" class="form-control" placeholder="Search products...">
+         </div>
+     
+         <hr>
+     
+         <a href="./accounts/login.html"><i class="fa-solid fa-right-to-bracket me-2"></i> Sign In</a>
+         <a href="./MyOrders.html">Orders / Returns</a>
+         <a href="./cart.html"><i class="fa-solid fa-cart-shopping me-2"></i> Cart</a>
+         <a href="javascript:void(0)" id="toggleNotifications" class="d-flex justify-content-between align-items-center">
+            <span>
+                <i class="fa-solid fa-bell me-2"></i> Notifications
+            </span>
+            <span class="badge bg-danger rounded-pill">5</span>
+        </a>
+
+        <div id="mobileNotifications" class="ps-2 pe-2 mt-2 d-none">
+
+            <!-- Order Placed -->
+            <div class="notification-item unread">
+                <div class="d-flex">
+                <div class="ms-3">
+                    <div class="fw-semibold">Order Placed</div>
+                    <div class="small text-muted">
+                    Order <b>#TMU1007</b> placed successfully
+                    </div>
+                    <small class="text-muted">2 mins ago</small>
+                </div>
+                </div>
+            </div>
+
+            <!-- Order Dispatched -->
+            <div class="notification-item unread">
+                <div class="d-flex">
+                <div class="ms-3">
+                    <div class="fw-semibold">Order Dispatched</div>
+                    <div class="small text-muted">
+                    Order <b>#TMU1005</b> is on the way
+                    </div>
+                    <small class="text-muted">1 hour ago</small>
+                </div>
+                </div>
+            </div>
+
+            <!-- Delivered -->
+            <div class="notification-item">
+                <div class="d-flex">
+                <div class="ms-3">
+                    <div class="fw-semibold">Order Delivered</div>
+                    <small class="text-muted">Yesterday</small>
+                </div>
+                </div>
+            </div>
+
+            <!-- Offer -->
+            <div class="notification-item">
+                <div class="d-flex">
+                <div class="ms-3">
+                    <div class="fw-semibold">Special Offer 🎉</div>
+                    <small class="text-muted">20% OFF on Smart Watches</small>
+                </div>
+                </div>
+            </div>
+
+            <a href="./Notifications.html"
+                class="d-block text-center small mt-2 text-decoration-none">
+                View All Notifications
+            </a>
+            </div>
+            
+         <hr>
+     </div>
+
+
+    <!-- Combined Sub-navbar items -->
+    <h5 class="px-3">Navigation</h5>
+        <a href="./index.html">All</a>
+    <a href="./TodayDeal.html">Today's Deals</a>
+    <a href="#">Gift Cards</a>
+    <a href="./Contact.html">Contact</a>
+
+
+    <hr>
+
+    <!-- Sidebar existing items -->
+    <h5 class="px-3">Categories</h5>
+    <a href="#">Electronics</a>
+    <a href="#">Computers</a>
+    <a href="#">Home & Kitchen</a>
+    <a href="#">Beauty & Care</a>
+    <a href="#">Fashion</a>
+    <a href="#">Sports</a>
+    <a href="#">Grocery</a>
+    <a href="#">Books</a>
+</aside>
+<style>
+
+/* Layout */
+.cart-container {
+    display: flex;
+    gap: 25px;
+    padding: 30px;
+}
+
+.cart-left {
+    /* width: 70%;  */
+    border-radius: 10px;
+}
+
+.cart-right {
+    /* width: 30%; */
+    position: sticky;
+    top: 20px;
+}
+
+/* Cart Item */
+.cart-item {
+    display: flex;
+    gap: 13px;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    /* padding: 10px; */
+    border: 1px solid #e2e2e2;
+    border-radius: 10px;
+}
+
+.cart-item img {
+    width: 120px;
+    border-radius: 5px;
+}
+
+.item-title {
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.price-new {
+    font-size: 20px;
+    font-weight: bold;
+    color: #000;
+}
+
+.price-old {
+    text-decoration: line-through;
+    color: gray;
+    font-size: 14px;
+}
+
+.discount-tag {
+    background: #ff7f00;
+    color: white;
+    padding: 2px 6px;
+    font-size: 12px;
+    border-radius: 4px;
+}
+
+/* Summary Card */
+.summary-box {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    border: 1px solid #ddd;
+}
+
+.summary-box h4 {
+    font-size: 20px;
+    margin-bottom: 20px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.checkout-btn {
+    background: #ff7f00;
+    border: none;
+    padding: 14px;
+    width: 100%;
+    border-radius: 30px;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.safe-payment {
+    margin-top: 20px;
+    font-size: 14px;
+    color: gray;
+}
+
+/* Select all */
+.select-all-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 17px;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.remove-item {
+    cursor: pointer;
+    color: gray;
+    font-size: 18px;
+}
+
+ .product-card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 12px;
+        transition: all .2s ease-in-out;
+                font-size: 12px;
+
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 18px rgba(0,0,0,.1);
+    }
+
+
+
+/* Top Navbar */
+.topnav-main {
+    background: #8f8f8f;
+    color: white;
+
+}
+
+/* Sub Navbar (desktop) */
+.sub-navbar {
+    background: #5f5f5f;
+    padding: 8px 15px;
+}
+.sub-navbar a {
+    color: white;
+    margin-right: 20px;
+    text-decoration: none;
+}
+
+/* Mobile Sidebar */
+.mobile-sidebar {
+    width: 270px;
+    height: 100vh;
+    background: white;
+    position: fixed;
+    top: 0;
+    left: -300px;
+    padding-top: 20px;
+    overflow-y: auto;
+    transition: all .3s ease-in-out;
+    z-index: 2000;
+    border-right: 1px solid #ddd;
+}
+
+/* Show Sidebar */
+.mobile-sidebar.open {
+    left: 0;
+}
+
+/* Sidebar links */
+.mobile-sidebar a {
+    display: block;
+    padding: 10px 20px;
+    color: #333;
+    text-decoration: none;
+}
+.mobile-sidebar a:hover {
+    background: #f2f2f2;
+}
+
+/* Close button */
+.close-btn {
+    font-size: 24px;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+}
+
+/* Mobile Search box */
+.search-mobile input {
+    border: 1px solid #999;
+    margin-bottom: 15px;
+}
+
+/* Hamburger icon */
+.menu-toggle {
+    font-size: 26px;
+    cursor: pointer;
+}
+
+/* Hide sidebar on desktop */
+@media (min-width: 992px) {
+    .mobile-sidebar.open .mobile-nav-items {
+        display: none;
+    }
+}
+
+
+
+
+.product-page {
+    font-family: Arial;
+}
+
+/* LEFT SIDE THUMBNAILS */
+.thumb-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.thumb {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 2px solid #ddd;
+}
+
+.thumb.active {
+    border: 2px solid red;
+}
+
+/* CENTER MAIN IMAGE */
+.main-image-box {
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+}
+
+.main-image {
+    width: 100%;
+    height: 420px;
+    object-fit: contain;
+}
+
+/* RIGHT SECTION */
+.sale-banner {
+    background: #8f8f8f;
+    padding: 0px !important;
+    margin-bottom: 6px !important;
+    border-radius: 5px;
+    font-size: 14px;
+    display: flex;
+    gap: 12px;
+}
+.sale-banner span{
+    padding: 5px;
+        color: white;
+
+}
+.sale-banner :first-child{
+    background: red;
+    padding: 5px 13px;
+    border-top-right-radius: 81px;
+    color: white;
+    font-weight: bold;
+}
+
+
+
+.rating-box {
+    margin: 5px 0;
+    font-size: 12px;
+}
+
+.tag {
+    background: #06c167;
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: #fff;
+    display: inline-block;
+    margin-top: 6px;
+}
+
+/* PRICE AREA */
+.price-section {
+    margin-top: 15px;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.price-now {
+    color: red;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.price-old {
+    text-decoration: line-through;
+    color: gray;
+}
+
+.discount {
+    background: red;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+
+.clearance-box {
+    background: #ffe2e2;
+    color: red;
+    padding: 8px;
+    border-radius: 5px;
+    margin-top: 10px;
+    font-size: 13px;
+}
+
+/* CART BUTTON */
+.cart-btn {
+    width: 100%;
+    background: red;
+    color: #fff;
+    padding: 3px;
+    font-size: 14px;
+    border-radius: 40px;
+    border: none;
+    margin-top: 18px;
+}
+
+/* SECOND HALF - DETAILS */
+.section-title {
+    font-size: 26px;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.details-row {
+    display: grid;
+    grid-template-columns: repeat(2,1fr);
+    gap: 12px;
+    font-size: 16px;
+}
+
+.details-image {
+    margin-top: 20px;
+    width: 100%;
+    border-radius: 10px;
+}
+.last-day {
+    font-size: 12px;
+}
+
+
+.my-slider {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    margin: auto;
+    border-radius: 12px;
+    padding: 15px;
+}
+.my-slider span{
+    font-size: 12px;
+}
+.my-slider h3{
+    font-size: 15px;
+}
+.slides {
+    display: flex;
+    transition: transform .5s ease-in-out;
+}
+
+.slide {
+    min-width: 100%;
+}
+
+.line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+}
+
+/* Arrows */
+.prev, .next {
+    position: absolute;
+    top: 45%;
+    font-size: 22px;
+    width: 30px;
+    height: 30px;
+    background: rgba(0,0,0,.3);
+    color: #fff;
+    border-radius: 50%;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.prev { left: 10px; }
+.next { right: 10px; }
+
+/* Dots */
+.dots {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.dots span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin: 5px;
+    background: #ccc;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.dots .active {
+    background: #0A8800;
+}
+/* REVIEW SECTION */
+.reviews-section {
+    padding: 20px;
+    background: #fff;
+    border-radius: 12px;
+    margin-top: 40px;
+}
+
+.review-title {
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.review-box {
+    display: flex;
+    gap: 15px;
+    border-bottom: 1px solid #eee;
+    /* padding: 15px 0; */
+    border: 1px #ebebeb solid;
+    padding: 8px 20px;
+    font-size: 11px !important;
+    margin-bottom: 5px;
+    border-radius: 15px;
+}
+
+.review-box:last-child {
+    border-bottom: none;
+}
+
+/* USER PIC */
+.review-pic {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ddd;
+}
+
+/* CONTENT */
+.review-content {
+    flex: 1;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.review-name {
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.review-date {
+    color: #888;
+}
+
+.review-stars {
+    color: #f5b301;
+    margin: 5px 0;
+}
+
+.review-text {
+    color: #444;
+    line-height: 1.5;
+}
+/* SECTION TITLES */
+.section-title {
+    font-size: 22px;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+/* GUIDES SECTION */
+.product-guides {
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    margin-top: 40px;
+}
+
+/* GUIDE ROW */
+.guide-row {
+    display: flex;
+    align-items: center;
+    padding: 4px 17px;
+    border-bottom: 1px solid #eee;
+    background: #e2e2e2;
+    border-radius: 10px;
+    cursor: pointer;
+}
+.guide-row:last-child {
+    border-bottom: none;
+}
+
+.guide-icon {
+    font-size: 30px;
+    margin-right: 15px;
+}
+
+.guide-title {
+    font-weight: 600;
+    font-size: 17px;
+}
+
+.guide-btn {
+    background: #ff8c00;
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: none;
+    margin-top: 6px;
+    cursor: pointer;
+}
+
+/* PRODUCT DETAILS TABLE */
+.product-detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+.product-detail-table td {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+.product-detail-table .left-col {
+    font-weight: 600;
+    width: 40%;
+}
+
+/* SAVE + REPORT */
+.extra-options {
+    margin-top: 20px;
+}
+.small-text-btn {
+    background: none;
+    border: none;
+    color: #007bff;
+    margin-right: 20px;
+    cursor: pointer;
+}
+
+/* ATTACHMENT GRID */
+.attachment-section {
+    margin-top: 45px;
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+}
+.attachment-grid {
+    /* display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); */
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.attachment-grid img {
+    width: 100%;
+    /* height: 130px;
+    object-fit: cover; */
+    border-radius: 10px;
+    cursor: pointer;
+    transition: .2s;
+}
+.attachment-grid img:hover {
+    transform: scale(1.03);
+}
+
+/* FULLSCREEN VIEWER */
+.fullscreen-viewer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+.fullscreen-viewer img {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 10px;
+}
+
+/* sipment modal */
+.ship-section {
+    margin-bottom: 18px;
+}
+
+.ship-title {
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 6px;
+}
+
+.ship-text {
+    font-size: 15px;
+}
+
+.ship-text.green {
+    color: #28a745;
+    font-weight: 600;
+}
+
+/* COMPANY BADGES */
+.ship-badges span {
+    display: inline-block;
+    background: #f2f2f2;
+    padding: 6px 12px;
+    margin: 4px 6px 0 0;
+    border-radius: 20px;
+    font-size: 14px;
+}
+
+/* ALERT */
+.ship-alert {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 10px 12px;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+.credit {
+    color: #d9534f;
+}
+
+/* TABLE */
+.ship-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+}
+.ship-table td {
+    padding: 6px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+}
+.ship-table td:last-child {
+    text-align: right;
+    font-weight: 600;
+}
+.shipping-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.shipping-table td {
+    background: #fff;
+}
+
+.shipping-table .badge {
+    font-size: 13px;
+    padding: 6px 10px;
+}
+
+.progress-container {
+    background-color: #e0e0e0;
+    border-radius: 8px;
+    width: 100%;
+    height: 20px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: #5a5a5a !important;
+    text-align: right;
+    padding-right: 5px;
+    color: white;
+    font-size: 12px;
+    line-height: 20px;
+    border-radius: 8px 0 0 8px;
+}
+
+.thumb {
+    width: 100%;
+    cursor: pointer;
+    margin-bottom: 10px;
+    border: 2px solid transparent;
+}
+
+.thumb.active {
+    border-color: #ff0000;
+}
+
+.main-image {
+    width: 100%;
+    cursor: zoom-in;
+}
+
+/* Modal thumbnails */
+.modal-thumbs img {
+    width: 100%;
+    margin-bottom: 10px;
+    cursor: pointer;
+    border: 2px solid #444;
+}
+
+/* Zoom */
+.zoom-img {
+    max-height: 80vh;
+    transition: transform 0.3s ease;
+    cursor: zoom-in;
+}
+#imageZoomModal img.zoom-img {
+    max-height: 90vh;
+    transition: transform 0.25s ease, transform-origin 0.1s ease;
+    cursor: zoom-in;
+    user-select: none;
+}
+
+#imageZoomModal .thumb {
+    cursor: pointer;
+}
+
+
+.img-hover-zoom {
+  height: 300px; /* Set a specific height for the container */
+  overflow: hidden; /* Hide the part of the image that overflows when zoomed */
+}
+
+.img-hover-zoom img {
+  /* Smooth transition for the zoom effect */
+  transition: transform .5s ease; 
+  display: block;
+  width: 100%;
+}
+
+.img-hover-zoom:hover img {
+  /* (150% zoom) */
+  transform: scale(1); 
+}
+
+/* Apply sticky add-to-cart only on medium (>=600px) and wider screens */
+@media screen and (min-width: 760px) {
+    .addtocart-section {
+        position: sticky !important;
+        top: 20px !important;
+        z-index: 1000; /* optional, keep it above content */
+    }
+    .thumb-list {
+        flex-direction: column;
+    }
+}
+
+@media (min-width: 0px) and (max-width: 760px) {
+   .thumb-list {
+        display: flex;
+        flex-direction: row;
+        gap: 5px;
+    }
+    
+    
+}
+#TopPromotionSection{
+    display:none;
+}
+</style>
+
+<div class="mycontainer container my-5 product-page">
+
+    <div class="row">
+
+        <!-- LEFT SIDE: SMALL IMAGES -->
+        <div class="row col-md-7 g-0">
+            <div class="sale-banner " id="TopPromotionSection">
+                <span id="promotionName">12.12 SALE</span>
+                <span id="promotionType"> Free Shipping </span>
+                <span id="promotionDescription"> Rs.280 Credit for delay </span>
+            </div>
+            <div class="row align-items-center" id="productImagesSlider">
+                <div class="col-md-2">
+                     <div class="thumb-list  overflow-auto justify-content-between">
+                         <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (1).jpeg" class="thumb active" onclick="goToSlide1(0)">
+                         <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (2).jpeg" class="thumb" onclick="goToSlide1(1)">
+                         <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (3).jpeg" class="thumb" onclick="goToSlide1(2)">
+                         <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (4).jpeg" class="thumb" onclick="goToSlide1(3)">
+                         <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (5).jpeg" class="thumb" onclick="goToSlide1(4)">
+                     </div>
+                </div>
+                <div class="col-md-10  text-center position-relative">
+                    <button class="btn btn-light shadow-sm rounded-circle position-absolute top-0 end-0 m-3 z-3" 
+                            style="width: 40px; height: 40px;" 
+                            data-bs-toggle="modal" data-bs-target="#shareModal">
+                        <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                    </button>
+                    <div id="imageCarousel" class="carousel slide">
+                        <div class="carousel-inner">
+                            <div class="carousel-item active">    
+                                <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (1).jpeg" class="zoom-img" onmousemove="moveZoom(event)" onclick="openImageModal(0)">
+                            </div>
+                            <div class="carousel-item">    
+                                <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (2).jpeg" class="zoom-img" onmousemove="moveZoom(event)" onclick="openImageModal(1)">
+                            </div>
+                            <div class="carousel-item">    
+                                <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (3).jpeg" class="zoom-img" onmousemove="moveZoom(event)" onclick="openImageModal(2)">
+                            </div>
+                            <div class="carousel-item">    
+                                <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (4).jpeg" class="zoom-img" onmousemove="moveZoom(event)" onclick="openImageModal(3)">
+                            </div>
+                            <div class="carousel-item">    
+                                <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (5).jpeg" class="zoom-img" onmousemove="moveZoom(event)" onclick="openImageModal(4)">
+                            </div>
+                        </div>
+    
+                        <button class="carousel-control-prev" type="button" data-bs-target="#imageCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#imageCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+             <!-- <div class="col-md-10 col-9">
+                 <div class="main-image-box">
+                     <img id="mainImage" src="../images/watch pic1.jpg" class="main-image" data-bs-toggle="modal" data-bs-target="#imageModal">
+                 </div>
+     
+                  
+                
+             </div> -->
+             
+            <!-- PRODUCT GUIDES & DOCUMENTS SECTION -->
+            <div class="product-guides p-3">
+
+                <h3 class="section-title">Product Guides & Documents</h3>
+
+                <!-- USER MANUAL -->
+                <div class="guide-row" onclick="openPdf()">
+                    <div class="guide-icon">📄</div>
+                    <div class="guide-info">
+                        <div class="guide-title">User Manual (PDF)</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right self-end"></i>
+                </div>
+
+                <!-- PRODUCT DETAILS -->
+                <h3 class="section-title mt-4">Product Details</h3>
+
+                <table class="product-detail-table">
+                    <tr>
+                        <td class="left-col">Strap Material</td>
+                        <td>PU Leather</td>
+                    </tr>
+                    <tr>
+                        <td class="left-col">Watch Case Material</td>
+                        <td>Alloy</td>
+                    </tr>
+                    <tr>
+                        <td class="left-col">Style</td>
+                        <td>Party</td>
+                    </tr>
+                    <tr>
+                        <td class="left-col">Water Resistance</td>
+                        <td>Not Waterproof</td>
+                    </tr>
+                    <tr>
+                        <td class="left-col">Movement Type</td>
+                        <td>Quartz</td>
+                    </tr>
+                </table>
+
+                <!-- REPORT + SAVE -->
+                <div class="extra-options">
+                    <button class="small-text-btn">Save</button>
+                    <button class="small-text-btn">Report this item</button>
+                </div>
+            </div>
+        </div>
+
+         <div class="col-md-5 addtocart-section vh-90 overflow-auto">
+
+         
+
+            <h3 class="product-title">
+                Men's & Women’s Luxury Quartz Watch - Rose Golden Roman Numeral,
+                Chronograph Sub-Dials, Multi-Analog Watch with Brown Strap 
+                - Elegant Dress Watch
+            </h3>
+
+            <div class="rating-box">
+                ⭐⭐⭐⭐☆ 
+                <span>(1,500+ sold)</span>
+            </div>
+
+            <div class="tag">#15 Best-Selling Item in Men's Watches</div>
+
+            <!-- Price Section -->
+            <div class="price-section">
+                <div class="last-day">Last day</div>
+                <div class="price-now">Rs. 1,510</div>
+                <div class="price-old">5,813</div>
+                <div class="discount">-74%</div>
+            </div>
+            <div id="productOptions" class="mb-3"></div>
+
+            <!-- Countdown -->
+            <div class="clearance-box">
+                Clearance deal — Ends in <span id="countdown">22:26:49</span>
+            </div>
+            <input type="number" class="form-control qty-select mt-2" min="1" value="1" style="width:120px;">
+
+            <button class="cart-btn">Add to cart<br><span class="discount">74%</span> OFF</button>
+            
+
+      
+
+
+                    <div class="safe-payment mt-3" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#shippingModal">
+                        <div><i class="fa-solid fa-truck text-success"></i><b>Free shipping on all orders<i class="fa-solid fa-angle-right"></i></b></div>
+                        <div><span class="text-muted">Delivery:</span> Dec 24-Jan 6</div>
+                        <div><span class="text-muted">Courier company:</span><b>TCS, Leopards...</b></div>
+                    </div>
+
+                    <div class="safe-payment mt-3">
+                        <i class="fa-solid fa-truck text-success"></i> 
+                        <b>Why Choose We?<i class="fa-solid fa-angle-right"></i></b>
+                        <!--  -->
+                        <div class="row" style="font-size: 12px;">
+                            <!-- Slide 1 -->
+                            <div class="col-md-6">
+                                <h5 style="color:#0A8800" style="font-size: 11px !important;">Security & Privacy</h5>
+
+                                <div class="mt-2">
+                                    <div class="line">
+                                        <svg width="18" height="18" fill="#222"><path d="M833.3 ..."></path></svg>
+                                        <span>Safe payments</span>
+                                    </div>
+
+                                    <div class="line">
+                                        <svg width="18" height="18" fill="#222"><path d="M833.3 ..."></path></svg>
+                                        <span>Secure privacy</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Slide 2 -->
+                            <div class="col-md-6">
+                                <h5 style="color:#0A8800" style="font-size: 11px !important;">Delivery Guarantee</h5>
+
+                                <div class="mt-2">
+                                    <div class="line">
+                                        <svg width="18" height="18" fill="#222"><path d="M833.3 ..."></path></svg>
+                                        <span>Rs.280 Credit for delay</span>
+                                    </div>
+
+                                    <div class="line">
+                                        <svg width="18" height="18" fill="#222"><path d="M833.3 ..."></path></svg>
+                                        <span>15-day no update refund</span>
+                                    </div>
+
+                                    <div class="line">
+                                        <svg width="18" height="18" fill="#222"><path d="M833.3 ..."></path></svg>
+                                        <span>Return if item damaged</span>
+                                    </div>
+
+                                    <div class="line">
+                                        <svg width="18" height="18" fill="#222"><path d="M833.3 ..."></path></svg>
+                                        <span>30-day no delivery refund</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="safe-payment mt-3" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#serviceModal">
+                        <i class="fa-solid fa-circle-left text-success"></i> 
+                        <b>Free returnsPrice adjustment<i class="fa-solid fa-angle-right"></i></b>
+                    </div>
+                    <!-- <div class="safe-payment mt-3">
+                        <i class="fa-solid fa-lock text-success"></i> 
+                        <b>Temu's Tree Planting Program (23M+ trees)<i class="fa-solid fa-angle-right"></i></b>
+                    </div> -->
+                
+
+
+            </div>
+            
+        <div class="row col-md-7 ">
+
+            <!-- FULL SCREEN IMAGE ATTACHMENT SECTION -->
+            <div class="attachment-section">
+
+                <h3 class="section-title">Product Attachments</h3>
+
+                <div class="attachment-grid">
+                    <img src="../images/watch pic1.jpg" onclick="openFullScreen(this.src)">
+                    <img src="../images/watch pic2.jpg" onclick="openFullScreen(this.src)">
+                    <img src="../images/watch pic3.jpg" onclick="openFullScreen(this.src)">
+                    <img src="../images/watch pic4.jpg" onclick="openFullScreen(this.src)">
+                    <img src="../images/watch pic5.jpg" onclick="openFullScreen(this.src)">
+                </div>
+
+            </div>
+
+            <!-- FULLSCREEN VIEWER -->
+            <div id="fullscreenViewer" class="fullscreen-viewer" style="z-index: 40000;" onclick="closeFullScreen()">
+                <img id="fullscreenImage" >
+            </div>
+            <div class="reviews-section mt-5">
+
+                <h3 class="review-title">Customer Reviews</h3>
+
+                <!-- SINGLE REVIEW 1 -->
+                <div class="review-box">
+                    <img src="images/user1.jpg" class="review-pic">
+
+                    <div class="review-content">
+                        <div class="review-header">
+                            <span class="review-name">Ali Raza</span>
+                            <span class="review-date">12 Dec 2025 • 3:45 PM</span>
+                        </div>
+
+                        <div class="review-stars">⭐⭐⭐⭐⭐</div>
+
+                        <div class="review-text">
+                            Very good quality! The watch feels premium and looks even better in real.
+                            Delivery was also fast. Highly recommended.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SINGLE REVIEW 2 -->
+                <div class="review-box">
+                    <img src="images/user2.jpg" class="review-pic">
+
+                    <div class="review-content">
+                        <div class="review-header">
+                            <span class="review-name">Usman Malik</span>
+                            <span class="review-date">10 Dec 2025 • 11:10 AM</span>
+                        </div>
+
+                        <div class="review-stars">⭐⭐⭐⭐☆</div>
+
+                        <div class="review-text">
+                            Good product for the price. The strap quality could be better but overall worth it.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SINGLE REVIEW 3 -->
+                <div class="review-box">
+                    <img src="images/user3.jpg" class="review-pic">
+
+                    <div class="review-content">
+                        <div class="review-header">
+                            <span class="review-name">Sana Ahmed</span>
+                            <span class="review-date">8 Dec 2025 • 6:22 PM</span>
+                        </div>
+
+                        <div class="review-stars">⭐⭐⭐⭐⭐</div>
+
+                        <div class="review-text">
+                            Perfect gift item. Loved the packaging and build quality. Will buy again!
+                        </div>
+                    </div>
+                </div>
+                 <div class="text-center my-4">
+                    <button class="view-more-btn" >View more ▼</button>
+                </div>
+            </div>
+               <div class="row g-1 product-container justify-content-center">
+
+            <!-- ========== PRODUCT CARD 1 ========== -->
+            <div class="col-md-3 col-6">
+                <div class="product-card">
+                    <img src="../images/product pic1.jpg" class="product-img">
+
+                    <div class="product-info">
+                        <div class="mt-2 product-title"><a href="ProductDetails.html">Pack of 5 Pairs Men's Solid Color</a></div>
+
+                        <div class="price mt-1">
+                            Rs.1,717
+                            <span class="old-price">3,681</span>
+                            <div class="sold-text">30K+ sold</div>
+                        </div>
+
+                         <div class="rating-stars d-flex justify-content-between mt-2">
+                            <span>★★★★☆ <span class="text-muted">(2,708)</span></span>
+                            <div class="add-cart-btn">🛒</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+
+            <!-- ========== PRODUCT CARD 2 ========== -->
+            <div class="col-md-3 col-6">
+                <div class="product-card">
+                    <img src="../images/product pic2.jpg" class="product-img">
+
+                    <div class="product-info">
+                        <div class="mt-2 product-title"><a href="ProductDetails.html">Pack of 5 Pairs Men's Solid Color</a></div>
+
+                        <div class="price mt-1">
+                            Rs.1,717
+                            <span class="old-price">3,681</span>
+                            <div class="sold-text">30K+ sold</div>
+                        </div>
+
+                        <div class="rating-stars d-flex justify-content-between mt-2">
+                            <span>★★★★☆ <span class="text-muted">(2,708)</span></span>
+                            <div class="add-cart-btn">🛒</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ========== PRODUCT CARD 3 ========== -->
+            <div class="col-md-3 col-6">
+                <div class="product-card">
+                    <img src="../images/product pic3.jpg" class="product-img">
+
+                    <div class="product-info">
+                        <div class="mt-2 product-title"><a href="ProductDetails.html">Pack of 5 Pairs Men's Solid Color</a></div>
+
+                        <div class="price mt-1">
+                            Rs.1,717
+                            <span class="old-price">3,681</span>
+                            <div class="sold-text">30K+ sold</div>
+                        </div>
+
+                         <div class="rating-stars d-flex justify-content-between mt-2">
+                            <span>★★★★☆ <span class="text-muted">(2,708)</span></span>
+                            <div class="add-cart-btn">🛒</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ========== PRODUCT CARD 4 ========== -->
+            <div class="col-md-3 col-6">
+                <div class="product-card">
+                    <img src="../images/product pic5.jpg" class="product-img">
+
+                    <div class="product-info">
+                        <div class="mt-2 product-title"><a href="ProductDetails.html">Pack of 5 Pairs Men's Solid Color</a></div>
+
+                        <div class="price mt-1">
+                            Rs.1,717
+                            <span class="old-price">3,681</span>
+                            <div class="sold-text">30K+ sold</div>
+                        </div>
+
+                         <div class="rating-stars d-flex justify-content-between mt-2">
+                            <span>★★★★☆ <span class="text-muted">(2,708)</span></span>
+                            <div class="add-cart-btn">🛒</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- View More Button -->
+        <div class="text-center my-4">
+            <button class="view-more-btn">View more ▼</button>
+        </div>
+
+         </div>
+
+       
+        </div>
+
+        </div>
+    </div>
+
+   
+
+</div>
+
+
+
+
+    <div class="modal fade"  id="shippingModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <!-- HEADER -->
+            <div class="modal-header">
+                <h5 class="modal-title">Shipping Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- BODY -->
+            <div class="modal-body" style="padding: 20px;">
+
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle shipping-table">
+                        <tbody>
+
+                            <!-- SHIPPING COMPANY -->
+                            <tr>
+                                <th style="width: 35%">Shipping Company</th>
+                                <td>
+                                    <span class="badge bg-secondary me-1">TCS</span>
+                                    <span class="badge bg-secondary me-1">Leopards</span>
+                                    <span class="badge bg-secondary me-1">POSTEX</span>
+                                    <span class="badge bg-secondary me-1">Speedaf</span>
+                                    <span class="badge bg-secondary me-1">CPEX</span>
+                                    <span class="badge bg-secondary">ECL</span>
+                                </td>
+                            </tr>
+
+                            <!-- DELIVERY TIME -->
+                            <tr>
+                                <th>Estimated Delivery Time</th>
+                                <td>Dec 24 – Jan 6</td>
+                            </tr>
+
+                            <!-- SHIPPING COST -->
+                            <tr>
+                                <th>Shipping Cost</th>
+                                <td class="text-success fw-bold">Free on all orders</td>
+                            </tr>
+
+                            <!-- DELAY CREDIT -->
+                            <tr class="table-warning">
+                                <th>Delivery Guarantee</th>
+                                <td>
+                                    If delivered after <b>Jan 6</b>, you will get a  
+                                    <b class="text-danger">Rs.280 credit</b> within 48 hours.
+                                </td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+
+
+                <!-- FASTEST DELIVERY -->
+                <div class="ship-section">
+                    <div class="ship-title">Fastest Delivery <b>11 days</b></div>
+                </div>
+
+                <!-- DELIVERY PROBABILITY -->
+                <div class="ship-section">
+                    <div class="ship-title">Delivery Time Probability</div>
+
+                    <table class="ship-table">
+                        <tr>
+                            <td style="width: 70px;">≤ 11 days</td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width:6.8%;"></div>
+                                </div>
+                            </td>
+                            <td style="width: 70px;">6.8%</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 70px;">12 days</td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width:11%;"></div>
+                                </div>
+                            </td>
+                            <td style="width: 70px;">11%</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 70px;">13 days</td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width:16.5%;"></div>
+                                </div>
+                            </td>
+                            <td style="width: 70px;">16.5%</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 70px;">14 days</td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width:16.6%;"></div>
+                                </div>
+                            </td>
+                            <td style="width: 70px;">16.6%</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 70px;">15 days</td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width:15.3%;"></div>
+                                </div>
+                            </td>
+                            <td style="width: 70px;">15.3%</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 70px;">16 days</td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width:12.1%;"></div>
+                                </div>
+                            </td>
+                            <td style="width: 70px;">12.1%</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 70px;">17 days</td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width:9.4%;"></div>
+                                </div>
+                            </td>
+                            <td style="width: 70px;">9.4%</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 70px;">18 days</td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width:5.3%;"></div>
+                                </div>
+                            </td>
+                            <td style="width: 70px;">5.3%</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 70px;">19 days</td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width:3%;"></div>
+                                </div>
+                            </td>
+                            <td style="width: 70px;">3%</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 70px;">20 days</td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width:1.5%;"></div>
+                                </div>
+                            </td>
+                            <td style="width: 70px;">1.5%</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 70px;">21 days</td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width:1%;"></div>
+                                </div>
+                            </td>
+                            <td style="width: 70px;">1%</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 70px;">22 days</td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width:0.4%;"></div>
+                                </div>
+                            </td>
+                            <td style="width: 70px;">0.4%</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 70px;">23 days</td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width:0.2%;"></div>
+                                </div>
+                            </td>
+                            <td style="width: 70px;">0.2%</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 70px;">> 23 days</td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width:0.9%;"></div>
+                                </div>
+                            </td>
+                            <td style="width: 70px;">0.9%</td>
+                        </tr>
+                    </table>
+                </div>
+
+            </div>
+
+            
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="imageZoomModal" tabindex="-1">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content bg-black">
+            <div class="modal-body p-2">
+                <button class="btn btn-light position-absolute top-0 end-0 m-3 z-3"
+                        data-bs-dismiss="modal">✕</button>
+
+                <div id="modalSliderContainer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="serviceModal" tabindex="-1" aria-labelledby="serviceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="serviceModalLabel">Service Guarantee</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <h6>Free returns within 90 days of purchase</h6>
+        <ul>
+            <li>The first return of one or multiple returnable items for EVERY order is free!</li>
+            <li>This item can be returned within 90 days from the date of purchase.</li>
+            <li>If the returned item is used or damaged, or has missing parts/accessories, and this is not due to Temu or the seller, the refund will be reduced to compensate for the lost value of the item.</li>
+        </ul>
+        <a href="#">Read full return policy</a>
+
+        <h6 class="mt-3">Price adjustment within 30 days of payment</h6>
+        <ul>
+            <li>Items purchased from Temu are eligible for our price adjustment policy. Temu will provide the price difference in the currency that the order was paid in if the selling price of the item purchased was reduced within 30 days of payment in the same country or region.</li>
+            <li>The shipment of your order will not be affected by applying for a price adjustment before you receive your item(s). You can request a price adjustment refund by selecting the relevant order in 'Your Orders' and clicking on the 'Price adjustment' button.</li>
+            <li>Items that are promotional or no longer available may not be eligible for our price adjustment policy. Fees, including but not limited to shipping fees, will be excluded for any price adjustment calculation. Temu reserves the right to the final interpretation of our price adjustment policy, the right to modify the terms of this policy at any time, and the right to deny any price adjustment at our sole discretion.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="imageModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-black">
+            <div class="modal-body">
+
+                <div class="row">
+                    <!-- Thumbnails -->
+                    <div class="col-2  d-md-block">
+                        <div class="modal-thumbs d-flex justify-content-between">
+                            <img src="../images/watch pic1.jpg"  onclick="goToSlide1(0)">
+                            <img src="../images/watch pic2.jpg"  onclick="goToSlide1(1)">
+                            <img src="../images/watch pic3.jpg"  onclick="goToSlide1(2)">
+                            <img src="../images/watch pic4.jpg"  onclick="goToSlide1(3)">
+                            <img src="../images/watch pic5.jpg"  onclick="goToSlide1(4)">
+                        </div>
+                    </div>
+
+                    <!-- Main Slider -->
+                    <div class="col-md-10 text-center">
+                        <div id="imageCarousel" class="carousel slide">
+                            <div class="carousel-inner">
+                                <div class="carousel-item active">
+                                    <img src="../images/watch pic1.jpg" class="zoom-img" onmousemove="moveZoom(event)" onclick="zoomIn(event)">
+                                </div>
+                                <div class="carousel-item">
+                                    <img src="../images/watch pic2.jpg" class="zoom-img" onmousemove="moveZoom(event)" onclick="zoomIn(event)">
+                                </div>
+                                <div class="carousel-item">
+                                    <img src="../images/watch pic3.jpg" class="zoom-img" onmousemove="moveZoom(event)" onclick="zoomIn(event)">
+                                </div>
+                                <div class="carousel-item">
+                                    <img src="../images/watch pic4.jpg" class="zoom-img" onmousemove="moveZoom(event)" onclick="zoomIn(event)">
+                                </div>
+                                <div class="carousel-item">
+                                    <img src="../images/watch pic5.jpg" class="zoom-img" onmousemove="moveZoom(event)" onclick="zoomIn(event)">
+                                </div>
+                            </div>
+
+                            <button class="carousel-control-prev" type="button" data-bs-target="#imageCarousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon"></span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#imageCarousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon"></span>
+                            </button>
+                        </div>
+
+                        <!-- Zoom Buttons -->
+                        <div class="mt-3">
+                            <button class="btn btn-light btn-sm" onclick="zoomIn()">+</button>
+                            <button class="btn btn-light btn-sm" onclick="zoomOut()">−</button>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold" id="shareModalLabel">Share Product</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="d-flex justify-content-around mb-4">
+          <a href="#" id="shareWA" target="_blank" class="text-decoration-none text-dark">
+                <div class="bg-light p-3 rounded-circle mb-1">
+                    <i class="fa-brands fa-whatsapp text-success fs-3"></i>
+                </div>
+                <small>WhatsApp</small>
+            </a>
+
+            <a href="#" id="shareFB" target="_blank" class="text-decoration-none text-dark">
+                <div class="bg-light p-3 rounded-circle mb-1">
+                    <i class="fa-brands fa-facebook-f text-primary fs-3"></i>
+                </div>
+                <small>Facebook</small>
+            </a>
+            <!-- <a href="#" class="text-decoration-none text-dark">
+                <div class="bg-light p-3 rounded-circle mb-1"><i class="fa fa-messenger text-info fs-3"></i></div>
+                <small>Messenger</small>
+            </a> -->
+        </div>
+
+        <div class="input-group mb-3">
+          <input type="text" id="productLink" class="form-control bg-light" value="https://temu.com/product/12345" readonly>
+          <button class="btn btn-primary" type="button" onclick="copyToClipboard()">Copy</button>
+        </div>
+        <div id="copyFeedback" class="text-success small d-none">Link copied to clipboard!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-zoom/1.7.21/jquery.zoom.min.js"></script>
+
+<script>
+            const postUrl = encodeURIComponent(window.location.href);
+document.getElementById("productLink").value=postUrl;
+    document.addEventListener("DOMContentLoaded", function() {
+        // Get current page URL and Title
+        const postTitle = encodeURIComponent("Check out this amazing product!");
+
+        // WhatsApp Link: https://wa.me/?text=[title][url]
+        const waBtn = document.getElementById('shareWA');
+        waBtn.href = `https://wa.me/?text=${postTitle}%20${postUrl}`;
+
+        // Facebook Link: https://www.facebook.com/sharer/sharer.php?u=[url]
+        const fbBtn = document.getElementById('shareFB');
+        fbBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${postUrl}`;
+    });
+function copyToClipboard() {
+   
+    const feedback = document.getElementById("copyFeedback");
+
+    // Select the text field
+    // copyText.select();
+    // copyText.setSelectionRange(0, 99999); // For mobile devices
+
+    // Copy the text inside the text field
+    navigator.clipboard.writeText(postUrl).then(() => {
+        // Show feedback
+        feedback.classList.remove("d-none");
+        
+        // Hide feedback after 2 seconds
+        setTimeout(() => {
+            feedback.classList.add("d-none");
+        }, 2000);
+    });
+}
+
+    let scale = 1;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 2;
+const ZOOM_STEP = 3;
+
+
+function applyZoom(img, xPercent = 50, yPercent = 50) {
+    img.style.transformOrigin = `${xPercent}% ${yPercent}%`;
+    img.style.transform = `scale(${scale})`;
+
+    // Cursor change
+    img.style.cursor = scale >= MAX_ZOOM ? 'zoom-out' : 'zoom-in';
+}
+
+function zoomIn(event,container="modalImageCarousel") {
+    const img = document.querySelector("#"+container+' .carousel-item.active img');
+    if (!img || scale >= MAX_ZOOM) {zoomOut();return;}
+
+    scale = 2;
+
+    const rect = img.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+        // scale = Math.min(scale + ZOOM_STEP, MAX_ZOOM);
+
+    // const x = ((event.clientX - rect.left) / rect.width) * 100;
+    // const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+    applyZoom(img, x, y);
+}
+
+function zoomOut(container="modalImageCarousel") {
+    const img = document.querySelector("#"+container+' .carousel-item.active img');
+    if (!img) return;
+
+    scale = Math.max(MIN_ZOOM, scale - 2);
+    applyZoom(img);
+}
+
+function resetZoom() {
+    const img = document.querySelector('.carousel-item.active img');
+    if (!img) return;
+
+    scale = 1;
+    img.style.transform = 'scale(1)';
+    img.style.transformOrigin = 'center center';
+    img.style.cursor = 'zoom-in';
+}
+function moveZoom(event) {
+    const img = getActiveImage();
+    if (!img || scale <= 1) return;
+
+    const rect = img.getBoundingClientRect();
+
+    // Cursor position relative to the ORIGINAL image
+    const x = ((event.clientX  - rect.left) / rect.width) * 100;
+    const y = ((event.clientY  - rect.top) / rect.height) * 100;
+
+    // Clamp inside image bounds
+    const clampedX = Math.max(0, Math.min(100, x));
+    const clampedY = Math.max(0, Math.min(100, y));
+
+    img.style.transformOrigin = `${clampedX}% ${clampedY}%`;
+    img.style.transform = `scale(${scale})`;
+}
+
+
+function getActiveImage(container="modalImageCarousel") {
+    return document.querySelector(`#${container} .carousel-item.active img`);
+}
+/* Reset zoom when slide changes */
+// document.getElementById('imageCarousel')
+//     .addEventListener('slid.bs.carousel', resetZoom);
+function goToSlide1(index,container='imageCarousel') {
+    const carousel = bootstrap.Carousel.getOrCreateInstance(
+        document.getElementById(container)
+    );
+    carousel.to(index);
+    let thumbs = document.getElementById(container).closest(".row").querySelectorAll('.thumb');
+    thumbs.forEach(t => t.classList.remove('active'));
+    if (thumbs[index]) thumbs[index].classList.add('active');
+
+    resetZoom();
+}
+
+function openImageModal(startIndex = 0) {
+//     const imageZoomModal = document.getElementById('imageZoomModal');
+
+// if (imageZoomModal.classList.contains('show')) {
+//     zoomIn(event);
+//     return;
+// } 
+
+    const original = document.getElementById('productImagesSlider');
+    const clone = original.cloneNode(true);
+
+    clone.id = "modalProductSlider";
+    clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+
+    // Fix carousel id inside modal
+    const carousel = clone.querySelector('.carousel');
+    carousel.id = "modalImageCarousel";
+
+    clone.querySelectorAll('[data-bs-target]')
+        .forEach(btn => btn.setAttribute('data-bs-target', '#modalImageCarousel'));
+// Thumbnails click
+clone.querySelectorAll('.thumb').forEach((img, index) => {
+    img.onclick = null;
+
+    img.addEventListener('click', () => {
+        goToSlide1(index, 'modalImageCarousel');
+    });
+});
+
+// Zoom images
+// clone.querySelectorAll('.zoom-img').forEach(img => {
+//     img.onclick = null;
+
+//     img.addEventListener('click', zoomIn);
+//     img.addEventListener('mousemove', moveZoom);
+// });
+clone.querySelectorAll('.zoom-img').forEach(img => {
+    img.onclick = null;
+    img.onmousemove = null;
+
+    if (img.closest('.img-display')) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'img-display';
+
+    const zoomSpan = document.createElement('span');
+    zoomSpan.className = 'zoom';
+    zoomSpan.style.display = 'inline-block';
+
+    img.parentNode.insertBefore(wrapper, img);
+    zoomSpan.appendChild(img);
+    wrapper.appendChild(zoomSpan);
+
+    $(zoomSpan).zoom({
+        magnify: 0.8,            // zoom scale
+    });
+});
+
+
+
+ 
+
+
+    document.getElementById('modalSliderContainer').innerHTML = '';
+    document.getElementById('modalSliderContainer').appendChild(clone);
+
+    const modal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
+    modal.show();
+
+    const bsCarousel = new bootstrap.Carousel(carousel);
+    bsCarousel.to(startIndex);
+
+    scale = 1;
+}
+</script>
+
+<script>
+// let scale = 1;
+
+function changeImage(el) {
+    document.getElementById("mainImage").src = el.src;
+    document.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+}
+
+
+
+
+// function applyZoom() {
+//     document.querySelectorAll('.carousel-item.active img')
+//         .forEach(img => img.style.transform = `scale(${scale})`);
+// }
+
+
+</script>
+
+
+<script>
+function changeImage(img) {
+    document.getElementById("mainImage").src = img.src;
+
+    // Remove previous highlight
+    document.querySelectorAll(".thumb").forEach(x => x.classList.remove("active"));
+
+    // Highlight selected thumbnail
+    img.classList.add("active");
+}
+</script>
+<script>
+    let index = 0;
+const slides = document.querySelector(".slides");
+const total = document.querySelectorAll(".slide").length;
+const dotsContainer = document.querySelector(".dots");
+
+// Generate dots
+// for (let i = 0; i < total; i++) {
+//     let dot = document.createElement("span");
+//     dot.addEventListener("click", () => goToSlide(i));
+//     dotsContainer.appendChild(dot);
+// }
+
+// updateSlider();
+
+// document.querySelector(".next").onclick = () => next();
+// document.querySelector(".prev").onclick = () => prev();
+
+function next() {
+    index = (index + 1) % total;
+    updateSlider();
+}
+
+function prev() {
+    index = (index - 1 + total) % total;
+    updateSlider();
+}
+
+function goToSlide(i) {
+    index = i;
+    updateSlider();
+}
+
+function updateSlider() {
+    slides.style.transform = `translateX(-${index * 100}%)`;
+
+    let dots = document.querySelectorAll(".dots span");
+    dots.forEach(d => d.classList.remove("active"));
+    dots[index].classList.add("active");
+}
+
+/* Auto Slide */
+setInterval(next, 30000);
+
+
+
+// View PDF
+function openPdf() {
+    window.open("manual.pdf", "_blank");
+}
+
+// Open full screen viewer
+function openFullScreen(src) {
+    document.getElementById("fullscreenImage").src = src;
+    document.getElementById("fullscreenViewer").style.display = "flex";
+}
+
+// Close full screen
+function closeFullScreen() {
+    document.getElementById("fullscreenViewer").style.display = "none";
+}
+
+</script>
+
+    <!-- Bootstrap JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+ 
+    <!-- ================== FOOTER ================== -->
+    <footer>
+        <div class="container">
+            <div class="row">
+
+                <div class="col-md-3">
+                    <h6>Get to Know Us</h6>
+                    <a href="AboutUs.html">About</a><br>
+                    <a href="PrivacyPolicy.html">Privacy Policy</a><br>
+                    <a href="SupportHelp.html">Support Help</a><br>
+                </div>
+                <div class="col-md-3">
+                    <h6>Terms Conditions</h6>
+                    <a href="TermsConditions.html">Terms & Conditions</a><br>
+                </div>
+                <div class="col-md-3">
+                    <h6>Frequentyly Asked Questions</h6>
+                    <a href="FAQ.html">FAQ</a><br>
+                </div>
+                <div class="col-md-3">
+                    <h6>Help</h6>
+                    <a href="Contact.html">Customer Service</a><br>
+                    <a href="TicketSystem.html">Ticket System</a><br>
+                    <a href="MyOrders.html">Returns</a><br>
+                </div>
+
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- ========== SIDEBAR TOGGLE JS ========== -->
+ <script>
+
+
+let selectedOptions = {};
+let productData={};
+// RENDER OPTIONS
+function renderOptions(productData) {
+    const container = document.getElementById("productOptions");
+    container.innerHTML = "";
+
+    productData.options.forEach(opt => {
+        const group = document.createElement("div");
+        group.className = "mb-2";
+
+        group.innerHTML = `
+            <label class="fw-semibold text-capitalize mb-1 d-block">
+                ${opt.option_name}
+            </label>
+            <div class="d-flex flex-wrap gap-2" id="${opt.option_name}-group"></div>
+        `;
+
+        container.appendChild(group);
+
+        const btnGroup = group.querySelector(`#${opt.option_name}-group`);
+
+        opt.option.forEach(value => {
+            const btn = document.createElement("button");
+            btn.className = "btn btn-outline-secondary btn-sm";
+            btn.innerText = value.toUpperCase();
+
+            btn.onclick = () => selectOption(opt.option_name, value, btn);
+
+            btnGroup.appendChild(btn);
+        });
+    });
+}
+
+// HANDLE SELECTION
+function selectOption(type, value, btn) {
+    selectedOptions[type] = value;
+
+    // active style
+    btn.parentElement.querySelectorAll("button")
+        .forEach(b => b.classList.remove("active", "btn-dark"));
+
+    btn.classList.add("active", "btn-dark");
+
+    updateVariantPrice();
+}
+
+// MATCH VARIANT
+function updateVariantPrice() {
+    if (Object.keys(selectedOptions).length !== productData.options.length) return;
+
+    const variantName = Object.values(selectedOptions).join(" / ");
+
+    const variant = productData.variants.find(v => v.name.toLowerCase() === variantName.toLowerCase());
+
+    if (variant) {
+        document.querySelector(".price-now").innerText = variant.price;
+    }
+}
+
+// INIT
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    const data = sessionStorage.getItem('productPreview');
+    if (!data) return;
+
+    const product = JSON.parse(data);
+    console.log(product);
+    if(product.variants && product.variants.length > 0){
+        productData={variants:product.variants,options:product.options};
+        renderOptions({variants:product.variants,options:product.options});
+
+    }
+    if(product.promotion && product.promotion.length > 0){
+        $('#TopPromotionSection').show();
+        console.log("product.promotion.length"+product.promotion.length);
+        document.getElementById('promotionName').innerHTML = product.promotion[0].name;
+        document.getElementById('promotionType').innerHTML = product.promotion[0].discount_type;
+        document.getElementById('promotionDescription').innerHTML = product.promotion[0].description;
+
+    }
+    // TITLE
+
+    document.querySelector('.product-title').innerHTML = product.name;
+
+    // PRICE
+    document.querySelector('.price-now').innerText = `Rs. ${product.price}`;
+    document.querySelector('.price-old').innerText = product.old_price || '';
+// Using jQuery to update all elements with the class 'discount'
+const discountText = product.discount ? `-${product.discount}%` : '';
+
+// .text() in jQuery updates all matched elements automatically
+$('.discount').text(discountText);
+
+// If you want to hide the badge entirely if there is no discount:
+if (!product.discount) {
+    $('.discount').hide();
+} else {
+    $('.discount').show();
+}
+    // DESCRIPTION (if you want)
+    // document.querySelector('#descriptionBox').innerHTML = product.description;
+
+    // IMAGES
+    const carouselInner = document.querySelector('#imageCarousel .carousel-inner');
+    const thumbList = document.querySelector('.thumb-list');
+
+    carouselInner.innerHTML = '';
+    thumbList.innerHTML = '';
+
+    product.images.forEach((img, index) => {
+        // Carousel
+        carouselInner.innerHTML += `
+            <div class="carousel-item ${index === 0 ? 'active' : ''}">
+                <img src="${img}" class="zoom-img" onclick="openImageModal(${index})">
+            </div>
+        `;
+
+        // Thumbnails
+        thumbList.innerHTML += `
+            <img src="${img}" class="thumb ${index === 0 ? 'active' : ''}"
+                 onclick="goToSlide1(${index})">
+        `;
+    });
+});
+</script>
+
+ <script>
+    document.getElementById('toggleNotifications')
+        .addEventListener('click', function () {
+        document
+            .getElementById('mobileNotifications')
+            .classList.toggle('d-none');
+        });
+</script>
+<script>
+   
+
+
+
+    const openBtn = document.getElementById("openSidebar");
+    const closeBtn = document.getElementById("closeSidebar");
+    const sidebar = document.getElementById("sidebarMenu");
+
+    openBtn.addEventListener("click", () => {
+        sidebar.classList.add("open");
+    });
+
+    closeBtn.addEventListener("click", () => {
+        sidebar.classList.remove("open");
+    });
+
+</script>
+
+</body>
+
+</html>

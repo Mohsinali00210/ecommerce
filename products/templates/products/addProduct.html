@@ -1,0 +1,1342 @@
+{% extends "base.html" %}
+
+{% block title %}Attributes{% endblock %}
+
+{% block content %}
+<style>
+    span.select2-dropdown.select2-dropdown--below {
+    z-index: 100000;
+}
+</style>
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-box-arrow-in-up"></i> Add / Manage Product
+            </div>
+
+            <div class="card-body">
+
+                <!-- ================= Product Details ================= -->
+                <h6 class="border-bottom pb-1 mb-3">
+                    <i class="bi bi-info-circle"></i> Product Details
+                </h6>
+
+                <form id="addProductForm">
+                    <div class="row g-2">
+
+                        <div class="col-md-4">
+                            <label class="form-label">Product Name</label>
+                            <input type="text" id="name" class="form-control form-control-sm" placeholder="Enter product name" required>
+                            <input type="hidden" id="id"  >
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Product Qoute</label>
+                            <input type="text" id="qoute" class="form-control form-control-sm" placeholder="Enter product qoute" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Product Type</label>
+                            <select class="form-select form-select-sm" id="product_type" width="100%" required>
+                                <option value="1" >Simple</option>
+                                <option value="2" selected>Grouped</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">SKU</label>
+                            <input type="text" id="sku" class="form-control form-control-sm" placeholder="Enter SKU" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label" >Category</label>
+                            <select class="form-select form-select-sm" id="Category" multiple width="100%" required>
+                                <option>Select Category</option>
+                            </select>
+                        </div>
+                         <div class="col-md-4">
+                            <label class="form-label" >Brand</label>
+                            <select class="form-select form-select-sm"id="Brand" width="100%">
+                                <option>Select Brand</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Price</label>
+                            <input type="number" id="price" class="form-control form-control-sm" placeholder="Enter price" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="old_price">Old Price</label>
+                            <input type="number" step="0.01" class="form-control form-control-sm" id="old_price" name="old_price" value="" min="0">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label" for="original_price">Original Price</label>
+                            <input type="number" step="0.01" class="form-control form-control-sm" id="original_price" name="original_price" value="" min="0">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label" for="other_product_cost">Other Product Cost</label>
+                            <input type="number" step="0.01" class="form-control form-control-sm" id="other_product_cost" name="other_product_cost" value="" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Discount (%)</label>
+                            <input type="number" id="discount" class="form-control form-control-sm" placeholder="Enter discount">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Stock Quantity</label>
+                            <input type="number" id="stockQuantity" class="form-control form-control-sm" placeholder="Enter stock">
+                        </div>
+                        <div class="col-md-6">
+                                <label class="form-label">Compare-at</label>
+                                <input type="number" id="compareAt1" class="form-control form-control-sm" placeholder="Enter compare at">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Compare-at Price</label>
+                                <input type="number" id="compareAtPrice1" class="form-control form-control-sm" placeholder="Enter original price">
+                            </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select class="form-select form-select-sm" id="status">
+                                <option value="active" selected>Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="featured">Featured</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Description</label>
+                            <div id="description" style="height: 200px;"></div>
+                            {% comment %} <textarea class="form-control form-control-sm" id="description" rows="3" placeholder="Enter product description"></textarea> {% endcomment %}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Brief Description</label>
+                            <textarea class="form-control form-control-sm" id="briefDescription" rows="3" placeholder="Enter product brief description"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Admin Comment</label>
+                            <textarea class="form-control form-control-sm" id="admin_comment" rows="3" placeholder="Enter admin comment"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Available Start Date</label>
+                            <input type="date" class="form-control form-control-sm" id="available_start_date" placeholder="Enter available start date"/>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Available End Date</label>
+                            <input type="date" class="form-control form-control-sm" id="available_end_date" placeholder="Enter available end date"/>
+                        </div>
+                        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="allow_customer_reviews" checked name="allow_customer_reviews"><label class="form-check-label" for="allow_customer_reviews">Allow Customer Reviews</label></div></div>
+                        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="mark_as_new" checked name="mark_as_new"><label class="form-check-label" for="mark_as_new">Mark As New</label></div></div>
+                        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="available_for_preorder" checked name="available_for_preorder"><label class="form-check-label" for="available_for_preorder">Available For Pre-Order</label></div></div>
+                        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="disable_buy_button" name="disable_buy_button"><label class="form-check-label" for="disable_buy_button">Disable Buy Button</label></div></div>
+                        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="disable_wishlist_button" name="disable_wishlist_button"><label class="form-check-label" for="disable_wishlist_button">Disable Wishlist Button</label></div></div>
+                    </div>
+
+                    <!-- ================= Pricing & Discounts ================= -->
+                    <h6 class="border-bottom pb-1 mt-3 mb-3">
+                        <i class="bi bi-cash-stack"></i> Pricing & Discounts
+                    </h6>
+
+                        <!-- Standard Price -->
+                        <div class="mb-2 row g-2">
+                            <div class="col-md-4">
+                                <label class="form-label">Name</label>
+                                <input type="text" id="discountedName" class="form-control form-control-sm" placeholder="Enter name">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control form-control-sm" id="promotionDescription" rows="2" placeholder="Enter description"></textarea>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Promo Code</label>
+                                <input type="text" id="discountedPromoCode" class="form-control form-control-sm" placeholder="Enter promo code">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Discount Type</label>
+                                <select id="discountedType" class="form-control form-control-sm" >
+                                    <option value="" disabled selected>Select Type</option>
+                                    <option value="percentage">Percentage (%)</option>
+                                    <option value="fixed">Fixed Amount</option>
+                                    {% comment %} <option value="buy_x_get_y">Buy X Get Y</option> {% endcomment %}
+                                    <option value="free_delivery">Free Delivary</option>
+                                <select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Price</label>
+                                <input type="number" id="discountedPrice" disabled class="form-control form-control-sm" placeholder="Enter price">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Compare-at</label>
+                                <input type="number" id="compareAt" disabled class="form-control form-control-sm" placeholder="Enter compare at">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Compare-at Price</label>
+                                <input type="number" id="compareAtPrice" disabled class="form-control form-control-sm" placeholder="Enter original price">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Discount (%)</label>
+                                <input type="number" id="discount2" disabled class="form-control form-control-sm" placeholder="Discount percentage">
+                            </div>
+                             <div class="col-md-6">
+                                <label class="form-label">Promotion Start Date</label>
+                                <input type="date" id="promotionSDate" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Promotion End Date</label>
+                                <input type="date" id="promotionEDate" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-12">
+                                <div class="form-check"><input class="form-check-input" type="checkbox" id="tax_exempt" name="tax_exempt"><label class="form-check-label" for="tax_exempt">Tax Exempt</label></div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Tax Category</label>
+                                <select class="form-select form-select-sm" id="tax_category" width="100%" disabled>
+                                     <option  selected disabled>Select Tax Category</option>
+                                    {% for tax in tax_categories %}
+                                        <option value="{{ tax.id }}">
+                                            {{ tax.name }} ({{ tax.percentage }}%)
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        {% comment %} <!-- Bulk Discounts -->
+                        <div class="mb-2">
+                            <label class="form-label">Bulk Discount Rules</label>
+                            <textarea class="form-control form-control-sm" id="bulkDiscount" rows="2" placeholder="E.g., Buy 3 get 5% off"></textarea>
+                        </div> {% endcomment %}
+
+                    <!-- ================= Product Tags ================= -->
+                    <h6 class="border-bottom pb-1 mt-3 mb-3">
+                        <i class="bi bi-tags"></i> Product Tags
+                    </h6>
+
+                    <div class="mb-2">
+                        <label class="form-label">Add Tags</label>
+                        <div class="input-group">
+                            <input type="text" id="tagInput" class="form-control form-control-sm" placeholder="Enter tag and press Enter">
+                            <button type="button" class="btn btn-dark btn-sm" id="addTagBtn">Add</button>
+                        </div>
+                    </div>
+
+                    <!-- Tags Preview -->
+                    <div id="tagsPreview" class="d-flex flex-wrap gap-1"></div>
+
+                    <!-- Variant Inputs -->
+                    <div id="variantsInputs">
+                        <div class="row g-2 mb-2 variant-row" data-index="1">
+                            <div class="col-md-3">
+                                <label class="form-label">Variant Name</label>
+                                <input type="text" id="variantName" class="form-control form-control-sm variant-name" placeholder="e.g., Color">
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label">Options (comma separated)</label>
+                                <input type="text" id="variantOption" class="form-control form-control-sm variant-options" placeholder="Red, Blue, Green">
+                            </div>
+                            <div class="col-md-2 d-grid align-items-end">
+                                <button type="button"  class="btn btn-dark btn-sm mt-2 add-variant-btn">Add Variant</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Variants Table -->
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="" id="autoFillToggle" checked>
+                        <label class="form-check-label" for="autoFillToggle">
+                            Auto-fill Price & Stock for all variants
+                        </label>
+                    </div>
+
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm table-bordered align-middle" id="variantsTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Variant</th>
+                                    <th>SKU</th>
+                                    <th>Price</th>
+                                    <th>Stock</th>
+                                    <th>Images</th>
+                                </tr>
+                            </thead>
+                            <tbody id="variantsTableBody"></tbody>
+                        </table>
+                    </div>
+
+
+
+                    <!-- Product Images / Media Manager -->
+                    <h6 class="border-bottom pb-1 mt-3 mb-3">
+                        <i class="bi bi-image"></i> Product Images / Media Manager
+                    </h6>
+
+                    <div class="mb-3">
+                        <input type="file" id="productImagesInput" class="form-control form-control-sm" multiple accept="image/*">
+                        <small class="text-muted">Upload multiple images for product or variants</small>
+                    </div>
+                    <!-- Preview Container -->
+                    <div id="productImagesPreview" class="d-flex flex-wrap gap-2"></div>
+                    <div class="mb-3">
+                        <label>Product Video</label>
+                        <input type="file" id="productVideo" class="form-control form-control-sm" accept="video/*">
+                    </div>
+
+
+                    <!-- ================= Shipping & Delivery ================= -->
+                    <h6 class="border-bottom pb-1 mt-3 mb-3">
+                        <i class="bi bi-truck"></i> Shipping & Delivery
+                    </h6>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="shipping_enabled" name="shipping_enabled" checked>
+                                    <label class="form-check-label" for="shipping_enabled">Shipping Enabled</label>
+                                </div>
+                            </div>
+    
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="ship_separately" name="ship_separately">
+                                    <label class="form-check-label" for="ship_separately">Ship Separately</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" value="" id="freeShippingToggle">
+                                    <label class="form-check-label" for="freeShippingToggle">Free Shipping</label>
+                                </div>
+                            </div>
+    
+                            <div class="col-md-6">
+                                <label class="form-label" for="shipping_charges">Shipping Charges</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" id="shipping_charges" name="shipping_charges" value="0.00" min="0" required>
+                            </div>
+    
+                            <div class="col-md-6">
+                                <label class="form-label" for="additional_shipping_charges">Additional Shipping Charges</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" id="additional_shipping_charges" name="additional_shipping_charges" value="0.00" min="0" required>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-3">
+                                <label class="form-label">Weight (kg)</label>
+                                <input type="number" id="weight" class="form-control form-control-sm" step="0.1" placeholder="Weight">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Length (cm)</label>
+                                <input type="number" id="length" class="form-control form-control-sm" step="0.1" placeholder="Length">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Width (cm)</label>
+                                <input type="number" id="width" class="form-control form-control-sm" step="0.1" placeholder="Width">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Height (cm)</label>
+                                <input type="number" id="height" class="form-control form-control-sm" step="0.1" placeholder="Height">
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Shipping Class</label>
+                            <select class="form-select form-select-sm" id="shippingClass">
+                                <option value="standard">Standard</option>
+                                <option value="express">Express</option>
+                                <option value="overnight">Overnight</option>
+                            </select>
+                        </div>
+
+                        
+
+                        <div class="mb-2">
+                            <label class="form-label">Handling Time (days)</label>
+                            <input type="number" id="handlingTime" class="form-control form-control-sm" placeholder="Enter handling time in days">
+                        </div>
+
+
+                    <!-- ================= SEO / Meta Information ================= -->
+                    <h6 class="border-bottom pb-1 mt-3 mb-3">
+                        <i class="bi bi-search"></i> SEO / Meta Information
+                    </h6>
+
+                        <div class="mb-2">
+                            <label class="form-label">Meta Title</label>
+                            <input type="text" id="metaTitle" class="form-control form-control-sm" placeholder="Enter meta title for SEO">
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Meta Description</label>
+                            <textarea class="form-control form-control-sm" id="metaDescription" rows="3" placeholder="Enter meta description for SEO"></textarea>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">URL Slug</label>
+                            <input type="text" id="urlSlug" class="form-control form-control-sm" placeholder="Custom URL slug">
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Focus Keywords</label>
+                            <input type="text" id="focusKeywords" class="form-control form-control-sm" placeholder="Enter focus keywords, comma separated">
+                        </div>
+                        
+                    
+                    <!-- ================= Product Reviews Management ================= -->
+                    <h6 class="border-bottom pb-1 mt-3 mb-2">
+                        <i class="bi bi-chat-left-text"></i> Product Reviews
+                    </h6>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>User</th>
+                                    <th>Rating</th>
+                                    <th>Comment</th>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>John Doe</td>
+                                    <td>⭐⭐⭐⭐</td>
+                                    <td>Great product!</td>
+                                    <td>12 Aug 2024</td>
+                                    <td>
+                                        <button class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#editReviewModal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteReviewModal">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- ================= Save Button ================= -->
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-dark btn-sm w-100" >
+                            <i class="bi bi-save"></i> Save Product
+                        </button>
+                        <button type="submit" id="ProductPreview" class="btn btn-primary btn-sm w-100" >
+                            <i class="bi bi-eye"></i> Product Preview
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+        <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<div class="modal fade" id="deleteReviewModal" tabindex="-1" aria-labelledby="deleteReviewLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="deleteReviewLabel"><i class="bi bi-trash"></i> Delete Review</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <p>Are you sure you want to delete this review?</p>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-danger w-50" id="confirmDeleteReview">Yes, Delete</button>
+            <button type="button" class="btn btn-secondary w-50" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="editReviewModal" tabindex="-1" aria-labelledby="editReviewLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="editReviewLabel"><i class="bi bi-pencil"></i> Edit Review</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="editReviewForm">
+            <div class="mb-2">
+                <label class="form-label">User</label>
+                <input type="text" class="form-control form-control-sm" value="John Doe" disabled>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Rating</label>
+                <select class="form-select form-select-sm">
+                    <option value="1">⭐</option>
+                    <option value="2">⭐⭐</option>
+                    <option value="3">⭐⭐⭐</option>
+                    <option value="4" selected>⭐⭐⭐⭐</option>
+                    <option value="5">⭐⭐⭐⭐⭐</option>
+                </select>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Comment</label>
+                <textarea class="form-control form-control-sm" rows="3">Great product!</textarea>
+            </div>
+            <button type="submit" class="btn btn-dark w-100">Update Review</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+
+    $('#tax_exempt').on('change',function(){
+        $('#tax_category')
+            .prop('disabled',!this.checked)
+            .prop('required',this.checked);
+    });
+    $('#freeShippingToggle').on('change',function(){
+        $('#shipping_charges').prop('disabled',this.checked).prop('required',!this.checked);
+        $('#additional_shipping_charges').prop('disabled',this.checked).prop('required',!this.checked);
+        
+    });
+    function generateIdentifiers() {
+        const name = $('#name').val() || '';
+        const brand = $('#Brand option:selected').text() || '';
+        
+        // 1. Handle Multiple Categories
+        // Map through each selected option and get the first 2 letters
+        let selectedCats = $('#Category option:selected').map(function() {
+            return $(this).text().substring(0, 2).toUpperCase().trim();
+        }).get(); // .get() converts the jQuery object to a real Array
+        
+        let catPart = selectedCats.join('-'); // e.g., "EL-CL" if Electronics and Clothing are picked
+
+        // 2. Generate Slug
+        let rawSlug = `${name} ${catPart} ${brand}`;
+
+        let slug = rawSlug.toLowerCase()
+            .replace(/[^a-z0-9 -]/g, '') // Remove special characters
+            .replace(/\s+/g, '-')       // Replace spaces with -
+            .replace(/-+/g, '-')       // Remove duplicate dashes
+            .replace(/^-+|-+$/g, '');   // Trim dashes from start and end
+
+        $('#urlSlug').val(slug);
+        // 3. Generate SKU
+        if (name.length >= 2) {
+            let namePart = name.substring(0, 3).toUpperCase();
+            let brandPart = brand.substring(0, 2).toUpperCase().trim();
+            let timePart = Math.floor(Date.now() / 1000).toString().slice(-4); 
+
+            // Final SKU Format: CATS-BRAND-NAME-TIME
+            // Using filter(Boolean) to remove empty dashes if fields are missing
+            let skuParts = [namePart, catPart, brandPart,  timePart].filter(Boolean);
+            let sku = skuParts.join('-');
+            
+            $('#sku').val(sku);
+
+        } else {
+            $('#sku').val('');
+        }
+    }
+
+    // Trigger on change for the multiple select
+    $('#name, #Category, #Brand').on('input change', function() { generateIdentifiers(); });
+
+    var quill = new Quill('#description', {theme: 'snow',modules: { toolbar: [['bold', 'italic', 'underline'], [{ 'list': 'ordered'}, { 'list': 'bullet' }], ['link', 'clean']]}});
+   $('#discountedType').on('change', function() {
+        const $fields = $('#discount2, #compareAtPrice, #compareAt, #discountedPrice');
+        $fields.prop('disabled', true).prop('required', false);
+
+        switch(this.value) {
+            case 'percentage':
+                $('#discount2, #compareAt').prop('disabled', false).prop('required', true);
+                break;
+            case 'fixed':
+                $('#compareAtPrice, #compareAt').prop('disabled', false).prop('required', true);
+                break;
+            case 'free_delivery':
+                $('#compareAt').prop('disabled', false).prop('required', true);
+                break;
+        }
+    });
+
+    $(".sidebar a").each(function() { $(this).removeClass('active');});
+    $("#ProductLink").addClass('active');
+    
+
+    $("#BrandLogo").change(function() {
+    const file = this.files[0];
+    if (file) {
+        let reader = new FileReader();
+        reader.onload = function(event) {
+            $("#logoPreview").html(`<img src="${event.target.result}" style="max-height: 100px;" class="img-thumbnail">`);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+   function saveProductPreview(e) {
+        if (e) e.preventDefault();
+
+        // ===== BUILD PRODUCT OBJECT =====
+        let productPreview = {
+            name: $('#name').val(),
+            price: $('#price').val(),
+            old_price: $('#compareAtPrice1').val(),
+            discount: $('#discount').val(),
+            description: quill.root.innerHTML,
+            brief_description: $('#briefDescription').val(),
+            promotion: [],
+            images: [],
+            options: [],
+            variants: []
+        };
+
+        if($("#discountedType").val()!=""){
+            productPreview.promotion.push({
+                name:$('#discountedName').val(),
+                description: $('#promotionDescription').val(),
+                promo_code:$('#discountedPromoCode').val()||null,
+                discount_type: $('#discountedType option:selected').text(),
+                discounted_price:$('#discountedPrice').val()  || 0,
+                compare_at_price:$('#compareAtPrice').val()  || 0,
+                compare_at: $('#compareAt').val()  || 0,
+                discount_value:$('#discount2').val() || 0,
+                start_date:$('#promotionSDate').val(),
+                end_date:$('#promotionEDate').val() 
+            });
+
+        }
+        $('#variantsInputs .variant-row').each(function() {
+            const name = $(this).find('.variant-name').val().trim();
+            const values = $(this).find('.variant-options').val().split(',').map(o => o.trim()).filter(o => o);
+            if (name && values.length > 0) { productPreview.options.push({ option_name: name, option: values }); }
+        });
+        // MAIN IMAGES (convert to preview URLs)
+        for (let i = 0; i < selectedImages.length; i++) {
+            productPreview.images.push(URL.createObjectURL(selectedImages[i]));
+        }
+
+        // VARIANTS
+        $('#variantsTable tbody tr').each(function () {
+            productPreview.variants.push({
+                name: $(this).find('.variantName').val(),
+                price: $(this).find('.variantPrice').val()
+            });
+        });
+
+        // SAVE TO SESSION
+        sessionStorage.setItem('productPreview', JSON.stringify(productPreview));
+
+        // REDIRECT TO PREVIEW PAGE
+        window.open("{% url 'ProductPreview' %}", "_blank");
+    }
+
+    $(document).ready(function() {
+    // Initialize Select2
+    $('#Category').select2({ placeholder: "Select Categories",});
+    $('#Brand').select2({ placeholder: "Select Categories",});
+    $('#addProductForm').on('submit', function(e) { saveProduct(e); });
+    $('#ProductPreview').on('click', function(e) { saveProductPreview(e); });
+
+    {% if product_id %}
+        function getProductIdFromUrl() {
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            return parts[parts.length - 1]; // last segment = 57
+        }
+        const productId = getProductIdFromUrl();
+        if (productId) { loadProduct(productId); }
+    {% endif %}
+
+
+});
+    const API_BASE_URL = "http://127.0.0.1:8000/Adminpanel/Products/api/v1/brands/";
+    var TOKEN ;
+getDropDown(el = "Brand",url="http://127.0.0.1:8000/Adminpanel/Products/api/v1/brands/");
+    
+getDropDown(el = "Category",url="http://127.0.0.1:8000/Adminpanel/Products/api/v1/categories/");
+function getDropDown(el = "Category",url="http://127.0.0.1:8000/Adminpanel/Products/api/v1/categories/") {
+    fetch(url, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Content-Type": "application/json"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        let innerHtml = ``; 
+        data.forEach(function(item) {
+           innerHtml += `<option value="${item.id}">${item.name}</option>`;
+        });
+        $(`#${el}`).html(innerHtml);
+    })
+    .catch(err => {
+        showAlert("Failed to load data", "danger");
+        console.error(err);
+    });
+}
+function getBrands(el = "brandsBody") {
+    
+    fetch(API_BASE_URL, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Content-Type": "application/json"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        let innerHtml = ""; // Initialize as empty string
+        
+        data.forEach(function(item) {
+           
+                innerHtml += ` <tr>
+                                    <td>${item.name}</td>
+                                    <td>${item.categories}</td>
+                                    <td>
+                                        <img src="${item.logo}" style="width: 48px;"" class="img-fluid">
+                                    </td>
+                                    <td><span class="badge bg-secondary">${item.is_active?'Active':'In Active'}</span></td>
+                                    <td>
+                                        <button class="btn btn-outline-secondary btn-sm"data-id="${item.id}" 
+                                                onclick=';clearBrandModal();fillBrandModal(${JSON.stringify(item)})'
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#brandModal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                    </td>
+                                </tr>`;
+        });
+
+        if (data.length === 0) {
+            innerHtml = `<tr><td colspan="5" class="text-center text-muted">No items found here.</td></tr>`;
+        }
+
+        $(`#${el}`).html(innerHtml);
+    })
+    .catch(err => {
+        showAlert("Failed to load data", "danger");
+        console.error(err);
+    });
+}
+fetch('{% url 'token_obtain_pair' %}', {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+        email: "mohsinali@gmail.com",
+        password: "Today@123"
+    })
+    })
+    .then(res => res.json())
+    .then(data => {
+        TOKEN=data.access;
+    // Save access token
+    localStorage.setItem("access_token", data.access);
+    })
+    .catch(err => console.error(err));
+
+
+function saveProduct(e) {
+    if (e) {
+        e.preventDefault();
+    }
+    const formData = new FormData();
+
+    // 1. Basic Product Details
+    formData.append('name', $('#name').val());
+    formData.append('sku', $('#sku').val());
+    formData.append('category', $('#Category').val());
+    formData.append('brand', $('#Brand').val());
+    formData.append('price', $('#price').val());
+    formData.append('compare_at_price', $('#compareAtPrice1').val());
+    formData.append('discount_percentage', $('#discount').val());
+    formData.append('stock_quantity', $('#stockQuantity').val());
+    formData.append('status', $('#status').val().toLowerCase());
+    formData.append('description', quill.root.innerHTML);
+    //formData.append('description', $('#description').val());
+    formData.append('brief_description', $('#briefDescription').val());
+    formData.append('compare_at', $('#compareAt1').val() || 0);
+
+    formData.append('available_start_date', $('#available_start_date').val());
+    formData.append('available_end_date', $('#available_end_date').val());
+    formData.append('allow_customer_reviews', $('#allow_customer_reviews').is(':checked'));
+    formData.append('qoute', $('#qoute').val());
+    formData.append('product_type', $('#product_type').val());
+    formData.append('mark_as_new', $('#mark_as_new').is(':checked'));
+    formData.append('available_for_preorder', $('#available_for_preorder').is(':checked'));
+    formData.append('admin_comment', $('#admin_comment').val());
+    formData.append('disable_buy_button', $('#disable_buy_button').is(':checked'));
+    formData.append('disable_wishlist_button', $('#disable_wishlist_button').is(':checked'));
+    formData.append('delivery_date', $('#delivery_date').val());
+
+    /* Tax */
+    formData.append('tax_exempt', $('#tax_exempt').is(':checked'));
+    formData.append('tax_category', $('#tax_category').val()); // multiple select
+
+    /* Prices */
+    formData.append('old_price', $('#old_price').val());
+    formData.append('original_price', $('#original_price').val());
+    formData.append('other_product_cost', $('#other_product_cost').val());
+
+    // promotion
+    let promotion=[];
+    if($("#discountedType").val()!=""){
+        promotion.push({
+            name:$('#discountedName').val(),
+            description: $('#promotionDescription').val(),
+            promo_code:$('#discountedPromoCode').val()||null,
+            discount_type: $('#discountedType').val(),
+            discounted_price:$('#discountedPrice').val()  || 0,
+            compare_at_price:$('#compareAtPrice').val()  || 0,
+            compare_at: $('#compareAt').val()  || 0,
+            discount_value:$('#discount2').val() || 0,
+            start_date:$('#promotionSDate').val(),
+            end_date:$('#promotionEDate').val() 
+        });
+
+    }
+    formData.append('promotions', JSON.stringify(promotion) || {});
+
+    let options = []; 
+    $('#variantsInputs .variant-row').each(function() {
+        const name = $(this).find('.variant-name').val().trim();
+        const values = $(this).find('.variant-options').val().split(',').map(o => o.trim()).filter(o => o);
+        if (name && values.length > 0) { options.push({ option_name: name, option: values }); }
+    });
+    formData.append('options', JSON.stringify(options));
+
+  
+    // 2. Shipping Info
+    
+    formData.append('shipping_enabled', $('#shipping_enabled').is(':checked'));
+    formData.append('ship_separately', $('#ship_separately').is(':checked'));
+    formData.append('shipping_charges', $('#shipping_charges').val());
+    formData.append('additional_shipping_charges', $('#additional_shipping_charges').val());
+    
+    formData.append('weight', $('#weight').val() || 0);
+    formData.append('length', $('#length').val() || 0);
+    formData.append('width', $('#width').val() || 0);
+    formData.append('height', $('#height').val() || 0);
+    formData.append('free_shipping', $('#freeShippingToggle').is(':checked'));
+    formData.append('handling_time', $('#handlingTime').val());
+    formData.append('shipping_class', $('#shippingClass').val());
+    // 3 seo
+    formData.append('meta_title', $('#metaTitle').val() || '');
+    formData.append('slug', $('#urlSlug').val() || '');
+    formData.append('meta_description', $('#metaDescription').val() || '');
+    formData.append('focus_keywords', $('#focusKeywords').val() || '');
+
+    //formData.append('tags', $('#tagInput').val() || '');
+    let selectedTags = $('#tagsPreview span').map(function() {
+        return $(this).text().trim();
+    }).get();   
+    selectedTags.forEach(tag => formData.append('tags_list', tag));
+
+    const videoFile = $('#productVideo')[0].files[0];
+    if (videoFile) {
+        formData.append('video', videoFile);
+    }
+    // 4. Handle Main Images
+    //const imageFiles = document.querySelector('#productImagesInput').files;
+    for (let i = 0; i < selectedImages.length; i++) {
+        formData.append('images', selectedImages[i]);
+    }
+
+    // 5. Handle Variants Table (Sending as JSON string)
+    let variants = [];
+
+    // Collect variant TEXT data only
+    $('#variantsTable tbody tr').each(function () {
+        variants.push({
+            name: $(this).find('.variantName').val(),
+            sku: $(this).find('.variantSku').val(),
+            price: $(this).find('.variantPrice').val(),
+            stock_quantity: $(this).find('.stockQuantity').val()
+        });
+    });
+
+    // Add variants JSON
+    formData.append('variants', JSON.stringify(variants));
+
+    // Attach variant images separately (multipart-safe)
+    $('#variantsTable tbody tr').each(function (index) {
+        const imageInput = $(this).find('.variant-images')[0];
+        if (imageInput && imageInput.files.length > 0) {
+            console.log(" imageInput.files.length", imageInput.files.length);
+            formData.append(
+                `variants[${index}][image]`,
+                imageInput.files[0]
+            );
+        }
+    });
+
+ 
+
+    // API Call
+    fetch("http://127.0.0.1:8000/Adminpanel/Products/api/v1/products/", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        },
+        body: formData
+    })
+    .then(res => {
+        if (res.ok) { return res.json().then(data => ({ status: 'success', data })); }
+        else if (res.status === 400) { return res.json().then(data => ({ status: 'validation_error', data })); } 
+        else if (res.status === 401) { return { status: 'auth_error' }; } 
+        else {return { status: 'server_error' };}
+    })
+    .then(result => {
+        if (result.status === 'success') {
+            showAlert("Product Created!", "success");
+        } 
+        else if (result.status === 'validation_error') {
+            let errorMsg = flattenErrors(result.data) || "Validation failed.";
+            showValidationAlert(errorMsg);
+        } 
+        else if (result.status === 'auth_error') { showAlert("Session expired. Please login again.", "danger"); }
+        else { showAlert("Server error. Logged in database.", "danger"); }
+    })
+    .catch(err => {
+        showAlert("Connection failed!", "danger");
+        console.error("Fetch Error:", err);
+    });
+}
+
+
+
+function setSelect2Value(selector, values) {
+    const $el = $(selector);
+    $el.val(values).trigger('change');
+}
+
+
+function fillProductForm(product) {
+
+    // ================= BASIC INFO =================
+    $('#id').val(product.id || '');
+    $('#name').val(product.name || '');
+    $('#sku').val(product.sku || '');
+    $('#price').val(product.price || '');
+    $('#discount').val(product.discount_percentage || '');
+    $('#stockQuantity').val(product.stock_quantity || '');
+    $('#compareAtPrice1').val(product.compare_at_price || '');
+    quill.root.innerHTML=product.description;
+    //$('#description').val(product.description || '');
+    $('#briefDescription').val(product.brief_description || '');
+
+    // ================= CATEGORY & BRAND =================
+    if (product.category) {
+        setSelect2Value('#Category', product.category.map(String));
+    }
+
+    if (product.brand) {
+        setSelect2Value('#Brand', String(product.brand));
+    } else {
+        $('#Brand').val(null).trigger('change');
+    }
+    $('#status').val(product.status|| 'active').trigger('change');
+    // ================= STATUS =================
+    //$('#status').val(product.status || 'active');
+
+    // ================= SHIPPING =================
+    $('#weight').val(product.weight || '');
+    $('#length').val(product.length || '');
+    $('#width').val(product.width || '');
+    $('#height').val(product.height || '');
+    $('#shippingClass').val(product.shipping_class || 'standard');
+    $('#freeShippingToggle').prop('checked', product.free_shipping);
+    $('#handlingTime').val(product.handling_time || '');
+
+    // ================= SEO =================
+    $('#metaTitle').val(product.meta_title || '');
+    $('#metaDescription').val(product.meta_description || '');
+    $('#urlSlug').val(product.slug || '');
+    $('#focusKeywords').val(product.focus_keywords || '');
+
+    // ================= TAGS =================
+    $('#tagsPreview').empty();
+    (product.tags || []).forEach(tag => {
+        $('#tagsPreview').append(`
+            <span class="badge bg-secondary">${tag.name}</span>
+        `);
+    });
+
+    // ================= PRODUCT IMAGES =================
+    $('.product-images-preview').remove(); // clear previous if any
+    if (product.images && product.images.length > 0) {
+        product.images.forEach(img => {
+            $('#productImagesPreview').prepend(`
+                <div class="product-images-preview mb-2">
+                    <img src="${img.image}" style="width:80px;height:80px;object-fit:cover;border:1px solid #ddd;border-radius:4px">
+                </div>
+            `);
+        });
+    }
+
+    // ================= VARIANTS =================
+    const tbody = $('#variantsTableBody');
+    tbody.empty();
+
+    if (product.variants && product.variants.length > 0) {
+        product.variants.forEach(variant => {
+            tbody.append(`
+                <tr>
+                    <td>
+                        <input type="hidden" class="variantName" value="${variant.name}">
+                        ${variant.name}
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm variantSku" value="${variant.sku}">
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm variantPrice" required value="${variant.price}">
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm stockQuantity" required value="${variant.stock_quantity}">
+                    </td>
+                    <td>
+                        <input type="file" class="variant-images" accept="image/*">
+                        ${
+                            variant.image
+                                ? `<img src="${variant.image}" style="width:60px;height:60px;margin-top:5px">`
+                                : ''
+                        }
+                    </td>
+                </tr>
+            `);
+        });
+    }
+}
+
+function loadProduct(productId) {
+    fetch(`/api/v1/products/${productId}/`, {
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        fillProductForm(data);
+    })
+    .catch(err => {
+        showAlert("Failed to load product", "danger");
+        console.error(err);
+    });
+}
+
+
+
+
+
+
+
+
+
+
+let variants = [];
+
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('add-variant-btn')) {
+       const rows = $('#variantsInputs .variant-row');
+        variants=[];
+        let flag=true;
+        rows.each(function() {
+            const name = $(this).find('.variant-name').val().trim();
+            const options = $(this).find('.variant-options').val()
+                .split(',')
+                .map(o => o.trim())
+                .filter(o => o);
+            if (!name || options.length === 0) {
+                alert('Enter variant name and options');
+                flag=false;
+                return false; // In jQuery .each(), 'return false' breaks the loop
+            }
+            variants.push({ name, options });
+        });
+        if (flag){
+            if (variants.length < 4) {
+                addVariantInputRow(); // add new row for next variant
+            }
+        }
+        generateCombinations();
+        attachAutoFillVariants();
+    }
+});
+{% comment %} 
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('add-variant-btn')) {
+        const row = e.target.closest('.variant-row');
+        const name = row.querySelector('.variant-name').value.trim();
+        const options = row.querySelector('.variant-options').value
+            .split(',').map(o => o.trim()).filter(o => o);
+
+        if (!name || options.length === 0) return alert('Enter variant name and options');
+
+        variants.push({ name, options });
+
+        if (variants.length < 4) {
+            addVariantInputRow(); // add new row for next variant
+        }
+        generateCombinations();
+        attachAutoFillVariants();
+    }
+}); {% endcomment %}
+
+// Add new variant input row dynamically
+function addVariantInputRow() {
+    const index = variants.length + 1;
+    const container = document.getElementById('variantsInputs');
+
+    const row = document.createElement('div');
+    row.className = 'row g-2 mb-2 variant-row';
+    row.setAttribute('data-index', index);
+
+    row.innerHTML = `
+        <div class="col-md-3">
+            <input type="text" class="form-control form-control-sm variant-name" placeholder="Variant Name">
+        </div>
+        <div class="col-md-7">
+            <input type="text" class="form-control form-control-sm variant-options" placeholder="Options (comma separated)">
+        </div>
+        <div class="col-md-2 d-grid align-items-end">
+            <button type="button" class="btn btn-dark btn-sm mt-2 add-variant-btn">Add Variant</button>
+        </div>
+    `;
+    container.appendChild(row);
+}
+
+// Generate combinations using cartesian product
+function generateCombinations() {
+    const tableBody = document.querySelector('#variantsTable tbody');
+    tableBody.innerHTML = '';
+
+    const allOptions = variants.map(v => v.options);
+
+    if (allOptions.length === 0) return;
+
+    const combinations = cartesian(allOptions);
+
+    combinations.forEach(combo => {
+        const variantName = combo.join(' / ');
+        const prodName = $("#name").val().replace(" ","");
+        const sku = 'SKU-' +prodName.substring(0, 5)+'-'+ combo.join('-').toUpperCase();
+
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+            <td><input type="hidden" class="form-control form-control-sm variantName" value="${variantName}">${variantName}</td>
+            <td><input type="text" class="form-control form-control-sm variantSku" value="${sku}"></td>
+            <td><input type="number" class="form-control form-control-sm variantPrice" required placeholder="Price"></td>
+            <td><input type="number" class="form-control form-control-sm stockQuantity" required placeholder="Stock"></td>
+            <td>
+                <input type="file" class="variant-images" multiple accept="image/*">
+                <div class="image-preview d-flex flex-wrap gap-1 mt-1"></div>
+            </td>
+        `;
+        tableBody.appendChild(tr);
+    });
+
+    attachImagePreview();
+}
+
+// Cartesian product function
+function cartesian(arr) {
+    return arr.reduce((a, b) => a.flatMap(d => b.map(e => [...d, e])), [[]]);
+}
+
+function attachImagePreview() {
+    document.querySelectorAll('.variant-images').forEach(input => {
+        input.addEventListener('change', function() {
+            const previewDiv = this.nextElementSibling;
+            previewDiv.innerHTML = '';
+
+            Array.from(this.files).forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const container = document.createElement('div');
+                    container.style.position = 'relative';
+                    container.style.display = 'inline-block';
+
+                    // Image
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.width = '50px';
+                    img.style.height = '50px';
+                    img.style.objectFit = 'cover';
+                    img.style.border = '1px solid #ddd';
+                    img.style.borderRadius = '4px';
+                    container.appendChild(img);
+
+                    // Cancel Button
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.innerHTML = '&times;';
+                    btn.className = 'btn btn-sm btn-danger';
+                    btn.style.position = 'absolute';
+                    btn.style.top = '-5px';
+                    btn.style.right = '-5px';
+                    btn.style.padding = '0px 5px';
+                    btn.style.lineHeight = '1';
+                    btn.style.fontSize = '12px';
+                    btn.style.borderRadius = '50%';
+
+                    btn.addEventListener('click', function() {
+                        input.value='';
+                        container.remove();
+                    });
+                    
+                    container.appendChild(btn);
+                    previewDiv.appendChild(container);
+                }
+                reader.readAsDataURL(file);
+            });
+
+            // Clear input so the same files can be reselected
+        });
+    });
+}
+let autoFillEnabled = true;
+
+// Toggle checkbox
+document.getElementById('autoFillToggle').addEventListener('change', function() {
+    autoFillEnabled = this.checked;
+});
+
+function attachAutoFillVariants() {
+    const tableBody = document.querySelector('#variantsTable tbody');
+
+    tableBody.addEventListener('input', function(e) {
+        if (!autoFillEnabled) return; // Skip auto-fill if manual mode
+        if (e.target.tagName !== 'INPUT') return;
+
+        const input = e.target;
+        const colIndex = input.closest('td').cellIndex;
+
+        // Price column = 2, Stock column = 3
+        if (colIndex === 2 || colIndex === 3) {
+            const value = input.value;
+
+            // Apply value to all other rows except current
+            Array.from(tableBody.rows).forEach(row => {
+                const cellInput = row.cells[colIndex].querySelector('input');
+                if (cellInput !== input) {
+                    cellInput.value = value;
+                }
+            });
+        }
+    });
+}
+
+
+const productImagesInput = document.getElementById('productImagesInput');
+const productImagesPreview = document.getElementById('productImagesPreview');
+
+// Store selected files in array for form submission
+let selectedImages = [];
+
+productImagesInput.addEventListener('change', function() {
+    Array.from(this.files).forEach(file => {
+        selectedImages.push(file); // Add to array
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const container = document.createElement('div');
+            container.style.position = 'relative';
+            container.style.display = 'inline-block';
+
+            // Image
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.style.width = '80px';
+            img.style.height = '80px';
+            img.style.objectFit = 'cover';
+            img.style.border = '1px solid #ddd';
+            img.style.borderRadius = '4px';
+            container.appendChild(img);
+
+            // Remove button
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.innerHTML = '&times;';
+            btn.className = 'btn btn-sm btn-danger';
+            btn.style.position = 'absolute';
+            btn.style.top = '-5px';
+            btn.style.right = '-5px';
+            btn.style.padding = '0px 5px';
+            btn.style.lineHeight = '1';
+            btn.style.fontSize = '12px';
+            btn.style.borderRadius = '50%';
+
+            btn.addEventListener('click', function() {
+                const index = Array.from(productImagesPreview.children).indexOf(container);
+                selectedImages.splice(index, 1); // remove from array
+                container.remove();
+            });
+
+            container.appendChild(btn);
+            productImagesPreview.appendChild(container);
+        }
+        reader.readAsDataURL(file);
+    });
+
+    // Reset input so same files can be reselected
+    //this.value = '';
+});
+
+const tagInput = document.getElementById('tagInput');
+const addTagBtn = document.getElementById('addTagBtn');
+const tagsPreview = document.getElementById('tagsPreview');
+
+let tags = [];
+
+function renderTags() {
+    tagsPreview.innerHTML = '';
+    tags.forEach((tag, index) => {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-secondary d-flex align-items-center';
+        badge.style.gap = '5px';
+        badge.innerHTML = `${tag} <i class="bi bi-x-circle" style="cursor:pointer;"></i>`;
+
+        badge.querySelector('i').addEventListener('click', () => {
+            tags.splice(index, 1);
+            renderTags();
+        });
+
+        tagsPreview.appendChild(badge);
+    });
+}
+
+// Add tag
+function addTag() {
+    const value = tagInput.value.trim();
+    if (value && !tags.includes(value)) {
+        tags.push(value);
+        renderTags();
+        tagInput.value = '';
+    }
+}
+
+// Add via button
+addTagBtn.addEventListener('click', addTag);
+
+// Add via Enter key
+tagInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        addTag();
+    }
+});
+
+
+</script>
+{% endblock %}
+
+{% block extra_js %}
+
+
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "WebBase.html" %}
+
+{% block title %}Shan zee Shopping{% endblock %}
+{% block content %}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body py-5">
+
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size:60px;"></i>
+                    </div>
+
+                    <h3 class="fw-bold text-success">Order Placed Successfully!</h3>
+                    <p class="text-muted mt-3">
+                        Thank you for your purchase.  
+                        Your order has been received and is being processed.
+                    </p>
+
+                    <div class="mt-4">
+                        <a href="{% url 'Home' %}" class="btn btn-dark px-4">
+                            Continue Shopping
+                        </a>
+
+                        <a href="{% url 'MyOrders' %}" class="btn btn-outline-dark px-4 ms-2">
+                            View My Orders
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

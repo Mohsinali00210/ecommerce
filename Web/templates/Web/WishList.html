@@ -1,0 +1,137 @@
+   
+{% extends "WebBase.html" %}
+
+{% block title %}Shan zee Shopping{% endblock %}
+
+{% block content %}
+    <div class="mycontainer container mt-4">
+    <h5 class="fw-semibold mb-3">My Wishlist</h5>
+
+    <div class="list-group mb-3">
+            <div class="list-group-item d-flex align-items-center">
+                <img src="../images/product pic3.jpg" width="50" class="border rounded me-3">
+                <div class="flex-grow-1">
+                <div class="fw-semibold">Fitness Tracker Band</div>
+                <div>
+                    <span class="fw-semibold">Rs. 2,150</span>
+                    <span class="text-decoration-line-through" style="font-size: 10px;" id="itemTotal">Rs.4,390</span>
+                </div>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-primary">Add to Cart</button>
+                    <button class="btn btn-sm btn-outline-danger remove-wishlist"data-product-id="101" data-bs-toggle="modal" data-bs-target="#removeWishlistModal">Remove</button>
+
+                </div>
+            </div>
+            <div class="list-group-item d-flex align-items-center">
+                <img src="../images/product pic4.jpg" width="50" class="border rounded me-3">
+                <div class="flex-grow-1">
+                <div class="fw-semibold">Wireless Earbuds Pro</div>
+                <div>
+                    <span class="fw-semibold">Rs. 3,299</span>
+                    <span class="text-decoration-line-through" style="font-size: 10px;" id="itemTotal">Rs.4,390</span>
+                </div>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-primary">Add to Cart</button>
+                    <button class="btn btn-sm btn-outline-danger remove-wishlist"data-product-id="101" data-bs-toggle="modal" data-bs-target="#removeWishlistModal">Remove</button>
+                </div>
+            </div>
+            <div class="list-group-item d-flex align-items-center">
+                <img src="../images/product pic3.jpg" width="50" class="border rounded me-3">
+                <div class="flex-grow-1">
+                <div class="fw-semibold">Fitness Tracker Band</div>
+                <div>
+                    <span class="fw-semibold">Rs. 2,150</span>
+                    <span class="text-decoration-line-through" style="font-size: 10px;" id="itemTotal">Rs.4,390</span>
+                </div>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-primary">Add to Cart</button>
+                    <button class="btn btn-sm btn-outline-danger remove-wishlist"data-product-id="101" data-bs-toggle="modal" data-bs-target="#removeWishlistModal">Remove</button>
+
+                </div>
+            </div>
+            <div class="list-group-item d-flex align-items-center">
+                <img src="../images/product pic4.jpg" width="50" class="border rounded me-3">
+                <div class="flex-grow-1">
+                <div class="fw-semibold">Wireless Earbuds Pro</div>
+                <div>
+                    <span class="fw-semibold">Rs. 3,299</span>
+                    <span class="text-decoration-line-through" style="font-size: 10px;" id="itemTotal">Rs.4,390</span>
+                </div>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-primary">Add to Cart</button>
+                    <button class="btn btn-sm btn-outline-danger remove-wishlist"data-product-id="101" data-bs-toggle="modal" data-bs-target="#removeWishlistModal">Remove</button>
+                </div>
+            </div>
+            <div class="list-group-item d-flex align-items-center">
+                <img src="../images/product pic3.jpg" width="50" class="border rounded me-3">
+                <div class="flex-grow-1">
+                <div class="fw-semibold">Fitness Tracker Band</div>
+                <div>
+                    <span class="fw-semibold">Rs. 2,150</span>
+                    <span class="text-decoration-line-through" style="font-size: 10px;" id="itemTotal">Rs.4,390</span>
+                </div>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-primary">Add to Cart</button>
+                    <button class="btn btn-sm btn-outline-danger remove-wishlist"data-product-id="101" data-bs-toggle="modal" data-bs-target="#removeWishlistModal">Remove</button>
+
+                </div>
+            </div>
+            <div class="list-group-item d-flex align-items-center">
+                <img src="../images/product pic4.jpg" width="50" class="border rounded me-3">
+                <div class="flex-grow-1">
+                <div class="fw-semibold">Wireless Earbuds Pro</div>
+                <div>
+                    <span class="fw-semibold">Rs. 3,299</span>
+                    <span class="text-decoration-line-through" style="font-size: 10px;" id="itemTotal">Rs.4,390</span>
+                </div>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-primary">Add to Cart</button>
+                    <button class="btn btn-sm btn-outline-danger remove-wishlist"data-product-id="101" data-bs-toggle="modal" data-bs-target="#removeWishlistModal">Remove</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="removeWishlistModal" tabindex="-1" aria-labelledby="removeWishlistModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+        <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title" id="removeWishlistModalLabel">
+            Remove from Wishlist
+            </h5>
+            <button type="button" class="btn-close btn-close-white"
+                    data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body text-center">
+            <img id="removeWishlistImage"
+                src=""
+                class="rounded mb-3"
+                width="80">
+
+            <p class="mb-1 fw-semibold" id="removeWishlistName">
+            Product Name
+            </p>
+
+            <p class="text-muted mb-0">
+            Are you sure you want to remove this item from your wishlist?
+            </p>
+        </div>
+
+        <div class="modal-footer justify-content-center">
+        
+
+            <button type="button" class="btn btn-danger"id="confirmRemoveWishlist">Remove</button>
+        </div>
+
+        </div>
+    </div>
+    </div>
+
+{% endblock %}

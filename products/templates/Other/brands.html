@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Attributes{% endblock %}
+
+{% block content %}
+<style>
+    span.select2-dropdown.select2-dropdown--below {
+    z-index: 100000;
+}
+</style>
+
+
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-award"></i> Brands
+                </div>
+                <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#brandModal" onclick="clearBrandModal();">
+                    <i class="bi bi-plus-circle"></i> Add Brand
+                </button>
+            </div>
+
+            <div class="card-body p-0">
+                <table class="table table-sm table-bordered mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Brand Name</th>
+                            <th>Category</th>
+                            <th>Logo</th>
+                            <th>Status</th>
+                            <th style="width:120px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="brandsBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+
+
+<div class="modal fade" id="brandModal" tabindex="-1">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h6 class="modal-title">
+                    <i class="bi bi-award"></i> Brand Management
+                </h6>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="row g-2">
+                    <input type="hidden" class="form-control form-control-sm" id="BrandId" >
+                    <!-- Brand Name -->
+                    <div class="col-md-12">
+                        <label class="form-label">Brand Name</label>
+                        <input type="text" class="form-control form-control-sm" id="BrandName" placeholder="Enter brand name">
+                    </div>
+                    <!-- Category -->
+                    <div class="col-md-12">
+                        <label class="form-label">Category</label>
+                        <select class="form-select form-select-sm" id="Category" multiple="multiple" style="width: 100%">
+                            <option>Select Category</option>
+                        </select>
+                    </div>
+                    <!-- Logo -->
+                    <div class="col-md-12">
+                        <label class="form-label">Brand Logo</label>
+                        <input type="file" class="form-control form-control-sm" id="BrandLogo" accept="image/*">
+                        <div id="logoPreview" ></div>
+                    </div>
+                    <!-- Status -->
+                    <div class="col-md-12 mt-2">
+                        <input class="form-check-input" type="checkbox" id="Active" name="Active" checked>
+                        <label class="form-check-label" for="Active">
+                                Active
+                        </label>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-dark btn-sm w-100" onclick="saveBrand()">
+                    Save Brand
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+
+<script>
+    
+   var links = $(".sidebar a");
+    links.each(function() {
+        $(this).removeClass('active');
+    });
+    $("#BrandLink").addClass('active');
+    
+
+    $("#BrandLogo").change(function() {
+    const file = this.files[0];
+    if (file) {
+        let reader = new FileReader();
+        reader.onload = function(event) {
+            $("#logoPreview").html(`<img src="${event.target.result}" style="max-height: 100px;" class="img-thumbnail">`);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+    $(document).ready(function() {
+    // Initialize Select2
+    $('#Category').select2({
+        placeholder: "Select Categories",
+    });
+});
+    const API_BASE_URL = "http://127.0.0.1:8000/api/v1/brands/";
+    var TOKEN ;
+    getBrands();
+getDropDown(el = "Category",url="http://127.0.0.1:8000/api/v1/categories/");
+function getDropDown(el = "Category",url="http://127.0.0.1:8000/api/v1/categories/") {
+    fetch(url, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Content-Type": "application/json"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        let innerHtml = ``; 
+        data.forEach(function(item) {
+           innerHtml += `<option value="${item.id}">${item.name}</option>`;
+        });
+        $(`#${el}`).html(innerHtml);
+    })
+    .catch(err => {
+        showAlert("Failed to load data", "danger");
+        console.error(err);
+    });
+}
+function getBrands(el = "brandsBody") {
+    
+    fetch(API_BASE_URL, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Content-Type": "application/json"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        let innerHtml = ""; // Initialize as empty string
+        
+        data.forEach(function(item) {
+           
+                innerHtml += ` <tr>
+                                    <td>${item.name}</td>
+                                    <td>${item.categories}</td>
+                                    <td>
+                                        <img src="${item.logo}" style="width: 48px;"" class="img-fluid">
+                                    </td>
+                                    <td><span class="badge bg-secondary">${item.is_active?'Active':'In Active'}</span></td>
+                                    <td>
+                                        <button class="btn btn-outline-secondary btn-sm"data-id="${item.id}" 
+                                                onclick=';clearBrandModal();fillBrandModal(${JSON.stringify(item)})'
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#brandModal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                    </td>
+                                </tr>`;
+        });
+
+        if (data.length === 0) {
+            innerHtml = `<tr><td colspan="5" class="text-center text-muted">No items found here.</td></tr>`;
+        }
+
+        $(`#${el}`).html(innerHtml);
+    })
+    .catch(err => {
+        showAlert("Failed to load data", "danger");
+        console.error(err);
+    });
+}
+fetch('{% url 'token_obtain_pair' %}', {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+        email: "mohsinali@gmail.com",
+        password: "Today@123"
+    })
+    })
+    .then(res => res.json())
+    .then(data => {
+        TOKEN=data.access;
+    // Save access token
+    localStorage.setItem("access_token", data.access);
+    })
+    .catch(err => console.error(err));
+function fillBrandModal(item) {
+    $('#BrandId').val(item.id);
+    $('#BrandName').val(item.name);
+    $('#BrandWebsite').val(item.website);
+    $('#Active').prop('checked', item.is_active);
+    $('#Category').val(item.categories).trigger('change');
+    $("#logoPreview").html(`<img src="${item.logo}" style="max-height: 100px;" class="img-thumbnail">`);
+    $('#brandModal').modal('show');
+}
+
+function clearBrandModal() {
+    $('#BrandId').val("");
+    $('#BrandName').val("");
+    $('#BrandWebsite').val("");
+    $('#Active').prop('checked', true);
+    $('#Category').val(null).trigger('change');
+    $('#BrandLogo').val("");
+    $("#logoPreview").html("");
+}
+function saveBrand() {
+    let BrandId = $("#BrandId").val();
+    let BrandName = $("#BrandName").val();
+    let is_active = $("#Active").is(':checked');
+    let Category = $("#Category").val(); // Select2 array
+
+    // Use FormData for File Uploads
+    let formData = new FormData();
+    formData.append('name', BrandName);
+    formData.append('is_active', is_active);
+    if (Category) { Category.forEach(id => formData.append('categories', id)); }
+    let logoFile = document.querySelector('#BrandLogo').files[0];
+
+    if (logoFile) { formData.append('logo', logoFile);}
+    let url = BrandId === '' ? API_BASE_URL : `${API_BASE_URL}${BrandId}/`;
+    let method = BrandId === '' ? "POST" : "PATCH";
+    fetch(url, { method: method, headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` }, body: formData })
+    .then(res => {
+        if (res.ok) { return res.json().then(data => ({ status: 'success', data })); }
+        else if (res.status === 400) { return res.json().then(data => ({ status: 'validation_error', data })); } 
+        else if (res.status === 401) { return { status: 'auth_error' }; } 
+        else {return { status: 'server_error' };}
+    })
+    .then(result => {
+        if (result.status === 'success') {
+            showAlert(BrandId === '' ? "Brand Created!" : "Brand Updated!", "success");
+            $("#brandModal").modal('hide');
+                getBrands();
+        } 
+        else if (result.status === 'validation_error') {
+            let errorMsg = result.data.name ? `Name: ${result.data.name[0]}` : "Validation failed.";
+            showAlert(errorMsg, "warning");
+        } 
+        else if (result.status === 'auth_error') { showAlert("Session expired. Please login again.", "danger"); }
+        else { showAlert("Server error. Logged in database.", "danger"); }
+    })
+    .catch(err => {
+        showAlert("Connection failed!", "danger");
+        console.error("Fetch Error:", err);
+    });
+}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+
+
+{% endblock %}

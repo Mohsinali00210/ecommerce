@@ -1,0 +1,763 @@
+
+   
+{% extends "WebBase.html" %}
+
+{% block title %}Shan zee Shopping{% endblock %}
+
+{% block content %}
+
+
+<div class="mycontainer container my-2">
+
+    <!-- HEADER + FILTER -->
+    <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+      <h5 class="fw-semibold mb-0">My Orders</h5>
+
+      <select class="form-select w-auto" id="statusFilter">
+        <option value="all">All orders</option>
+        <option value="pending">Pending</option>
+        <option value="shipped">Shipped</option>
+        <option value="delivered">Delivered</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="returned">Returned</option>
+      </select>
+    </div>
+
+    <!-- QUICK FILTER BUTTONS -->
+    <div class="mb-2 d-flex gap-1 flex-wrap">
+      <button class="btn btn-outline-secondary btn-sm filter-btn active" data-filter="all">All</button>
+      <button class="btn btn-outline-secondary btn-sm filter-btn" data-filter="pending">Pending</button>
+      <button class="btn btn-outline-secondary btn-sm filter-btn" data-filter="shipped">Shipped</button>
+      <button class="btn btn-outline-secondary btn-sm filter-btn" data-filter="delivered">Delivered</button>
+      <button class="btn btn-outline-secondary btn-sm filter-btn" data-filter="cancelled">Cancelled</button>
+      <button class="btn btn-outline-secondary btn-sm filter-btn" data-filter="returned">Returned</button>
+    </div>
+
+    <!-- ORDER CARD : PENDING -->
+    <div class="accordion" id="ordersAccordion">
+
+      {% if orders %}
+        {% for order in orders %}
+
+        <div class="accordion-item mb-1 order-item" data-status="{{ order.status }}">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-white small"
+                    style="padding: 8px 17px;"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#order{{ order.id }}">
+
+              <span>
+                <b>Order #{{ order.order_number }}</b>
+                {{ order.created_at|date:"d M Y" }}
+
+                {% if order.status == "pending" %}
+                    <span class="badge bg-warning text-dark ms-1">Pending</span>
+                {% elif order.status == "shipped" %}
+                    <span class="badge bg-info text-dark ms-1">Shipped</span>
+                {% elif order.status == "delivered" %}
+                    <span class="badge bg-success ms-1">Delivered</span>
+                {% elif order.status == "cancelled" %}
+                    <span class="badge bg-danger ms-1" >Cancelled</span>
+                {% endif %}
+              </span>
+
+            </button>
+          </h2>
+
+          <div id="order{{ order.id }}" class="accordion-collapse collapse"
+              data-bs-parent="#ordersAccordion">
+
+            <div class="accordion-body p-2">
+
+              <div class="d-flex justify-content-between align-items-center mb-2">
+
+                {% if not order.requests %}
+                  {% if order.status == "pending" %}
+                    <button class="btn btn-outline-danger btn-sm"
+                            onclick="openCancelReturnModal({{ order.id }}, 'cancel')">
+                      Cancel Order
+                    </button>
+                  {% elif order.status == "delivered" %}
+                    <button class="btn btn-outline-danger btn-sm"
+                            onclick="openCancelReturnModal({{ order.id }}, 'return')">
+                      Return
+                    </button>
+                  {% endif %}
+                {% else %}
+                    <div></div>
+                {% endif %}
+
+                <button class="btn btn-link p-0 small"
+                        onclick="viewOrder('{{ order.id }}')">
+                  View Details
+                </button>
+
+              </div>
+
+              {% for item in order.items.all %}
+              <div class="d-flex align-items-center mb-2">
+                <img src="{{ item.product.images.first.image.url }}"
+                    width="50"
+                    class="border rounded me-3">
+
+                <div class="flex-grow-1">
+                  <div class="fw-semibold">{{ item.product.name }}</div>
+                  <div class="small text-muted">Qty: {{ item.quantity }}</div>
+                </div>
+
+                <div class="fw-semibold">
+                  Rs. {{ item.price }}
+                </div>
+              </div>
+              {% endfor %}
+
+            </div>
+          </div>
+        </div>
+
+        {% endfor %}
+      {% else %}
+          <div class="text-center py-5">
+              <h6 class="text-muted">You have no orders yet.</h6>
+          </div>
+      {% endif %}
+
+      </div>
+    
+
+ 
+
+</div>
+
+
+
+
+
+
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header" style="padding: 6px 17px;">
+        <h5 class="modal-title" id="modalOrderNumber"></h5>
+        <button type="button" class="btn-close " data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+
+   <div class="position-relative m-4">
+      <!-- Progress bar -->
+      <div class="progress" role="progressbar" aria-label="Shipment Progress" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="height: 1px;">
+        <div class="progress-bar" style="width: 50%"></div>
+      </div>
+
+      <!-- Step buttons with shipment labels -->
+      <div class="position-absolute top-0 start-0 translate-middle text-center">
+        <button type="button" class="btn btn-sm rounded-pill step completed" style="width: 2rem; height:2rem;">1</button>
+        <div class="mt-2" style="font-size: 0.75rem;">Order Placed</div>
+      </div>
+
+      <div class="position-absolute top-50 start-50 translate-middle text-center">
+        <button type="button" class="btn btn-sm rounded-pill step current" style="width: 2rem; height:2rem;">2</button>
+        <div class="mt-2" style="font-size: 0.75rem;">Shipped</div>
+      </div>
+
+      <div class="position-absolute top-0 start-100 translate-middle text-center">
+        <button type="button" class="btn btn-sm rounded-pill step upcoming" style="width: 2rem; height:2rem;">3</button>
+        <div class="mt-2" style="font-size: 0.75rem;">Delivered</div>
+      </div>
+    </div>
+
+
+        <!-- Items Info Section -->
+        <h6 class="fw-semibold mb-2">Items Info</h6>
+        <div class="list-group mb-3" id="modalItems"></div>
+
+        <div class="d-flex justify-content-between">
+          <span>Item(s) total</span>
+          <span class="text-decoration-line-through" id="itemTotal"><span id="modalItemTotal"></span></span>
+        </div>
+
+        <div class="d-flex justify-content-between text-danger">
+          <span>Item(s) discount</span>
+          <span id="itemDiscount"><span id="modalItemDiscount"></span></span>
+        </div>
+
+
+        <div class="d-flex justify-content-between fw-semibold">
+          <span>Subtotal</span>
+          <span id="subtotal"><span id="modalSubtotal"></span></span>
+        </div>
+
+        <div class="d-flex justify-content-between">
+          <span>Shipping</span>
+          <span class="text-success" id="modalShippingCharges"></span>
+        </div>
+
+
+        <div class="d-flex justify-content-between  fw-bold">
+          <span>Order total</span>
+          <span id="finalTotal"><span id="modalFinalTotal"></span></span>
+        </div>
+        <hr size="margin-bottom:20px;">
+        <!-- Shipment Details Section -->
+        <h6 class="fw-semibold mb-2">Shipment Details</h6>
+        <div class="mb-3">
+          <div class="row mb-1">
+            <div class="col-4 fw-semibold">Shipping Method:</div>
+            <div class="col-8" id="modalShippingMethod"></div>
+          </div>
+          <div class="row mb-1">
+            <div class="col-4 fw-semibold">Payment Method:</div>
+            <div class="col-8" id="modalPaymentMethod"></div>
+          </div>
+          <div class="row mb-1">
+            <div class="col-4 fw-semibold">Payment Status:</div>
+            <div class="col-8" id="modalPaymentStatus"></div>
+          </div>
+          <div class="row mb-1">
+            <div class="col-4 fw-semibold">Tracking Number:</div>
+            <div class="col-8" id="modalTrackingNumber"></div>
+          </div>
+          <div class="row mb-1">
+            <div class="col-4 fw-semibold">Shipping Address:</div>
+            <div class="col-8" id="modalShippingAddress"></div>
+          </div>
+          <div class="row mb-1">
+            <div class="col-4 fw-semibold">Estimated Delivery:</div>
+            <div class="col-8" id="modalEstimatedDelivery"></div>
+          </div>
+        </div>
+
+        <!-- Customer Details Section -->
+        <h6 class="fw-semibold mb-2">Customer Details</h6>
+        <div>
+          <div class="row mb-1">
+            <div class="col-4 fw-semibold">Name:</div>
+            <div class="col-8" id="modalCustomerName"></div>
+          </div>
+          <div class="row mb-1">
+            <div class="col-4 fw-semibold">Email:</div>
+            <div class="col-8" id="modalCustomerEmail"></div>
+          </div>
+          <div class="row mb-1">
+            <div class="col-4 fw-semibold">Phone:</div>
+            <div class="col-8" id="modalCustomerPhone"></div>
+          </div>
+        </div>
+        <h6 class="fw-semibold mb-2">Requests</h6>
+        <div class="list-group mb-3" id="modalRequests"></div>
+      </div>
+
+      <!-- <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary">Print Invoice</button>
+      </div> -->
+    </div>
+  </div>
+</div>
+
+    <!-- Order Details Modal -->
+<div class="modal fade" id="cancelReturnModal" tabindex="-1" aria-labelledby="cancelReturnModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header" style="padding: 6px 17px;">
+        <h5 class="modal-title" id="cancelReturnModalLabel">Order #TMU1003 Details</h5>
+        <button type="button" class="btn-close " data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="cancelReturnForm">
+
+          <!-- Select Request Type -->
+          <div class="mb-3">
+            <label for="requestType" class="form-label fw-semibold">Request Type</label>
+            <select class="form-select" id="requestType" required>
+              <option value="" selected disabled>Select type</option>
+              <option value="cancel">Cancel Order</option>
+              <option value="return">Return Order</option>
+            </select>
+          </div>
+          <input type="hidden" id="cancelOrderId"/>
+          <!-- Select Item (for multi-item orders) -->
+          <div class="mb-3" id="returnItems">
+            <label class="form-label fw-semibold">Select Items</label>
+
+            <div class="list-group">
+
+              
+
+
+            </div>
+          </div>
+
+
+          <!-- Reason -->
+          <div class="mb-3">
+            <label for="requestReason" class="form-label fw-semibold">Reason</label>
+            <textarea class="form-control" id="requestReason" rows="3" placeholder="Enter reason for cancel/return" ></textarea>
+          </div>
+
+          <!-- Preferred Action -->
+          <div class="mb-3" id="preferredActionsCon">
+            <label class="form-label fw-semibold">Preferred Action</label>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="preferredAction" id="refund" value="refund">
+              <label class="form-check-label" for="refund">Refund</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="preferredAction" id="replacement" value="replacement" >
+              <label class="form-check-label" for="replacement">Replacement</label>
+            </div>
+          </div>
+
+          <!-- Optional Upload (e.g., product issue photo) -->
+          <div class="mb-3">
+            <label for="requestAttachment" class="form-label fw-semibold">Attachment (optional)</label>
+            <input class="form-control" type="file" id="requestAttachment" accept="image/*,application/pdf">
+          </div>
+
+            </form>
+        </div>
+        <div class="modal-footer">
+        <button type="submit" form="cancelReturnForm" class="btn btn-danger">Submit Request</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Order Details Modal -->
+
+
+
+<script>
+  
+fetch('{% url 'token_obtain_pair' %}', {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+        email: "mohsinali@gmail.com",
+        password: "Today@123"
+    })
+    })
+    .then(res => res.json())
+    .then(data => {
+        TOKEN=data.access;
+    // Save access token
+    localStorage.setItem("access_token", data.access);
+    })
+    .catch(err => console.error(err));
+
+
+    // ================================
+// 1️⃣ Load order details into Cancel/Return Modal
+// ================================
+function openCancelReturnModal(orderId,type) {
+    const orderDetailBaseUrl = "{% url 'OrderDetailApi' 0 %}";
+    const url = orderDetailBaseUrl.replace("0", orderId);
+
+    fetch(url, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Order not found");
+        return res.json();
+    })
+    .then(data => {
+        // Update modal title
+        document.getElementById("cancelReturnModalLabel").innerText =
+            `Order #${data.order_number} Details`;
+
+            document.getElementById("requestType").value=type;
+        // Populate items dynamically
+        const itemsContainer = document.getElementById("returnItems").querySelector(".list-group");
+        itemsContainer.innerHTML = ""; // clear previous items
+        document.getElementById("cancelOrderId").value=data.id;
+        data.items.forEach(item => {
+            const totalPrice = parseFloat(item.price) * parseInt(item.quantity);
+            const html = `
+                <label class="list-group-item d-flex align-items-center">
+                    <input class="form-check-input me-3" type="checkbox" name="items[]" checked value="${item.id}">
+                    <img src="${item.product_image || '/static/default-product.png'}" width="50"
+                        class="border rounded me-3">
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold">${item.product_name}</div>
+                        <small class="text-muted">Qty: ${item.quantity}</small>
+                    </div>
+                    <div class="fw-semibold">Rs. ${totalPrice.toFixed(2)}</div>
+                </label>
+            `;
+            itemsContainer.insertAdjacentHTML("beforeend", html);
+        });
+                
+        // Initialize on modal open (optional)
+       toggleReturnItems();
+        // Show modal
+        new bootstrap.Modal(document.getElementById('cancelReturnModal')).show();
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Failed to load order details");
+    });
+}
+// Get elements
+const requestTypeEl = document.getElementById("requestType");
+const returnItemsEl = document.getElementById("returnItems");
+const preferredActions = document.getElementById("preferredActionsCon");
+function toggleReturnItems() {
+    if (requestTypeEl.value === "cancel") {
+      returnItemsEl.style.display = "none";  // hide items for Return
+      preferredActions.style.display = "none";  // hide items for Return
+    } else {
+      returnItemsEl.style.display = "block"; // show items for Cancel
+      preferredActions.style.display = "block"; // show items for Cancel
+    }
+}
+requestTypeEl.addEventListener("change", toggleReturnItems);
+
+// ================================
+// 2️⃣ Submit Cancel/Return Request
+// ================================
+document.getElementById("cancelReturnForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const orderId = document.getElementById("cancelReturnModalLabel").innerText.match(/#(\w+)/)[1];
+
+    const requestType = document.getElementById("requestType").value;
+    if (!requestType) {
+        showAlert("Please select request type","warning");
+        return;
+    }
+
+    const items = Array.from(this.querySelectorAll("input[name='items[]']:checked"))
+                        .map(i => i.value);
+
+                        
+    let reason = "";
+    let preferredAction = "";
+
+      reason = document.getElementById("requestReason").value;
+      preferredAction = this.querySelector("input[name='preferredAction']:checked")?.value;
+
+      if (items.length === 0) {
+          showAlert("Please select at least one item","warning");
+          return;
+      }
+      if(requestTypeEl.value != "cancel") {
+
+        if (!reason || !preferredAction) {
+            showAlert("Please fill reason and select preferred action","warning");
+            return;
+        }
+      }
+  
+
+    // Handle optional attachment
+    const attachmentInput = document.getElementById("requestAttachment");
+    const formData = new FormData();
+    formData.append("order_id", document.getElementById("cancelOrderId").value);
+    formData.append("request_type", requestType);
+    formData.append("items", items.map(i => parseInt(i)));
+    formData.append("reason", reason);
+    formData.append("preferred_action", preferredAction);
+
+    if (attachmentInput.files.length > 0) {
+        formData.append("attachment", attachmentInput.files[0]);
+    }
+
+    const cancelReturnUrl = "{% url 'order-request' %}"; // Your API endpoint for cancel/return
+    fetch(cancelReturnUrl, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        },
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showAlert("Request submitted successfully","warning");
+            new bootstrap.Modal(document.getElementById('cancelReturnModal')).hide();
+            window.location.reload();
+        } else {
+            showAlert("Failed to submit request: " + (data.error || "Unknown error"),"warning");
+
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showAlert("Failed to submit request","warning");
+
+    });
+});
+{% comment %} 
+  function viewOrder(orderId) {
+
+      const orderDetailBaseUrl = "{% url 'OrderDetailApi' 0 %}";
+      const url = orderDetailBaseUrl.replace("0", orderId);
+
+      fetch(url, {
+        method:"GET",
+              headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+
+          // Title
+          document.getElementById("modalOrderNumber").innerText =
+              "Order #" + data.order_number + " Details";
+
+          // ========================
+          // Shipment Progress
+          // ========================
+          updateProgress(data.status);
+
+          // ========================
+          // Items
+          // ========================
+          let itemsHtml = "";
+          data.items.forEach(item => {
+              itemsHtml += `
+                  <div class="list-group-item d-flex align-items-center">
+                      <img src="${item.product_image}" width="50"
+                          class="border rounded me-3">
+                      <div class="flex-grow-1">
+                          <div class="fw-semibold">${item.product_name}</div>
+                          <div class="small text-muted">Qty: ${item.quantity}</div>
+                      </div>
+                      <div class="fw-semibold">
+                          Rs. ${item.total_price}
+                      </div>
+                  </div>
+              `;
+          });
+
+          document.getElementById("modalItems").innerHTML = itemsHtml;
+
+          // ========================
+          // Totals
+          // ========================
+          document.getElementById("modalItemTotal").innerText =
+              "Rs. " + data.subtotal;
+
+          document.getElementById("modalItemDiscount").innerText =
+              "-Rs. " + data.discount;
+
+          document.getElementById("modalSubtotal").innerText =
+              "Rs. " + data.subtotal;
+
+          document.getElementById("modalFinalTotal").innerText =
+              "Rs. " + data.total_amount;
+
+          // ========================
+          // Shipment
+          // ========================
+          document.getElementById("modalShippingMethod").innerText =
+              data.shipping_method || "-";
+
+          document.getElementById("modalTrackingNumber").innerText =
+              data.tracking_number || "-";
+
+          document.getElementById("modalShippingAddress").innerText =
+              data.shipping_address;
+
+          document.getElementById("modalEstimatedDelivery").innerText =
+              data.estimated_delivery || "-";
+
+          // ========================
+          // Customer
+          // ========================
+          document.getElementById("modalCustomerName").innerText =
+              data.customer_name;
+
+          document.getElementById("modalCustomerEmail").innerText =
+              data.customer_email;
+
+          document.getElementById("modalCustomerPhone").innerText =
+              data.customer_phone;
+
+          // ========================
+          // Requests
+          // ========================
+          let requestHtml = "";
+          data.requests.forEach(req => {
+              requestHtml += `
+                  <div class="list-group-item d-flex justify-content-between align-items-center">
+                      <div>
+                          <div class="fw-semibold">${req.request_type} Request</div>
+                          <div class="small text-muted">${req.comment || ""}</div>
+                      </div>
+                      <div>
+                          <span class="badge bg-warning text-dark">${req.status}</span>
+                          <div class="small text-muted">${req.created_at}</div>
+                      </div>
+                  </div>
+              `;
+          });
+
+          document.getElementById("modalRequests").innerHTML = requestHtml;
+
+          // Show modal
+          new bootstrap.Modal(document.getElementById('orderDetailsModal')).show();
+
+      });
+  } {% endcomment %}
+
+  function viewOrder(orderId) {
+    // Get URL from Django template
+    const orderDetailBaseUrl = "{% url 'OrderDetailApi' 0 %}";
+    const url = orderDetailBaseUrl.replace("0", orderId);
+
+    fetch(url, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Order not found");
+        return res.json();
+    })
+    .then(data => {
+        // Title
+        document.getElementById("modalOrderNumber").innerText =
+            "Order #" + data.order_number + " Details";
+
+        // Shipment Progress
+        updateProgress(data.status);
+
+        // Items
+        let itemsHtml = "";
+        data.items.forEach(item => {
+            const totalPrice = parseFloat(item.price) * parseInt(item.quantity);
+            itemsHtml += `
+                <div class="list-group-item d-flex align-items-center">
+                    <img src="${item.product_image || '/static/default-product.png'}" width="50"
+                        class="border rounded me-3">
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold">${item.product_name}</div>
+                        <div class="small text-muted">Qty: ${item.quantity}</div>
+                    </div>
+                    <div class="fw-semibold">
+                        Rs. ${totalPrice.toFixed(2)}
+                    </div>
+                </div>
+            `;
+        });
+        document.getElementById("modalItems").innerHTML = itemsHtml;
+
+        // Totals
+        const subtotal = data.items.reduce((acc, i) => acc + (parseFloat(i.price) * parseInt(i.quantity)), 0);
+        document.getElementById("modalItemTotal").innerText = "Rs. " + subtotal.toFixed(2);
+        document.getElementById("modalItemDiscount").innerText = "-Rs. 0.00"; // No discount in API yet
+        document.getElementById("modalSubtotal").innerText = "Rs. " + subtotal.toFixed(2);
+        document.getElementById("modalShippingCharges").innerText = parseFloat(data.modalShippingCharges).toFixed(2) >0?"Rs. " +parseFloat(data.total_amount).toFixed(2):"Free";
+        document.getElementById("modalFinalTotal").innerText = "Rs. " + parseFloat(data.total_amount).toFixed(2);
+
+        // Shipment
+        document.getElementById("modalShippingMethod").innerText = data.shipping_method || "-";
+        document.getElementById("modalPaymentMethod").innerText = data.payment_method || "-";
+        document.getElementById("modalPaymentStatus").innerText = data.payment_status || "-";
+        document.getElementById("modalTrackingNumber").innerText = data.tracking_number || "-";
+        document.getElementById("modalShippingAddress").innerText = data.shipping_address_text || "-";
+        document.getElementById("modalEstimatedDelivery").innerText = data.estimated_delivery || "-";
+
+        // Customer
+        document.getElementById("modalCustomerName").innerText = data.customer_name;
+        document.getElementById("modalCustomerEmail").innerText = data.customer_email;
+        document.getElementById("modalCustomerPhone").innerText = data.customer_phone;
+
+        // Requests
+        let requestHtml = "";
+        if (data.requests && data.requests.length > 0) {
+            data.requests.forEach(req => {
+                requestHtml += `
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">${req.request_type} Request</div>
+                            <div class="small text-muted">${req.comment || ""}</div>
+                        </div>
+                        <div>
+                            <span class="badge bg-warning text-dark">${req.status}</span>
+                            <div class="small text-muted">${new Date(req.created_at).toLocaleString('en-GB', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            requestHtml = `<div class="list-group-item text-center">No requests found</div>`;
+        }
+        document.getElementById("modalRequests").innerHTML = requestHtml;
+
+        // Show modal
+        new bootstrap.Modal(document.getElementById('orderDetailsModal')).show();
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Order not found or an error occurred.");
+    });
+}
+
+  // ============================
+  // Progress Logic
+  // ============================
+
+  function updateProgress(status) {
+
+      let progress = 0;
+
+      if (status === "pending") progress = 33;
+      if (status === "shipped") progress = 66;
+      if (status === "delivered") progress = 100;
+
+      document.querySelector(".progress-bar").style.width = progress + "%";
+  }
+  </script>
+    <script>
+      const dropdown = document.getElementById('statusFilter');
+      const buttons = document.querySelectorAll('.filter-btn');
+      const orders = document.querySelectorAll('.order-item');
+
+      function filterOrders(status) {
+        orders.forEach(order => {
+          order.style.display =
+            status === 'all' || order.dataset.status === status
+              ? 'block'
+              : 'none';
+        });
+      }
+
+      dropdown.addEventListener('change', () => {
+        filterOrders(dropdown.value);
+        buttons.forEach(btn =>
+          btn.classList.toggle('active', btn.dataset.filter === dropdown.value)
+        );
+      });
+
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          dropdown.value = btn.dataset.filter;
+          filterOrders(btn.dataset.filter);
+
+          buttons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        });
+      });
+    </script>
+
+
+{% endblock %}
+
+
+{% block 'extra_js' %}
+
+
+
+{% endblock %}
+
+

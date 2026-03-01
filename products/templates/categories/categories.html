@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+
+{% block title %}Categories{% endblock %}
+
+{% block content %}
+    
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="bi bi-folder"></i> Categories List
+        </div>
+        <div>
+            <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#addCategoryModal" onclick="clearCatgoryModal();">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <table class="table table-sm table-bordered  align-middle mb-4">
+            <thead class="table-light">
+                <tr>
+                    <th>Category Name</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th style="width:160px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="categoryBody">
+                
+
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="modal fade" id="subCategoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <input type="hidden" id="currentParentId">
+
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title">
+                    <i class="bi bi-layers"></i> Category Hierarchy Manager
+                </h6>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-3 p-2 bg-light rounded" id="categoryBreadcrumbs">
+                        <li class="breadcrumb-item"><a href="#" onclick="getCatories('categoryBody')">Root</a></li>
+                        </ol>
+                </nav>
+
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body p-3">
+                        <label class="form-label small fw-bold text-uppercase text-muted">
+                            Add New Item under: <span id="activeParentLabel" class="text-primary">Root</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="text" id="newSubCatName" class="form-control form-control-sm" placeholder="Enter sub-category name...">
+                            <button class="btn btn-primary btn-sm" onclick="saveCategory()">
+                                <i class="bi bi-plus-circle"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="table table-sm table-hover border">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Name</th>
+                                <th class="text-center">Nested Items</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subCategoryTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-light">
+                <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Finish & Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% comment %} 
+<div class="modal fade" id="subCategoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h6 class="modal-title">
+                    <i class="bi bi-diagram-3"></i> Subcategories – Electronics
+                </h6>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <!-- Add Subcategory -->
+                <div class="mb-3">
+                    <label class="form-label">Add Subcategory</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control" placeholder="Subcategory name">
+                        <button class="btn btn-dark">Add</button>
+                    </div>
+                </div>
+
+                <!-- Subcategory List -->
+                <table class="table table-sm table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Subcategory</th>
+                            <th>Tertiary Categories</th>
+                            <th style="width:120px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Mobiles</td>
+                            <td>
+                                <span class="badge bg-secondary">Android</span>
+                                <span class="badge bg-secondary">iOS</span>
+                            </td>
+                            <td>
+                                <button class="btn btn-outline-secondary btn-sm" title="Add Tertiary">
+                                    <i class="bi bi-plus-circle"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td>Laptops</td>
+                            <td>
+                                <span class="badge bg-secondary">Gaming</span>
+                                <span class="badge bg-secondary">Ultrabook</span>
+                            </td>
+                            <td>
+                                <button class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-plus-circle"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Add Tertiary Category -->
+                <div class="mt-3">
+                    <label class="form-label">Add Tertiary Category</label>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <select class="form-select form-select-sm">
+                                <option>Select Subcategory</option>
+                                <option>Mobiles</option>
+                                <option>Laptops</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" placeholder="Tertiary name">
+                                <button class="btn btn-dark">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+
+        </div>
+    </div>
+</div> {% endcomment %}
+
+
+
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">
+                    <i class="bi bi-plus-circle"></i> Category
+                </h6>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <input type="text" class="form-control form-control-sm" hidden id="CategoryId">
+                <label class="form-label">Category Name</label>
+                <input type="text" class="form-control form-control-sm" id="CategoryName">
+
+                <label class="form-label mt-2">Status</label>
+                <select class="form-select form-select-sm" id="is_active">
+                    <option value="">Select Status</option>
+                    <option value="1">Active</option>
+                    <option value="0">Inactive</option>
+                </select>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-dark btn-sm w-100" onclick="saveCategory()">Save Category</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+
+    
+   var links = $(".sidebar a");
+    links.each(function() {
+        $(this).removeClass('active');
+    });
+    $("#CategoryLink").addClass('active');
+    
+    const API_BASE_URL = "http://127.0.0.1:8000/Adminpanel/Products/api/v1/categories/";
+    var TOKEN ;
+        var parentid = '';
+
+function saveCategory() {
+    let catName = $("#CategoryName").val(); 
+    let SubCatName = $("#newSubCatName").val(); 
+    let is_active = $("#is_active").val(); // Best for checkboxes, or .val()
+    let CategoryId = $("#CategoryId").val();
+    parentid = $("#currentParentId").val();
+    // Determine URL and Method
+    let url = CategoryId === '' ? API_BASE_URL : `${API_BASE_URL}${CategoryId}/`;
+    let method = CategoryId === '' ? "POST" : "PATCH";
+    let body = { name: catName };
+    if(is_active!=''){body.is_active= is_active}
+    if (parentid != '') { body.name=SubCatName; body.parent = parseInt(parentid); } 
+    else { body.parent = null; }
+    fetch(url, {
+        method: method,
+        headers: {  "Authorization": `Bearer ${localStorage.getItem("access_token")}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    })
+    .then(res => {
+        // Handle different Status Codes
+        if (res.ok) { return res.json().then(data => ({ status: 'success', data })); }
+        else if (res.status === 400) { return res.json().then(data => ({ status: 'validation_error', data })); } 
+        else if (res.status === 401) { return { status: 'auth_error' }; } 
+        else {return { status: 'server_error' };}
+    })
+    .then(result => {
+        if (result.status === 'success') {
+            showAlert(CategoryId === '' ? "Category Created!" : "Category Updated!", "success");
+            $("#addCategoryModal").modal('hide');
+            
+            if (result.data.parent == ''||result.data.parent == null) { getCatories(); }
+            else{getCatories('subCategoryTableBody',result.data.parent);}
+
+        } 
+        else if (result.status === 'validation_error') {
+            let errorMsg = result.data.name ? `Name: ${result.data.name[0]}` : "Validation failed.";
+            showAlert(errorMsg, "warning");
+        } 
+        else if (result.status === 'auth_error') { showAlert("Session expired. Please login again.", "danger"); }
+        else { showAlert("Server error. Logged in database.", "danger"); }
+    })
+    .catch(err => {
+        showAlert("Connection failed!", "danger");
+        console.error("Fetch Error:", err);
+    });
+}
+fetch('{% url 'token_obtain_pair' %}', {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+        email: "mohsinali@gmail.com",
+        password: "Today@123"
+    })
+    })
+    .then(res => res.json())
+    .then(data => {
+        TOKEN=data.access;
+    // Save access token
+    localStorage.setItem("access_token", data.access);
+    })
+    .catch(err => console.error(err));
+getCatories("categoryBody", null);
+
+function getCatories(el = "categoryBody", parentId = null) {
+    // Construct URL with parent filter
+    let url = API_BASE_URL;
+    if (parentId !== null) {
+        url += `?parent=${parentId}`;
+    } else if (el === "categoryBody") {
+        url += `?parent=null`; // Filter for top-level only on main table
+    }
+
+    fetch(url, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Content-Type": "application/json"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        let innerHtml = ""; // Initialize as empty string
+        
+        data.forEach(function(item) {
+            // Determine which buttons to show based on where we are
+            const isSubModal = (el === "subCategoryTableBody");
+            if(!isSubModal)
+                innerHtml += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td><span class="badge ${item.is_active ? 'bg-success' : 'bg-secondary'}">${item.is_active ? 'Active' : 'Inactive'}</span></td>
+                        <td>${new Date(item.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-outline-secondary btn-sm" 
+                                    onclick='fillCatgoryModal(${JSON.stringify(item)})' data-bs-toggle="modal" 
+                                    data-bs-target="#addCategoryModal" onclick="$('#CategoryId').val('${item.id}');">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                
+                                ${!isSubModal ? `
+                                    <button class="btn btn-outline-primary btn-sm" 
+                                        onclick="openSubModal(${item.id}, '${item.name}')">
+                                        <i class="bi bi-diagram-3"></i>
+                                    </button>
+                                ` : `
+                                    <button class="btn btn-outline-info btn-sm" 
+                                        onclick="openSubModal(${item.id}, '${item.name}')">
+                                        <i class="bi bi-arrow-right-circle"></i>
+                                    </button>
+                                `}
+                            </div>
+                        </td>
+                    </tr>`;
+                else
+                    innerHtml += `
+                        <tr>
+                            <td class="fw-bold">${item.name}</td>
+                            <td class="text-center">
+                                <span class="badge bg-pill bg-secondary">${item.children_count || 0}</span>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="openSubModal(${item.id}, '${item.name}')">
+                                        <i class="bi bi-arrow-right-short"></i> Explore
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="deleteCategory(${item.id})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>`;
+        
+        });
+
+        if (data.length === 0) {
+            innerHtml = `<tr><td colspan="4" class="text-center text-muted">No items found here.</td></tr>`;
+        }
+
+        $(`#${el}`).html(innerHtml);
+    })
+    .catch(err => {
+        showAlert("Failed to load data", "danger");
+        console.error(err);
+    });
+}
+function clearCatgoryModal() {
+    $('#CategoryId').val("");
+    $('#CategoryName').val("");
+    $('#is_active').val('');
+    $('#parent').val(""); 
+}
+function fillCatgoryModal(item) {
+   
+    clearCatgoryModal();
+    $('#CategoryId').val(item.id);
+    $('#CategoryName').val(item.name);
+    $('#is_active').val(item.is_active?1:0);
+}
+
+{% comment %} function openSubModal(id, name) {
+    $('#currentParentId').val(id); 
+    $('#parentCategoryName').text(name);
+    $('#subCategoryModal').modal('show');
+} {% endcomment %}
+let navigationStack = []; // To keep track of the path (Root > Electronics > Mobile)
+
+function openSubModal(parentId, parentName) {
+    // 1. Update Hidden Inputs and Labels
+    $('#currentParentId').val(parentId);
+    $('#activeParentLabel').text(parentName);
+    updateBreadcrumbs(parentId, parentName);
+
+    getCatories("subCategoryTableBody", parentId);
+    $('#subCategoryModal').modal('show');
+}
+
+function updateBreadcrumbs(id, name) {
+    // Check if ID already exists in stack to prevent loops
+    const exists = navigationStack.findIndex(x => x.id === id);
+    if (exists === -1) {
+        navigationStack.push({id: id, name: name});
+    } else {
+        // If user clicks an older crumb, remove everything after it
+        navigationStack = navigationStack.slice(0, exists + 1);
+    }
+
+    let html = '<li class="breadcrumb-item"><a href="#" onclick="resetToRoot()">Root</a></li>';
+    navigationStack.forEach((crumb, index) => {
+        if (index === navigationStack.length - 1) {
+            html += `<li class="breadcrumb-item active">${crumb.name}</li>`;
+        } else {
+            html += `<li class="breadcrumb-item"><a href="#" onclick="openSubModal(${crumb.id}, '${crumb.name}')">${crumb.name}</a></li>`;
+        }
+    });
+    $('#categoryBreadcrumbs').html(html);
+}
+
+function resetToRoot() {
+    navigationStack = [];
+    $('#subCategoryModal').modal('hide');
+    getCatories(); // Refresh main table
+}
+
+
+   
+
+
+{% comment %} fetch(`${API_BASE_URL}1/`, {
+  method: "PATCH",
+  headers: {
+    "Authorization": `Bearer ${TOKEN}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    is_active: false
+  })
+})
+.then(res => res.json())
+.then(data => console.log("Partially Updated:", data))
+.catch(err => console.error(err)); {% endcomment %}
+
+function deleteCategory(id){
+    fetch(`${API_BASE_URL}${id}/`, {
+      method: "DELETE",
+      headers: {
+        "Authorization": `Bearer ${TOKEN}`
+      }
+    })
+    .then(() => {
+        showAlert("Category Deleted.","success");
+                console.log("Deleted:", data);
+    })
+    .catch(err =>
+    {
+        console.error(err)
+        showAlert("Something went wrong!","error");
+    });
+
+}
+
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+
+
+{% endblock %}

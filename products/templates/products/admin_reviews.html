@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Attributes{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <i class="bi bi-star"></i> Product Reviews
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table table-sm table-bordered mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product</th>
+                        <th>User</th>
+                        <th>Rating</th>
+                        <th>Comment</th>
+                        <th>Active</th>
+                        <th style="width:120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="reviewsBody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal fade" id="reviewModal" tabindex="-1">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h6 class="modal-title">
+                        <i class="bi bi-star"></i> Review Management
+                    </h6>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" id="ReviewId">
+
+                    <div class="mb-2">
+                        <label>Rating</label>
+                        <select class="form-select form-select-sm" id="ReviewRating">
+                            <option value="5">5</option>
+                            <option value="4">4</option>
+                            <option value="3">3</option>
+                            <option value="2">2</option>
+                            <option value="1">1</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-2">
+                        <label>Comment</label>
+                        <textarea class="form-control form-control-sm" id="ReviewComment"></textarea>
+                    </div>
+
+
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="ReviewActive">
+                        <label class="form-check-label">Active</label>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-dark btn-sm w-100" onclick="updateReview()">
+                        Save Changes
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <script>
+        fetch('{% url 'token_obtain_pair' %}', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                email: "mohsinali00260@gmail.com",
+                password: "Today@123"
+            })
+            })
+            .then(res => res.json())
+            .then(data => {
+                TOKEN=data.access;
+            // Save access token
+            localStorage.setItem("access_token", data.access);
+            })
+            .catch(err => console.error(err));
+        loadReviews();
+        function loadReviews() {
+            fetch("{% url 'AdminReviewList' %}", {
+                headers: {
+                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+
+                let tbody = document.getElementById("reviewsBody");
+                tbody.innerHTML = "";
+
+                data.forEach(r => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${r.product_name}</td>
+                            <td>${r.user_email}</td>
+                            <td>${r.rating} ⭐</td>
+                            <td>${r.comment}</td>
+                            <td>${r.is_active ? 'Yes' : 'No'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-dark"
+                                    onclick="openReviewModal(${r.id}, ${r.rating}, \`${r.comment}\`,  ${r.is_active})">
+                                    Edit
+                                </button>
+                                <button class="btn btn-sm btn-danger"
+                                    onclick="softDeleteReview(${r.id})">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+        }
+        function openReviewModal(id, rating, comment,  active) {
+            document.getElementById("ReviewId").value = id;
+            document.getElementById("ReviewRating").value = rating;
+            document.getElementById("ReviewComment").value = comment;
+            document.getElementById("ReviewActive").checked = active;
+
+            new bootstrap.Modal(document.getElementById("reviewModal")).show();
+        }
+        function updateReview() {
+
+            const id = document.getElementById("ReviewId").value;
+            let url="{% url 'AdminReviewUpdate' 0 %}";
+            url=url.replace('0',id);
+            
+            fetch(url, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                },
+                body: JSON.stringify({
+                    rating: document.getElementById("ReviewRating").value,
+                    comment: document.getElementById("ReviewComment").value,
+                    is_active: document.getElementById("ReviewActive").checked
+                })
+            })
+            .then(res => res.json())
+            .then(() => {
+                loadReviews();
+                bootstrap.Modal.getInstance(document.getElementById("reviewModal")).hide();
+            });
+        }
+        function softDeleteReview(id) {
+            if (!confirm("Are you sure?")) return;
+            let url="{% url 'AdminReviewUpdate' 0 %}";
+            url=url.replace('0',id);
+            fetch(url, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                },
+                body: JSON.stringify({
+                    is_active: false
+                })
+            })
+            .then(() => loadReviews());
+        }
+    </script>
+{% endblock %}
+
+{% block extra_js %}
+
+
+{% endblock %}

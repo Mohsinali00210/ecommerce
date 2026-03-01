@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Shan Zee Shope{% endblock %}</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/fontawesome.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/solid.min.css">
+    <style>
+        body {
+            background: #f3f3f3;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+        }
+
+        .top-banner {
+            /* background: url('https://via.placeholder.com/1600x400/CE1B3B/fff?text=Holiday+Gift+Guide+Banner') no-repeat center; */
+            background-size: cover;
+            height: 200px;
+            /* height: 350px; */
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .product-box {
+            background: #fff;
+            border-radius: 6px;
+            padding: 10px ;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: .2s;
+            height: 100%;
+        }
+        .product-box a {
+            font-size: 12px;
+        }
+        .product-box:hover {
+            transform: scale(1.03);
+        }
+
+        .product-box img {
+            width: 100%;
+            border-radius: 4px;
+        }
+
+        footer {
+            background: #8f8f8f;
+            color: #fff;
+            padding: 40px 0;
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+      <!-- ========== AMAZON STYLE SECONDARY NAVBAR ========== -->
+<style>
+    .navbar{
+        background: #ffffff;    
+    }
+    .sub-navbar {
+        background: #009896; /* Amazon greenish-blue */
+        color: #fff;
+        padding: 10px 20px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 25px;
+        border-bottom: 3px solid #c60; /* orange underline */
+    }
+
+    .sub-navbar a {
+        color: #000000;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .sub-navbar a:hover {
+        text-decoration: underline;
+    }
+
+    .menu-icon {
+        font-size: 22px;
+        cursor: pointer;
+    }
+
+    /* ========== SIDEBAR STYLES ========== */
+    .sidebar {
+        width: 260px;
+        background: #fff;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: -260px;
+        padding: 20px;
+        overflow-y: auto;
+        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+        transition: 0.3s ease-in-out;
+        z-index: 2000;
+    }
+
+    .sidebar.open {
+        left: 0;
+    }
+
+    .sidebar h4 {
+        margin-bottom: 20px;
+    }
+
+    .sidebar a {
+        display: block;
+        padding: 8px 0;
+        color: #333;
+        text-decoration: none;
+        border-bottom: 1px solid #eaeaea;
+    }
+
+    .sidebar a:hover {
+        background: #f3f3f3;
+    }
+
+    .sidebar-close {
+        font-size: 22px;
+        float: right;
+        cursor: pointer;
+    }
+
+    /* Background overlay */
+    .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        /* z-index: 1500; */
+    }
+     .mycontainer{
+        min-height: 80vh;
+    }
+    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+    .product-card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 0px;
+        transition: all .2s ease-in-out;
+
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 18px rgba(0,0,0,.1);
+    }
+
+    .product-img {
+        width: 100%;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
+    .sale-badge {
+        background: #e00;
+        color: #fff;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+    .price {
+            font-weight: bold;
+            color: #e85858;
+            font-size: 11px;
+        }
+
+        .old-price {
+            text-decoration: line-through;
+            color: gray;
+            margin-left: 4px;
+        }
+
+        .sold-text {
+            color: #555;
+            margin-left: 8px;
+        }
+
+        .rating-stars {
+            color: #f5b301;
+            font-size: 11px;
+        }
+        .rating-stars span{
+            font-size: 11px;
+        }
+        .add-cart-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            background: #fff;
+        }
+    .add-cart-btn:hover{
+        transform: translateY(-5px);
+            box-shadow: 0 5px 18px rgba(0,0,0,.1);
+    }
+        .view-more-btn {
+            width: 200px;
+            border-radius: 30px;
+            padding: 10px;
+            border: 1px solid #222;
+            background: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .view-more-btn:hover {
+            background: #f2f2f2;
+        }
+        .product-card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 0px;
+        transition: all .2s ease-in-out;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+                z-index: 2001 !important;
+
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 18px rgba(0,0,0,.1);
+    }
+
+    /* FIX: Same image height for all */
+    .product-img {
+        width: 100%;
+        height: 150px;       /* set equal height */
+        border-radius: 8px;
+        object-fit: cover;   /* crop nicely */
+    }
+
+    /* FIX: Make content grow evenly */
+    .product-info {
+        flex-grow: 1;
+        padding: 0px 9px;
+    }
+    .product-title {
+        font-size: 12px;
+    }
+    /* FIX: Align cart button at bottom */
+    .add-cart-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 1px solid #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 14px;
+        background: #fff;
+        margin-top: auto;  /* pushes button to bottom */
+        position: relative;
+        top:-20px;
+    }
+    .carousel-item img{
+        width: 98%;
+
+    }
+    .product-container{
+                    z-index: 2001 !important;
+
+    }
+
+
+    /* Top Navbar */
+    .topnav-main {
+        background: #ffffff;
+        color: rgb(0, 0, 0);
+        
+        padding-top: 0px;
+        padding-bottom: 0px;
+    }
+    a.nav-link.text-white {
+        color: black !important;
+    }
+    /* Sub Navbar (desktop) */
+    /* .sub-navbar {
+        background: #5f5f5f;
+        padding: 8px 15px;
+    } */
+    .sub-navbar a {
+        color: white;
+        margin-right: 20px;
+        text-decoration: none;
+    }
+
+    /* Mobile Sidebar */
+    .mobile-sidebar {
+        width: 270px;
+        height: 100vh;
+        background: white;
+        position: fixed;
+        top: 0;
+        left: -300px;
+        padding-top: 20px;
+        overflow-y: auto;
+        transition: all .3s ease-in-out;
+        z-index: 2000;
+        border-right: 1px solid #ddd;
+    }
+
+    /* Show Sidebar */
+    .mobile-sidebar.open {
+        left: 0;
+    }
+
+    /* Sidebar links */
+    .mobile-sidebar a {
+        display: block;
+        padding: 10px 20px;
+        color: #333;
+        text-decoration: none;
+    }
+    .mobile-sidebar a:hover {
+        background: #f2f2f2;
+    }
+
+    /* Close button */
+    .close-btn {
+        font-size: 18px;
+        cursor: pointer;
+        position: absolute;
+        top: 10px;
+        right: 15px;
+    }
+
+    /* Mobile Search box */
+    .search-mobile input {
+        border: 1px solid #999;
+        margin-bottom: 15px;
+    }
+
+    /* Hamburger icon */
+    .menu-toggle {
+        font-size: 22px;
+        cursor: pointer;
+    }
+
+    /* Hide sidebar on desktop */
+    @media (min-width: 992px) {
+        .mobile-sidebar.open .mobile-nav-items {
+            display: none;
+        }
+        .top-banner{
+            height: 300px;
+        }
+    }
+    @media (max-width: 692px) {
+        .carousel-item::after {
+            height: 20%;   /* reduced size on small screens */
+            background: linear-gradient(
+                to top,
+                rgba(255, 255, 255, 1),
+                rgba(255, 255, 255, 0.2)
+            );
+        }
+    }
+    .old-price {
+            text-decoration: line-through;
+            color: gray;
+            font-size: 12px;
+            margin-left: 4px;
+        }
+    div#sliderProducts
+    {
+        height: 200px;
+    }
+        .sub-navbar {
+        white-space: nowrap;
+        scrollbar-width: thin;           /* Firefox */
+    }
+    .sub-navbar {
+        white-space: nowrap;
+        scrollbar-width: thin;
+        border-top: 1px solid black;
+        border-bottom: 1px solid black;
+        background: white;
+        scrollbar-width: none;
+        padding: 5px 20px;
+        align-items: center;
+        gap: 7px;
+    }
+    .sub-navbar a {
+        color: #8f8f8f;
+        font-size: 13px;
+        margin-right: 5px;
+    }
+    .sub-navbar a.active {
+        color: #000000;
+    }
+    .navbar-nav .nav-item a{
+        font-size: 16px;
+    }
+
+    .bg-temu-green { background-color: var(--temu-green); }
+            .text-temu-orange { color: var(--temu-orange); }
+            .promo-header { background-color: #fff8f0; font-size: 0.85rem; }
+            .card-img-container { position: relative; background: #f7f7f7; border-radius: 8px; overflow: hidden; }
+            .badge-limited { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; }
+            .discount-badge { border: 1px solid #ff4d4f; color: #ff4d4f; font-size: 0.75rem; padding: 0 4px; border-radius: 4px; }
+
+    </style>
+
+    {% block extra_css %}{% endblock %}
+
+</head>
+
+<body>
+
+   <button id="backToTop" class="btn-temu-orange shadow-lg rounded-circle position-fixed bottom-0 end-0 m-4 d-none" 
+            style="width: 50px; height: 50px; z-index: 2000;" onclick="scrollToTop()">
+            <i class="fa-solid fa-arrow-up fs-4"></i>
+    </button>
+ 
+<!-- ================== TOP NAV ================== -->
+<nav  class="navbar navbar-light navbar-expand-lg px-4 topnav-main d-none d-lg-flex justify-content-between">
+    <div>
+        <span class="menu-toggle " id="openSidebar">&#9776;</span>
+        <a class="navbar-brand ms-2" href="#" style="font-size: 15px;"><img src="../images/logo.png" width="50px" alt=""></a>
+
+    </div>
+
+    <form class="d-none d-lg-flex w-50 mx-auto">
+        <div class="input-group">
+            <input class="form-control" type="search" placeholder="Search products...">
+            <button class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </div>
+    </form>
+
+    <ul class="navbar-nav ms-auto d-none d-lg-flex">
+        {% if request.user.is_authenticated %}
+            <li class="nav-item"><a href="{% url 'logout' %}" class="nav-link "><i class="fa-solid fa-right-to-bracket"></i></a></li>
+            <li class="nav-item"><a href="{% url 'MyOrders' %}" class="nav-link ">Orders / Returns</a></li>
+        {% else %}
+            <li class="nav-item"><a href="{% url 'login' %}" class="nav-link "><i class="fa-solid fa-user"></i></a></li>
+        {% endif %}
+        <li class="nav-item"><a href="{% url 'Cart' %}" class="nav-link "><i class="fa-solid fa-cart-shopping"></i></a></li>
+        {% if request.user.is_authenticated %}
+            <li class="nav-item">
+                <div class="dropdown">
+                <button class="btn position-relative" data-bs-toggle="dropdown">
+                    <i class="fa-solid fa-bell "></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">5</span>
+                </button>
+
+                <ul class="dropdown-menu dropdown-menu-end p-2" style="width: 350px;">
+
+                    <!-- Order Placed -->
+                    <li class="notification-item unread">
+                    <div class="d-flex">
+                        <div class="icon bg-primary">
+                        <i class="bi bi-bag-check"></i>
+                        </div>
+                        <div class="ms-3">
+                        <div class="fw-semibold">Order Placed</div>
+                        <div class="small text-muted">
+                            Your order <b>#TMU1007</b> has been placed successfully.
+                        </div>
+                        <small class="text-muted">2 mins ago</small>
+                        </div>
+                    </div>
+                    </li>
+
+                    <!-- Order Dispatched -->
+                    <li class="notification-item unread">
+                    <div class="d-flex">
+                        <div class="icon bg-info">
+                        <i class="bi bi-truck"></i>
+                        </div>
+                        <div class="ms-3">
+                        <div class="fw-semibold">Order Dispatched</div>
+                        <div class="small text-muted">
+                            Order <b>#TMU1005</b> is on the way.
+                        </div>
+                        <small class="text-muted">1 hour ago</small>
+                        </div>
+                    </div>
+                    </li>
+
+                    <!-- Order Delivered -->
+                    <li class="notification-item">
+                    <div class="d-flex">
+                        <div class="icon bg-success">
+                        <i class="bi bi-check-circle"></i>
+                        </div>
+                        <div class="ms-3">
+                        <div class="fw-semibold">Order Delivered</div>
+                        <div class="small text-muted">
+                            Order <b>#TMU1001</b> has been delivered.
+                        </div>
+                        <small class="text-muted">Yesterday</small>
+                        </div>
+                    </div>
+                    </li>
+
+                    <!-- Order Canceled -->
+                    <li class="notification-item">
+                    <div class="d-flex">
+                        <div class="icon bg-danger">
+                        <i class="bi bi-x-circle"></i>
+                        </div>
+                        <div class="ms-3">
+                        <div class="fw-semibold">Order Canceled</div>
+                        <div class="small text-muted">
+                            Order <b>#TMU1002</b> has been canceled.
+                        </div>
+                        <small class="text-muted">2 days ago</small>
+                        </div>
+                    </div>
+                    </li>
+
+                    <!-- Offer -->
+                    <li class="notification-item">
+                    <div class="d-flex">
+                        <div class="icon bg-warning">
+                        <i class="bi bi-percent"></i>
+                        </div>
+                        <div class="ms-3">
+                        <div class="fw-semibold">Special Offer 🎉</div>
+                        <div class="small text-muted">
+                            Flat <b>20% OFF</b> on Smart Watches. Limited time!
+                        </div>
+                        <small class="text-muted">Today</small>
+                        </div>
+                    </div>
+                    </li>
+
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="text-center">
+                    <a href="./Notifications.html" class="small text-decoration-none">
+                        View All Notifications
+                    </a>
+                    </li>
+
+                </ul>
+                </div>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+
+
+<nav  class="navbar navbar-light navbar-expand-lg px-4 topnav-main d-flex d-lg-none">
+  
+    <div class="d-flex justify-content-between align-items-center w-100">
+        <button onclick="goBack()" class="bg-white border-0 " aria-label="Back">
+            <i class="fa fa-chevron-left "></i>
+        </button>
+        
+        <a class="navbar-brand ms-2" href="#" style="font-size: 15px;"><img src="../images/logo.png" width="50px" alt=""></a>
+        <form class=" d-flex w-30 mx-auto" style="font-size: 12px;">
+            <div class="input-group">
+                <input class="form-control form-control-sm" style="padding: 0px;height: 28px;" type="search" placeholder="Search products...">
+                <button class="input-group-text" style="padding: 15px 3px; height: 28px; align-items: center; text-align: center;"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+        </form>
+        <span class="menu-toggle " id="openSidebar">&#9776;</span>
+        <ul class="navbar-nav ms-auto  d-flex flex-row " style="font-size: 12px;">
+            {% if request.user.is_authenticated %}
+                <li class="nav-item p-1"><a href="{% url 'logout' %}" class="nav-link "><i class="fa-solid fa-right-to-bracket"></i></a></li>
+                <li class="nav-item p-1"><a href="{% url 'MyOrders' %}" class="nav-link "><i class="fa-solid fa-arrow-down-short-wide"></i></a></li>
+            {% else %}
+                <li class="nav-item p-1"><a href="{% url 'login' %}" class="nav-link "><i class="fa-solid fa-user"></i></a></li>
+            {% endif %}
+            <li class="nav-item p-1"><a href="{% url 'Cart' %}" class="nav-link "><i class="fa-solid fa-cart-shopping"></i></a></li>
+            
+        </ul>
+    </div>
+
+
+</nav>
+
+
+<!-- ========== SECONDARY NAVBAR (Desktop Only) ========== -->
+<div class="sub-navbar d-flex overflow-auto flex-nowrap ">
+      <a href="./index.html" class="active">All</a>
+    <a href="./TodayDeal.html">Today's Deals</a>
+    <a href="#">Gift Cards</a>
+    <a href="./Contact.html">Contact</a>
+    <a href="#">Electronics</a>
+    <a href="#">Computers</a>
+    <a href="#">Home & Kitchen</a>
+    <a href="#">Beauty & Care</a>
+    <a href="#">Fashion</a>
+    <a href="#">Sports</a>
+    <a href="#">Grocery</a>
+    <a href="#">Books</a>
+</div>
+
+
+<!-- ========== MOBILE ASIDE (Sidebar 2) ========== -->
+<aside class="mobile-sidebar" id="sidebarMenu">
+
+    <span class="close-btn" id="closeSidebar">&times;</span>
+
+    <!-- Combined Navbar Content -->
+     <div class="mobile-nav-items" >
+         <h4 class="ps-3 mt-2">Amazon Clone</h4>
+     
+         <div class="search-mobile px-3">
+             <input type="text" class="form-control" placeholder="Search products...">
+         </div>
+     
+         <hr>
+        {% if request.user.is_authenticated %}
+            <a href="{% url 'MyOrders' %}">Orders / Returns</a>
+        {% else %}
+            <a href="{% url 'login' %}"><i class="fa-solid fa-right-to-bracket me-2"></i> Sign In</a>
+        {% endif %}
+        <a href="{% url 'Cart' %}"><i class="fa-solid fa-cart-shopping me-2"></i> Cart</a>
+        {% if request.user.is_authenticated %}
+            <a href="javascript:void(0)" id="toggleNotifications" class="d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="fa-solid fa-bell me-2"></i> Notifications
+                </span>
+                <span class="badge bg-danger rounded-pill">5</span>
+            </a>
+        {% endif %}
+        <div id="mobileNotifications" class="ps-2 pe-2 mt-2 d-none">
+
+            <!-- Order Placed -->
+            <div class="notification-item unread">
+                <div class="d-flex">
+                <div class="ms-3">
+                    <div class="fw-semibold">Order Placed</div>
+                    <div class="small text-muted">
+                    Order <b>#TMU1007</b> placed successfully
+                    </div>
+                    <small class="text-muted">2 mins ago</small>
+                </div>
+                </div>
+            </div>
+
+            <!-- Order Dispatched -->
+            <div class="notification-item unread">
+                <div class="d-flex">
+                <div class="ms-3">
+                    <div class="fw-semibold">Order Dispatched</div>
+                    <div class="small text-muted">
+                    Order <b>#TMU1005</b> is on the way
+                    </div>
+                    <small class="text-muted">1 hour ago</small>
+                </div>
+                </div>
+            </div>
+
+            <!-- Delivered -->
+            <div class="notification-item">
+                <div class="d-flex">
+                <div class="ms-3">
+                    <div class="fw-semibold">Order Delivered</div>
+                    <small class="text-muted">Yesterday</small>
+                </div>
+                </div>
+            </div>
+
+            <!-- Offer -->
+            <div class="notification-item">
+                <div class="d-flex">
+                <div class="ms-3">
+                    <div class="fw-semibold">Special Offer 🎉</div>
+                    <small class="text-muted">20% OFF on Smart Watches</small>
+                </div>
+                </div>
+            </div>
+
+            <a href="./Notifications.html"
+                class="d-block text-center small mt-2 text-decoration-none">
+                View All Notifications
+            </a>
+            </div>
+            
+         <hr>
+     </div>
+
+
+    <!-- Combined Sub-navbar items -->
+    <h5 class="px-3">Navigation</h5>
+        <a href="./index.html">All</a>
+    <a href="./TodayDeal.html">Today's Deals</a>
+    <a href="#">Gift Cards</a>
+    <a href="./Contact.html">Contact</a>
+
+
+    <hr>
+
+    <!-- Sidebar existing items -->
+    <h5 class="px-3">Categories</h5>
+    <a href="#">Electronics</a>
+    <a href="#">Computers</a>
+    <a href="#">Home & Kitchen</a>
+    <a href="#">Beauty & Care</a>
+    <a href="#">Fashion</a>
+    <a href="#">Sports</a>
+    <a href="#">Grocery</a>
+    <a href="#">Books</a>
+</aside>
+<!-- Background overlay -->
+
+<div>
+        <div id="alert-container">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+        </div>
+
+    {% block content %}{% endblock %}
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- ================== FOOTER ================== -->
+    <footer>
+        <div class="container">
+            <div class="row">
+
+                <div class="col-md-3">
+                    <h6>Get to Know Us</h6>
+                    <a href="AboutUs.html">About</a><br>
+                    <a href="PrivacyPolicy.html">Privacy Policy</a><br>
+                    <a href="SupportHelp.html">Support Help</a><br>
+                </div>
+                <div class="col-md-3">
+                    <h6>Terms Conditions</h6>
+                    <a href="TermsConditions.html">Terms & Conditions</a><br>
+                </div>
+                <div class="col-md-3">
+                    <h6>Frequentyly Asked Questions</h6>
+                    <a href="FAQ.html">FAQ</a><br>
+                </div>
+                <div class="col-md-3">
+                    <h6>Help</h6>
+                    <a href="Contact.html">Customer Service</a><br>
+                    <a href="TicketSystem.html">Ticket System</a><br>
+                    <a href="MyOrders.html">Returns</a><br>
+                </div>
+
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+
+
+<!-- ========== SIDEBAR TOGGLE JS ========== -->
+ <script>
+    document.getElementById('toggleNotifications')
+        .addEventListener('click', function () {
+        document
+            .getElementById('mobileNotifications')
+            .classList.toggle('d-none');
+        });
+</script>
+<script>
+   
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    function goBack() {
+        // Check if there is a history to go back to
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            // If no history exists, redirect to home page
+            window.location.href = 'index.html'; 
+        }
+    }
+    document.addEventListener("DOMContentLoaded", function() {
+        const backBtn = document.querySelector('[onclick="goBack()"]');
+        
+        // If the referrer is empty (meaning they typed the URL or used a bookmark)
+        // and history is 1, you might want to hide it or change the icon to Home.
+        if (document.referrer === "" && window.history.length <= 1) {
+            // Option A: Hide it
+            // backBtn.style.display = 'none';
+            
+            // Option B: Change icon to Home icon
+            backBtn.innerHTML = '<i class="bi bi-house"></i>';
+        }
+    });
+    const openBtns = document.querySelectorAll(".menu-toggle");
+    const closeBtn = document.getElementById("closeSidebar");
+    const sidebar = document.getElementById("sidebarMenu");
+
+    openBtns.forEach(function(openBtn){
+        openBtn.addEventListener("click", () => {
+            sidebar.classList.add("open");
+             //overlay.classList.remove("d-none");
+        });
+    });
+
+    closeBtn.addEventListener("click", () => {
+        sidebar.classList.remove("open");
+        //overlay.classList.add("d-none");
+
+    });
+
+
+    let lastScrollTop = 0;
+// Use querySelector to get the single element
+const navbar = document.querySelector(".topnav-main");
+
+window.addEventListener("scroll", function() {
+    let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+    if (scrollTop > lastScrollTop && scrollTop > 70) {
+        // Scrolling Down
+        navbar.classList.add("nav-hidden");
+        navbar.classList.add("smart-nav");
+    } else {
+        // Scrolling Up
+        navbar.classList.remove("nav-hidden");
+        // Usually, you want to keep 'smart-nav' always, 
+        // but based on your logic:
+        navbar.classList.remove("smart-nav");
+    }
+
+    // Shadow Logic
+    if (scrollTop > 10) {
+        navbar.classList.add("nav-scrolled");
+        navbar.classList.add("smart-nav");
+    } else {
+        navbar.classList.remove("nav-scrolled");
+        navbar.classList.remove("smart-nav");
+
+    }
+
+    lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+});
+const backToTopBtn = document.getElementById("backToTop");
+
+window.addEventListener("scroll", function() {
+    // Show button after scrolling down 300px
+    if (window.pageYOffset > 300) {
+        backToTopBtn.classList.remove("d-none");
+        backToTopBtn.classList.add("show");
+    } else {
+        backToTopBtn.classList.add("d-none");
+        backToTopBtn.classList.remove("show");
+    }
+});
+
+// Smooth scroll function
+function scrollToTop() {
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+
+   function showAlert(message, type = 'info') {
+        // Map 'danger' to 'error' because SweetAlert uses 'error'
+        const iconType = type === 'danger' ? 'error' : type;
+
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 8000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+
+        Toast.fire({
+            icon: iconType,
+            title: message
+        });
+    }
+</script>
+{% block extra_js %}{% endblock %}
+
+</body>
+
+</html>

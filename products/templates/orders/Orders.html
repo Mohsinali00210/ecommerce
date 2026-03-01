@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+
+{% block title %}Orders{% endblock %}
+
+{% block content %}
+
+
+    <!-- Content -->
+        <div class="card">
+
+            <!-- Header -->
+            <div class="card-header">
+                <i class="bi bi-cart"></i> Orders List
+            </div>
+
+            <!-- Filters Row -->
+            <div class="card-body border-bottom">
+                <div class="row g-2 align-items-end">
+
+                    <!-- Order Status -->
+                    <div class="col-md-2">
+                        <label class="form-label">Status</label>
+                        <select class="form-select form-select-sm" id="filterStatus">
+                            <option>All</option>
+                             <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+
+                    <!-- Payment Status -->
+                    <div class="col-md-2">
+                        <label class="form-label">Payment</label>
+                        <select class="form-select form-select-sm" id="filterPayment">
+                            <option value="All">All</option>
+                            <option value="pending">Pending</option>
+                            <option value="paid">Paid</option>
+                            <option value="failed">Failed</option>
+                            <option value="refunded">Refunded</option>
+                        </select>
+                    </div>
+
+                    <!-- Date From -->
+                    <div class="col-md-2">
+                        <label class="form-label">From</label>
+                        <input type="date" class="form-control form-control-sm" id="filterFrom">
+                    </div>
+
+                    <!-- Date To -->
+                    <div class="col-md-2">
+                        <label class="form-label">To</label>
+                        <input type="date" class="form-control form-control-sm" id="filterTo">
+                    </div>
+
+                    <!-- Customer Search -->
+                    <div class="col-md-3">
+                        <label class="form-label">Customer / Order ID</label>
+                        <input type="text" class="form-control form-control-sm" placeholder="Search..." id="filterSearch">
+                    </div>
+
+                    <!-- Filter Button -->
+                    <div class="col-md-1 d-grid">
+                        <button class="btn btn-dark btn-sm" onclick="loadOrders()">
+                            <i class="bi bi-funnel"></i>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Orders Table -->
+            <div class="card-body p-0">
+                <table class="table table-sm table-bordered mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Payment</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th style="width:140px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td>#ORD-10045</td>
+                            <td>John Doe</td>
+                            <td>12 Aug 2024</td>
+                            <td><span class="badge bg-success">Paid</span></td>
+                            <td>$249.99</td>
+                            <td><span class="badge bg-warning text-dark">Processing</span></td>
+                            <td>
+                                <button class="btn btn-outline-secondary btn-sm" title="View">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm" title="Update Status">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td>#ORD-10044</td>
+                            <td>Jane Smith</td>
+                            <td>10 Aug 2024</td>
+                            <td><span class="badge bg-secondary">COD</span></td>
+                            <td>$99.50</td>
+                            <td><span class="badge bg-success">Delivered</span></td>
+                            <td>
+                                <button class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td>#ORD-10043</td>
+                            <td>Michael Brown</td>
+                            <td>08 Aug 2024</td>
+                            <td><span class="badge bg-danger">Failed</span></td>
+                            <td>$180.00</td>
+                            <td><span class="badge bg-danger">Cancelled</span></td>
+                            <td>
+                                <button class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <div class="modal fade" id="orderModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+
+                    <!-- Header -->
+                    <div class="modal-header">
+                        <h6 class="modal-title">
+                            <i class="bi bi-receipt"></i> Order Details
+                        </h6>
+                        <button class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+
+                        <input type="hidden" id="OrderId">
+
+                        <!-- ================= ORDER INFO ================= -->
+                        <div class="card mb-3">
+                            <div class="card-header fw-bold">Order Information</div>
+                            <div class="card-body row g-2">
+                                <div class="col-md-4">
+                                    <label class="form-label">Order Number</label>
+                                    <input type="text" class="form-control form-control-sm" id="OrderNumber" readonly>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Order Date</label>
+                                    <input type="text" class="form-control form-control-sm" id="OrderDate" readonly>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Total Amount</label>
+                                    <input type="text" class="form-control form-control-sm" id="OrderTotal" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ================= CUSTOMER INFO ================= -->
+                        <div class="card mb-3">
+                            <div class="card-header fw-bold">Customer Information</div>
+                            <div class="card-body row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Customer Name</label>
+                                    <input type="text" class="form-control form-control-sm" id="CustomerName" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email</label>
+                                    <input type="text" class="form-control form-control-sm" id="CustomerEmail" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Phone</label>
+                                    <input type="text" class="form-control form-control-sm" id="CustomerPhone" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ================= SHIPPING INFO ================= -->
+                        <div class="card mb-3">
+                            <div class="card-header fw-bold">Shipping Details</div>
+                            <div class="card-body">
+                                <textarea class="form-control form-control-sm" id="ShippingAddress" rows="3" readonly></textarea>
+                            </div>
+                        </div>
+
+                        <!-- ================= ORDER ITEMS ================= -->
+                        <div class="card mb-3">
+                            <div class="card-header fw-bold">Order Items</div>
+                            <div class="card-body table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Price</th>
+                                            <th>Qty</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="OrderItemsTable">
+                                        <!-- Filled dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- ================= PAYMENT + STATUS ================= -->
+                        <div class="card">
+                            <div class="card-header fw-bold">Payment & Status</div>
+                            <div class="card-body row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Payment Method</label>
+                                    <input type="text" class="form-control form-control-sm" id="PaymentMethod" readonly>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Payment Status</label>
+                                    <select class="form-select form-select-sm" id="PaymentStatus">
+                                        <option value="pending">Pending</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="failed">Failed</option>
+                                        <option value="refunded">Refunded</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Order Status</label>
+                                    <select class="form-select form-select-sm" id="OrderStatus">
+                                        <option value="pending">Pending</option>
+                                        <option value="processing">Processing</option>
+                                        <option value="shipped">Shipped</option>
+                                        <option value="delivered">Delivered</option>
+                                        <option value="returned">Returned</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ================= ORDER REQUESTS ================= -->
+                        <div class="card mb-3">
+                            <div class="card-header fw-bold">Return / Cancel Requests</div>
+                            <div class="card-body table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Items</th>
+                                            <th>Reason</th>
+                                            <th>Preferred Action</th>
+                                            <th>Status</th>
+                                            <th>Date</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="OrderRequestsTable">
+                                        <!-- Filled dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="modal-footer">
+                        <button class="btn btn-dark btn-sm w-100" onclick="updateOrderStatus()">
+                            Update Order
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="requestStatusModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+
+                    <div class="modal-header">
+                        <h6 class="modal-title">Update Request Status</h6>
+                        <button class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <input type="hidden" id="RequestId">
+
+                        <div class="mb-2">
+                            <label>Status</label>
+                            <select class="form-select form-select-sm" id="RequestStatus">
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-2">
+                            <label>Comment</label>
+                            <textarea class="form-control form-control-sm"
+                                    id="RequestComment"
+                                    rows="3"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="btn btn-dark btn-sm w-100"
+                                onclick="updateRequestStatus()">
+                            Update Request
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+<!-- Bootstrap JS -->
+  <script>
+            function updateOrderStatus() {
+
+                const orderId = document.getElementById("OrderId").value;
+                const orderupdateBaseUrl = "{% url 'orderupdate' 0 %}";
+                 const url = orderupdateBaseUrl.replace("0", orderId);
+                fetch(url, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}",
+                        "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+                    },
+                    body: JSON.stringify({
+                        status: document.getElementById("OrderStatus").value,
+                        payment_status: document.getElementById("PaymentStatus").value
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    alert("Order updated successfully!");
+                    location.reload();
+                });
+            }
+        
+            function openOrderModal(orderId) {
+                
+                     const orderDetailBaseUrl = "{% url 'orderdetail' 0 %}";
+                 const url = orderDetailBaseUrl.replace("0", orderId);
+                    // Send GET request with query params
+                fetch(`${url}`, {
+                        method: "GET", // GET request
+                        headers: {
+                            "Content-Type": "application/json", // Optional for GET
+                            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+
+                        document.getElementById("OrderId").value = data.id;
+                        document.getElementById("OrderNumber").value = data.order_number;
+                        document.getElementById("OrderDate").value = new Date(data.placed_at).toLocaleString();
+                        document.getElementById("OrderTotal").value = data.total_amount;
+
+                        document.getElementById("CustomerName").value = data.customer_name;
+                        document.getElementById("CustomerEmail").value = data.customer_email;
+                        document.getElementById("CustomerPhone").value = data.customer_phone;
+
+                        document.getElementById("ShippingAddress").value = data.shipping_address_text;
+
+                        document.getElementById("PaymentMethod").value = data.payment_method;
+                        document.getElementById("PaymentStatus").value = data.payment_status;
+                        document.getElementById("OrderStatus").value = data.status;
+
+                        let itemsTable = document.getElementById("OrderItemsTable");
+                        itemsTable.innerHTML = "";
+
+
+                        let tbody = document.getElementById("OrderRequestsTable");
+                        tbody.innerHTML = "";
+                        data.requests.forEach(req => {
+
+                            let date = new Date(req.created_at)
+                                .toLocaleString('en-GB', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                });
+                            let btn=req.status==`pending`?`
+                                        
+                                        <button class="btn btn-sm btn-outline-dark"
+                                            onclick="openRequestModal(${req.id}, '${req.status}')">
+                                            Update
+                                        </button>
+                                        `:'';
+                            tbody.innerHTML += `
+                                <tr>
+                                    <td>${req.request_type}</td>
+                                    <td>${req.items.join(", ")}</td>
+                                    <td>${req.reason}</td>
+                                    <td>${req.preferred_action}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">${req.status}</span>
+                                    </td>
+                                    <td>${date}</td>
+                                    <td>
+                                        ${btn}
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        data.items.forEach(item => {
+                            itemsTable.innerHTML += `
+                                <tr>
+                                    <td>
+                                        ${item.product_name}
+                                        ${item.variant_name ? `<br><small class="text-muted">${item.variant_name}</small>` : ""}
+                                    </td>
+                                    <td>${item.price}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>${item.total}</td>
+                                </tr>
+                            `;
+                        });
+
+                        
+                        new bootstrap.Modal(document.getElementById('orderModal')).show();
+                    });
+            }
+            fetch('{% url 'token_obtain_pair' %}', {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email: "mohsinali@gmail.com",
+                    password: "Today@123"
+                })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    TOKEN=data.access;
+                // Save access token
+                localStorage.setItem("access_token", data.access);
+                })
+                .catch(err => console.error(err));
+
+                const ordersTableBody = document.querySelector("table tbody");
+                function openRequestModal(id, status) {
+                    document.getElementById("RequestId").value = id;
+                    document.getElementById("RequestStatus").value = status;
+                    document.getElementById("RequestComment").value = "";
+
+                    new bootstrap.Modal(document.getElementById("requestStatusModal")).show();
+                }
+                function updateRequestStatus() {
+
+                    const requestId = document.getElementById("RequestId").value;
+                    const status = document.getElementById("RequestStatus").value;
+                    const comment = document.getElementById("RequestComment").value;
+                        const urlTemplate = "{% url 'AdminOrderRequestUpdate' 0 %}";
+                        const url = urlTemplate.replace("0", requestId);
+
+                    fetch(url, {
+                        method: "PATCH",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                        },
+                        body: JSON.stringify({
+                            status: status,
+                            comment: comment
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        showAlert("Request Updated Successfully", "success");
+                        location.reload();
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        showAlert("Error updating request", "danger");
+
+                    });
+                }
+        function loadOrders() {
+                    const url = "{% url 'GetOrders' %}"; // Your orders API endpoint
+
+                const params = new URLSearchParams({
+                        status: document.getElementById("filterStatus").value,
+                        payment: document.getElementById("filterPayment").value,
+                        from: document.getElementById("filterFrom").value,
+                        to: document.getElementById("filterTo").value,
+                        search: document.getElementById("filterSearch").value,
+                    });
+                    console.log("params "+document.getElementById("filterStatus").value);
+                    console.log("params "+params);
+                    fetch(`${url}?${params.toString()}`, {
+                        method: "GET",
+                        headers: {
+                            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+                            "Content-Type": "application/json"
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        let innerHtml = "";
+
+                        data.forEach(item => {
+                            // Determine badge colors
+                            let paymentBadgeClass = "bg-secondary";
+                            if(item.payment_status === "Paid") paymentBadgeClass = "bg-success";
+                            if(item.payment_status === "COD") paymentBadgeClass = "bg-secondary";
+                            if(item.payment_status === "Failed") paymentBadgeClass = "bg-danger";
+
+                            let statusBadgeClass = "bg-secondary";
+                            if(item.status === "Processing") statusBadgeClass = "bg-warning text-dark";
+                            if(item.status === "Delivered") statusBadgeClass = "bg-success";
+                            if(item.status === "Cancelled") statusBadgeClass = "bg-danger";
+                            if(item.status === "Returned") statusBadgeClass = "bg-danger";
+
+                            innerHtml += `
+                                <tr>
+                                    <td>#${item.order_number}</td>
+                                    <td>${item.customer_name}</td>
+                                    <td>${item.date}</td>
+                                    <td><span class="badge ${paymentBadgeClass}">${item.payment_status}</span></td>
+                                    <td>${item.total}</td>
+                                    <td><span class="badge ${statusBadgeClass}">${item.status}</span></td>
+                                    <td>
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="openOrderModal(${item.id})" title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-primary btn-sm" title="Update Status">
+                                            <i class="bi bi-arrow-repeat"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+
+                        ordersTableBody.innerHTML = innerHtml;
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        showAlert("Failed to load orders", "danger");
+                    });
+                }
+
+                loadOrders(); // Initial load
+            </script>
+
+
+{% endblock %}
+
+{% block extra_js %}
+       
+
+            {% endblock %}

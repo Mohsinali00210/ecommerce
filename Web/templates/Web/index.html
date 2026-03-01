@@ -1,0 +1,1005 @@
+{% extends "WebBase.html" %}
+
+{% block title %}Shan zee Shopping{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .product-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 0px;
+            transition: all .2s ease-in-out;
+
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 18px rgba(0,0,0,.1);
+        }
+
+        .product-img {
+            width: 100%;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .sale-badge {
+            background: #e00;
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .price {
+                font-weight: bold;
+                color: #e85858;
+                font-size: 11px;
+            }
+
+            .old-price {
+                text-decoration: line-through;
+                color: gray;
+                margin-left: 4px;
+            }
+
+            .sold-text {
+                color: #555;
+                margin-left: 8px;
+            }
+
+            .rating-stars {
+                color: #f5b301;
+                font-size: 11px;
+            }
+            .rating-stars span{
+                font-size: 11px;
+            }
+            .add-cart-btn {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                border: 1px solid #333;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                font-size: 14px;
+                background: #fff;
+            }
+        .add-cart-btn:hover{
+            transform: translateY(-5px);
+                box-shadow: 0 5px 18px rgba(0,0,0,.1);
+        }
+            .view-more-btn {
+                width: 200px;
+                border-radius: 30px;
+                padding: 10px;
+                border: 1px solid #222;
+                background: #fff;
+                font-size: 14px;
+                cursor: pointer;
+                transition: .2s;
+            }
+
+            .view-more-btn:hover {
+                background: #f2f2f2;
+            }
+            .product-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 0px;
+            transition: all .2s ease-in-out;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+                    z-index: 2001 !important;
+
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 18px rgba(0,0,0,.1);
+        }
+
+        /* FIX: Same image height for all */
+        .product-img {
+            width: 100%;
+            height: 150px;       /* set equal height */
+            border-radius: 8px;
+            object-fit: cover;   /* crop nicely */
+        }
+
+        /* FIX: Make content grow evenly */
+        .product-info {
+            flex-grow: 1;
+            padding: 0px 9px;
+        }
+        .product-title {
+            font-size: 12px;
+        }
+        /* FIX: Align cart button at bottom */
+        .add-cart-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            background: #fff;
+            margin-top: auto;  /* pushes button to bottom */
+            position: relative;
+            top:-20px;
+        }
+        .carousel-item img{
+            width: 98%;
+
+        }
+        .product-container{
+                        z-index: 2001 !important;
+
+        }
+
+
+        /* Top Navbar */
+        .topnav-main {
+            background: #ffffff;
+            color: rgb(0, 0, 0);
+            
+            padding-top: 0px;
+            padding-bottom: 0px;
+        }
+        a.nav-link.text-white {
+            color: black !important;
+        }
+        /* Sub Navbar (desktop) */
+        /* .sub-navbar {
+            background: #5f5f5f;
+            padding: 8px 15px;
+        } */
+        .sub-navbar a {
+            color: white;
+            margin-right: 20px;
+            text-decoration: none;
+        }
+
+        /* Mobile Sidebar */
+        .mobile-sidebar {
+            width: 270px;
+            height: 100vh;
+            background: white;
+            position: fixed;
+            top: 0;
+            left: -300px;
+            padding-top: 20px;
+            overflow-y: auto;
+            transition: all .3s ease-in-out;
+            z-index: 2000;
+            border-right: 1px solid #ddd;
+        }
+
+        /* Show Sidebar */
+        .mobile-sidebar.open {
+            left: 0;
+        }
+
+        /* Sidebar links */
+        .mobile-sidebar a {
+            display: block;
+            padding: 10px 20px;
+            color: #333;
+            text-decoration: none;
+        }
+        .mobile-sidebar a:hover {
+            background: #f2f2f2;
+        }
+
+        /* Close button */
+        .close-btn {
+            font-size: 18px;
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+        }
+
+        /* Mobile Search box */
+        .search-mobile input {
+            border: 1px solid #999;
+            margin-bottom: 15px;
+        }
+
+        /* Hamburger icon */
+        .menu-toggle {
+            font-size: 22px;
+            cursor: pointer;
+        }
+
+        /* Hide sidebar on desktop */
+        @media (min-width: 992px) {
+            .mobile-sidebar.open .mobile-nav-items {
+                display: none;
+            }
+            .top-banner{
+                height: 300px;
+            }
+        }
+        @media (max-width: 692px) {
+            .carousel-item::after {
+                height: 20%;   /* reduced size on small screens */
+                background: linear-gradient(
+                    to top,
+                    rgba(255, 255, 255, 1),
+                    rgba(255, 255, 255, 0.2)
+                );
+            }
+        }
+        .old-price {
+                text-decoration: line-through;
+                color: gray;
+                font-size: 12px;
+                margin-left: 4px;
+            }
+        div#sliderProducts
+        {
+            height: 200px;
+        }
+            .sub-navbar {
+            white-space: nowrap;
+            scrollbar-width: thin;           /* Firefox */
+        }
+
+        .carousel-item::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;   /* only bottom 70% */
+            background: linear-gradient(
+                to top,
+                rgba(255, 255, 255, 1),
+                rgba(255, 255, 255, 0.2)
+            );
+            pointer-events: none; /* optional */
+        }
+        .sub-navbar {
+            white-space: nowrap;
+            scrollbar-width: thin;
+            border-top: 1px solid black;
+            border-bottom: 1px solid black;
+            background: white;
+            scrollbar-width: none;
+            padding: 5px 20px;
+            align-items: center;
+            gap: 7px;
+        }
+        .sub-navbar a {
+            color: #8f8f8f;
+            font-size: 13px;
+            margin-right: 5px;
+        }
+        .sub-navbar a.active {
+            color: #000000;
+        }
+        .navbar-nav .nav-item a{
+            font-size: 16px;
+        }
+
+        .bg-temu-green { background-color: var(--temu-green); }
+                .text-temu-orange { color: var(--temu-orange); }
+                .promo-header { background-color: #fff8f0; font-size: 0.85rem; }
+                .card-img-container { position: relative; background: #f7f7f7; border-radius: 8px; overflow: hidden; }
+                .badge-limited { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; }
+                .discount-badge { border: 1px solid #ff4d4f; color: #ff4d4f; font-size: 0.75rem; padding: 0 4px; border-radius: 4px; }
+    </style>
+    <style>
+        .history-card {
+            min-width: 160px; /* Fixed width for history items */
+            max-width: 160px;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none; /* Hides scrollbar for clean look */
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .history-card img {
+            aspect-ratio: 1/1;
+            object-fit: cover;
+        }
+
+        .text-temu-orange { color: #fb7701; }
+            #sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            z-index: 1040; /* Just below the sidebar */
+        }
+        .smart-nav {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            z-index: 1030;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        /* This class will be added via JS when scrolling down */
+        .nav-hidden {
+            transform: translateY(-100%);
+        }
+        .btn-temu-orange {
+            background-color: #ffffff;
+            color: rgb(0, 0, 0);
+        }
+        .btn-temu-orange:hover {
+            background-color: #000000;
+            color: white;
+        }
+        /* Optional: Add a smooth fade-in effect */
+        #backToTop.show {
+            display: block !important;
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    <style>
+        .free-ship-heading {
+                display: inline-block;
+                animation: pulseGlow 1.5s infinite;
+            }
+
+            @keyframes pulseGlow {
+                0% {
+                    transform: scale(1);
+                    text-shadow: 0 0 5px rgba(220,53,69,.4);
+                }
+                50% {
+                    transform: scale(1.05);
+                    text-shadow: 0 0 15px rgba(220,53,69,.8);
+                }
+                100% {
+                    transform: scale(1);
+                    text-shadow: 0 0 5px rgba(220,53,69,.4);
+                }
+            }
+            .carousel-item::after {
+                content: "";
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: 50%;   /* only bottom 70% */
+                background: linear-gradient(
+                    to top,
+                    rgba(255, 255, 255, 1),
+                    rgba(255, 255, 255, 0.2)
+                );
+                pointer-events: none; /* optional */
+            }
+            
+
+    </style>
+{% endblock %}
+{% block content %}
+    <div id="sidebar-overlay" class="d-none"></div>
+
+    <!-- <div class="overlay" id="overlay"></div> -->
+    <div class="mycontainer position-relative">
+
+
+        <!-- ================== BANNER ================== -->
+        <div class="top-banner mb-4" >
+            
+            <!-- ================== CAROUSEL ================== -->
+            <div id="sliderProducts" class="carousel slide mb-4" data-bs-ride="carousel">
+                <div class="carousel-inner">
+
+                    <div class="carousel-item active">
+                        <div class="d-flex overflow-auto">
+                            <img class="mx-2" src="../images/slider img2.jpg" />
+                        </div>
+                    </div>
+
+                    <div class="carousel-item">
+                        <div class="d-flex overflow-auto">
+                            <img class="mx-2" src="../images/slider img3.jpg" />
+                        </div>
+                    </div>
+
+                </div>
+
+                <button class="carousel-control-prev" type="button" data-bs-target="#sliderProducts" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon"></span>
+                </button>
+
+                <button class="carousel-control-next" type="button" data-bs-target="#sliderProducts" data-bs-slide="next">
+                    <span class="carousel-control-next-icon"></span>
+                </button>
+            </div>
+        </div>
+        <!-- Bootstrap 5 -->
+        <div class="container  my-5 position-relative " style="top: -50px;">
+            
+            <div class="row g-1 product-container justify-content-center">
+
+                <!-- ========== PRODUCT CARD 1 ========== -->
+                {% for product in Products %}
+
+                    <div class="col-md-2 col-6">
+                        <div class="product-card">
+                            <a href="{% url 'ProductDetails' id=product.id %}">
+                                {% if product.images.all %}
+                                    <img src="{{ product.images.all.0.image.url }}"
+                                        class="card-img-top"
+                                        alt="{{ product.name }}">
+                                {% endif %}
+                            </a>
+
+                            <div class="product-info">
+                                <div class="mt-2 product-title"><a href="{% url 'ProductDetails' id=product.id %}">{{product.name}}</a></div>
+
+                                <div class="price mt-1">
+                                    {{product.price}}
+                                    <span class="old-price">{{product.old_price}}</span>
+                                    <div class="sold-text">{{product.sold}}+ sold</div>
+                                </div>
+
+                                <div class="rating-stars d-flex justify-content-between mt-2">
+                                    <span>{% for i in "12345" %}{% if forloop.counter <= product.star_count %}★{% else %}☆{% endif %}{% endfor %} <span class="text-muted">({{product.rating_count}})</span></span>
+                                    <div class="add-cart-btn">🛒</div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                {% endfor %}
+
+            </div>
+
+            <!-- View More Button -->
+            <div class="text-center my-4">
+                <button class="view-more-btn">View more ▼</button>
+            </div>
+
+            {% comment %} free_shipping {% endcomment %}
+            <div class="position-relative mt-4">
+
+                <!-- 🔥 Animated Heading -->
+                <h4 class="fw-bold text-danger mb-3 free-ship-heading">
+                    FREE SHIPPING DEALS
+                </h4>
+
+                <div class="row promo-header p-2 border-bottom">
+                    <div class="col-md-4 col-6 border-end">
+                        <div class="fw-bold text-success"><i class="bi bi-check-lg"></i> Free shipping</div>
+                        <div class="text-muted small">Limited-time offer</div>
+                    </div>
+
+                    <div id="col-toggle-1" class="col-md-4 col-6 ps-3">
+                        <div class="fw-bold"><i class="bi bi-truck"></i> Delivery guarantee</div>
+                        <div class="text-muted small">Refund for any issue</div>
+                    </div>
+
+                    <div id="col-toggle-2" class="col-md-4 col-6 ps-3 d-none d-md-block">
+                        <div class="fw-bold"><i class="bi bi-shield-check"></i> Secure Payment</div>
+                        <div class="text-muted small">100% safe checkout</div>
+                    </div>
+                </div>
+                <button id="scrollLeft"
+                    class="btn btn-light shadow-sm rounded-circle position-absolute top-50 start-0 translate-middle-y z-3 ms-2"
+                    style="width: 40px; height: 40px;">
+                    <i class="fa fa-chevron-left"></i>
+                </button>
+
+                <div id="productContainer"
+                    class="row p-3 g-3 justify-content-center flex-nowrap overflow-auto hide-scrollbar"
+                    style="scroll-behavior: smooth; scrollbar-width: none;">
+
+                    {% for product in freeshipping %}
+                        <div class="col-md-3 col-6">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold text-danger small">
+                                    <i class="bi bi-lightning-charge-fill"></i> Free Shipping
+                                </span>
+                                <i class="bi bi-chevron-right small text-muted"></i>
+                            </div>
+
+                            <div class="card border-0">
+                                <div class="card-img-container position-relative">
+                                    <a href="{% url 'ProductDetails' id=product.id %}">
+                                        {% if product.images.all %}
+                                            <img src="{{ product.images.all.0.image.url }}"
+                                                class="card-img-top"
+                                                alt="{{ product.name }}">
+                                        {% endif %}
+                                    </a>
+                                    {% comment %} <span class="badge-limited">ONLY 5 LEFT</span> {% endcomment %}
+                                </div>
+
+                                <div class="card-body p-1 mt-1">
+                                    <span class="fw-bold text-danger">
+                                        {{ product.price }}
+                                    </span>
+
+                                    {% if product.old_price %}
+                                    <span class="text-muted text-decoration-line-through small ms-1">
+                                        {{ product.old_price }}
+                                    </span>
+                                    {% endif %}
+
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+
+                </div>
+
+                <button id="scrollRight"
+                    class="btn btn-light shadow-sm rounded-circle position-absolute top-50 end-0 translate-middle-y z-3 me-2"
+                    style="width: 40px; height: 40px;">
+                    <i class="fa fa-chevron-right"></i>
+                </button>
+
+            </div>
+
+            <!-- promotion -->
+
+            
+             <h4 class="fw-bold text-danger mb-3 free-ship-heading">
+                    Promotions
+            </h4>
+            <div class="position-relative mt-4">
+                <button id="scrollLeft" class="btn btn-light shadow-sm rounded-circle position-absolute top-50 start-0 translate-middle-y z-3 ms-2" style="width: 40px; height: 40px;">
+                    <i class="fa fa-chevron-left"></i>
+                </button>
+
+                <div id="productContainer" style="scrollbar-width: none;" class="row p-3 g-3 justify-content-center flex-nowrap overflow-auto hide-scrollbar" style="scroll-behavior: smooth;">
+                    
+                    {% for promotion in promotions %}
+                        {% for product in promotion.products.all %}
+                            <div class="col-md-3 col-6">
+
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-bold text-danger small">
+                                        <i class="bi bi-lightning-charge-fill"></i>
+                                        {{ promotion.name }}
+                                    </span>
+                                    <i class="bi bi-chevron-right small text-muted"></i>
+                                </div>
+
+                                <div class="card border-0">
+                                    <div class="card-img-container">
+                                        <a href="{% url 'ProductDetails' id=product.id %}">
+                                            {% if product.images.all %}
+                                                <img src="{{ product.images.all.0.image.url }}"
+                                                    class="card-img-top"
+                                                    alt="{{ product.name }}">
+                                            {% endif %}
+                                        </a>
+                                    </div>
+
+                                    <div class="card-body p-1 mt-1">
+
+                                        {# ===== PRICE LOGIC ===== #}
+                                        {% if promotion.discount_type == "percentage" %}
+                                            <span class="fw-bold text-danger">
+                                                {{ product.final_price }}
+                                            </span>
+                                            <span class="text-muted text-decoration-line-through small ms-1">
+                                                {{ product.price }}
+                                            </span>
+                                            <span class="discount-badge">
+                                                {{ promotion.discount_value }}%
+                                            </span>
+
+                                        {% elif promotion.discount_type == "fixed" %}
+                                            <span class="fw-bold text-danger">
+                                                {{ promotion.discounted_price }}
+                                            </span>
+                                            <span class="text-muted text-decoration-line-through small ms-1">
+                                                {{ product.price }}
+                                            </span>
+                                            <span class="discount-badge">
+                                                -{{ promotion.discount_value }}
+                                            </span>
+
+                                        {% elif promotion.discount_type == "buy_x_get_y" %}
+                                            <span class="fw-bold text-danger">
+                                                {{ product.price }}
+                                            </span>
+                                            <span class="discount-badge">
+                                                Buy X Get Y
+                                            </span>
+
+                                        {% elif promotion.discount_type == "free_delivery" %}
+                                            <span class="fw-bold text-danger">
+                                                {{ product.price }}
+                                            </span>
+                                            <span class="discount-badge">
+                                                Free Delivery
+                                            </span>
+                                        {% endif %}
+
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                  
+                </div>
+
+                <button id="scrollRight" class="btn btn-light shadow-sm rounded-circle position-absolute top-50 end-0 translate-middle-y z-3 me-2" style="width: 40px; height: 40px;">
+                    <i class="fa fa-chevron-right"></i>
+                </button>
+            </div>
+
+        </div>
+        
+        <div class="container my-5">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold">Your Product History</h5>
+                <!-- <div class="d-none d-md-block">
+                    <button class="btn btn-outline-secondary btn-sm rounded-circle" onclick="scrollHistory(-1)">
+                        <i class="fa fa-chevron-left"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm rounded-circle" onclick="scrollHistory(1)">
+                        <i class="fa fa-chevron-right"></i>
+                    </button>
+                </div> -->
+            </div>
+
+            <div class="position-relative mt-4">
+                <button  onclick="scrollHistory(-1)" class="btn btn-light shadow-sm rounded-circle position-absolute top-50 start-0 translate-middle-y z-3 ms-2" style="width: 40px; height: 40px;">
+                    <i class="fa fa-chevron-left"></i>
+                </button>
+
+                
+                <div id="historySlider" class="d-flex flex-nowrap overflow-auto hide-scrollbar gap-3 pb-3" style="scroll-behavior: smooth;">
+                    
+                    <div class="history-card">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="position-relative">
+                                <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (3).jpeg" class="card-img-top rounded" alt="Product">
+                                <span class="badge bg-dark position-absolute top-0 start-0 m-2 opacity-75 small">Visited 2h ago</span>
+                            </div>
+                            <div class="card-body p-2">
+                                <p class="card-text small mb-1 text-truncate">Wireless Bluetooth Headphones</p>
+                                <div class="fw-bold text-temu-orange">Rs.2,450</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-card">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="position-relative">
+                                <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (1).jpeg" class="card-img-top rounded" alt="Product">
+                                <span class="badge bg-dark position-absolute top-0 start-0 m-2 opacity-75 small">Visited 2h ago</span>
+                            </div>
+                            <div class="card-body p-2">
+                                <p class="card-text small mb-1 text-truncate">Wireless Bluetooth Headphones</p>
+                                <div class="fw-bold text-temu-orange">Rs.2,450</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-card">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="position-relative">
+                                <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (4).jpeg" class="card-img-top rounded" alt="Product">
+                                <span class="badge bg-dark position-absolute top-0 start-0 m-2 opacity-75 small">Visited 2h ago</span>
+                            </div>
+                            <div class="card-body p-2">
+                                <p class="card-text small mb-1 text-truncate">Wireless Bluetooth Headphones</p>
+                                <div class="fw-bold text-temu-orange">Rs.2,450</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-card">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="position-relative">
+                                <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (3).jpeg" class="card-img-top rounded" alt="Product">
+                                <span class="badge bg-dark position-absolute top-0 start-0 m-2 opacity-75 small">Visited 2h ago</span>
+                            </div>
+                            <div class="card-body p-2">
+                                <p class="card-text small mb-1 text-truncate">Wireless Bluetooth Headphones</p>
+                                <div class="fw-bold text-temu-orange">Rs.2,450</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-card">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="position-relative">
+                                <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (1).jpeg" class="card-img-top rounded" alt="Product">
+                                <span class="badge bg-dark position-absolute top-0 start-0 m-2 opacity-75 small">Visited 2h ago</span>
+                            </div>
+                            <div class="card-body p-2">
+                                <p class="card-text small mb-1 text-truncate">Wireless Bluetooth Headphones</p>
+                                <div class="fw-bold text-temu-orange">Rs.2,450</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-card">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="position-relative">
+                                <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (4).jpeg" class="card-img-top rounded" alt="Product">
+                                <span class="badge bg-dark position-absolute top-0 start-0 m-2 opacity-75 small">Visited 2h ago</span>
+                            </div>
+                            <div class="card-body p-2">
+                                <p class="card-text small mb-1 text-truncate">Wireless Bluetooth Headphones</p>
+                                <div class="fw-bold text-temu-orange">Rs.2,450</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-card">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="position-relative">
+                                <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (3).jpeg" class="card-img-top rounded" alt="Product">
+                                <span class="badge bg-dark position-absolute top-0 start-0 m-2 opacity-75 small">Visited 2h ago</span>
+                            </div>
+                            <div class="card-body p-2">
+                                <p class="card-text small mb-1 text-truncate">Wireless Bluetooth Headphones</p>
+                                <div class="fw-bold text-temu-orange">Rs.2,450</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-card">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="position-relative">
+                                <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (1).jpeg" class="card-img-top rounded" alt="Product">
+                                <span class="badge bg-dark position-absolute top-0 start-0 m-2 opacity-75 small">Visited 2h ago</span>
+                            </div>
+                            <div class="card-body p-2">
+                                <p class="card-text small mb-1 text-truncate">Wireless Bluetooth Headphones</p>
+                                <div class="fw-bold text-temu-orange">Rs.2,450</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-card">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="position-relative">
+                                <img src="../images/WhatsApp Image 2025-12-29 at 2.16.37 AM (2).jpeg" class="card-img-top rounded" alt="Product">
+                                <span class="badge bg-dark position-absolute top-0 start-0 m-2 opacity-75 small">Visited 2h ago</span>
+                            </div>
+                            <div class="card-body p-2">
+                                <p class="card-text small mb-1 text-truncate">Wireless Bluetooth Headphones</p>
+                                <div class="fw-bold text-temu-orange">Rs.2,450</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <button  onclick="scrollHistory(1)" class="btn btn-light shadow-sm rounded-circle position-absolute top-50 end-0 translate-middle-y z-3 me-2" style="width: 40px; height: 40px;">
+                    <i class="fa fa-chevron-right"></i>
+                </button>
+            </div>
+
+        </div>
+        <div class="container">
+
+            <!-- ================== FIRST ROW BOXES ================== -->
+            <div class="row g-1 mb-4">
+                <div class="col-md-3">
+                    <div class="product-box">
+                        <div class="section-title">Shop gifts by price</div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <img src="../images/product pic1.jpg" alt="">
+                                <a href="#">Shop now</a>
+                            </div>
+                            <div class="col-6">
+                                <img src="../images/product pic3.jpg" alt="">
+                                <a href="#">Shop now</a>
+                            </div>
+                            <div class="col-6">
+                                <img src="../images/product pic2.jpg" alt="">
+                                <a href="#">Shop now</a>
+                            </div>
+                            <div class="col-6">
+                                <img src="../images/product pic4.jpg" alt="">
+                                <a href="#">Shop now</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="product-box">
+                        <div class="section-title">Shop gifts by recipient</div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <img src="../images/product pic3.jpg" alt="">
+                                <a href="#">Explore</a>
+                            </div>
+                            <div class="col-6">
+                                <img src="../images/product pic2.jpg" alt="">
+                                <a href="#">Explore</a>
+                            </div>
+                            <div class="col-6">
+                                <img src="../images/product pic4.jpg" alt="">
+                                <a href="#">Explore</a>
+                            </div>
+                            <div class="col-6">
+                                <img src="../images/product pic5.jpg" alt="">
+                                <a href="#">Explore</a>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="product-box">
+                        <div class="section-title">Home essentials</div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <img src="../images/product pic4.jpg" alt="">
+                                <a href="#">Shop now</a>
+                            </div>
+                            <div class="col-6">
+                                <img src="../images/product pic3.jpg" alt="">
+                                <a href="#">Shop now</a>
+                            </div>
+                            <div class="col-6">
+                                <img src="../images/product pic5.jpg" alt="">
+                                <a href="#">Shop now</a>
+                            </div>
+                            <div class="col-6">
+                                <img src="../images/product pic1.jpg" alt="">
+                                <a href="#">Shop now</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="product-box">
+                        <div class="section-title">PC Gaming</div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <img src="../images/product pic5.jpg" alt="">
+                                <a href="#">View details</a>
+
+                            </div>
+                            <div class="col-6">
+                                <img src="../images/product pic2.jpg" alt="">
+                                <a href="#">View details</a>
+
+                            </div>
+                            <div class="col-6">
+                                <img src="../images/product pic4.jpg" alt="">
+                                <a href="#">View details</a>
+
+                            </div>
+                            <div class="col-6">
+                                <img src="../images/product pic1.jpg" alt="">
+                                <a href="#">View details</a>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== CAROUSEL ================== -->
+            <!-- <div id="sliderProducts" class="carousel slide mb-4" data-bs-ride="carousel">
+                <div class="carousel-inner">
+
+                    <div class="carousel-item active">
+                        <div class="d-flex overflow-auto">
+                            <img class="mx-2" src="../images/slider img2.jpg" />
+                        </div>
+                    </div>
+
+                    <div class="carousel-item">
+                        <div class="d-flex overflow-auto">
+                            <img class="mx-2" src="../images/slider img3.jpg" />
+                        </div>
+                    </div>
+
+                </div>
+
+                <button class="carousel-control-prev" type="button" data-bs-target="#sliderProducts" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon"></span>
+                </button>
+
+                <button class="carousel-control-next" type="button" data-bs-target="#sliderProducts" data-bs-slide="next">
+                    <span class="carousel-control-next-icon"></span>
+                </button>
+            </div> -->
+
+
+        </div>
+
+    </div>
+{% endblock %}
+
+
+{% block 'extra_js' %}
+<script>
+
+
+    
+    const overlay = document.getElementById("sidebar-overlay");
+
+    // When opening sidebar
+   
+
+    // When clicking the overlay, close everything
+    overlay.addEventListener("click", () => {
+        sidebar.classList.remove("open");
+        overlay.classList.add("d-none");
+    });
+    function scrollHistory(direction) {
+        const container = document.getElementById('historySlider');
+        const scrollStep = 200; // Adjust based on card width
+        
+        if (direction === 1) {
+            container.scrollLeft += scrollStep;
+        } else {
+            container.scrollLeft -= scrollStep;
+        }
+    }
+
+    const container = document.getElementById('productContainer');
+    const btnLeft = document.getElementById('scrollLeft');
+    const btnRight = document.getElementById('scrollRight');
+
+    // Function to scroll
+    const scrollAmount = 300; // Adjust this based on card width
+
+    btnRight.addEventListener('click', () => {
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    });
+
+    btnLeft.addEventListener('click', () => {
+        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    });
+
+    // Optional: Hide buttons when at the start or end
+    container.addEventListener('scroll', () => {
+        const isAtStart = container.scrollLeft === 0;
+        const isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 1;
+
+        btnLeft.style.display = isAtStart ? 'none' : 'block';
+        btnRight.style.display = isAtEnd ? 'none' : 'block';
+    });
+
+    // Trigger once on load to set initial button state
+    window.dispatchEvent(new Event('scroll'));
+
+        const col1 = document.getElementById('col-toggle-1');
+        const col2 = document.getElementById('col-toggle-2');
+
+        setInterval(() => {
+            // Only run the toggle if the screen width is small (Bootstrap 'md' breakpoint is 768px)
+            if (window.innerWidth < 768) {
+                if (col1.classList.contains('d-none')) {
+                    col1.classList.remove('d-none');
+                    col2.classList.add('d-none');
+                } else {
+                    col1.classList.add('d-none');
+                    col2.classList.remove('d-none');
+                }
+            } else {
+                // Ensure both are visible if user resizes window back to desktop
+                col1.classList.remove('d-none');
+                col2.classList.remove('d-none');
+            }
+        }, 3000); // 3000ms = 3 seconds
+    </script>
+
+{% endblock %}
+

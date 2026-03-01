@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+
+
+
+{% block title %}Promotions{% endblock %}
+
+{% block content %}
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between">
+            <div>
+                <i class="bi bi-megaphone"></i> Promotions
+            </div>
+            <button class="btn btn-dark btn-sm"
+                    data-bs-toggle="modal"
+                    data-bs-target="#promoModal"
+                    onclick="clearPromoModal();">
+                <i class="bi bi-plus-circle"></i> Add Promotion
+            </button>
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table table-sm table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Value</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Status</th>
+                        <th width="120">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="promoBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal fade" id="promoModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h6 class="modal-title">Promotion Management</h6>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <input type="hidden" id="PromoId">
+
+                    <div class="row g-2">
+
+                        <!-- Name -->
+                        <div class="col-md-4">
+                            <label class="form-label">Promotion Name</label>
+                            <input type="text" id="PromoName" class="form-control form-control-sm">
+                        </div>
+
+                        <!-- Description -->
+                        <div class="col-md-4">
+                            <label class="form-label">Description</label>
+                            <textarea id="promotionDescription"
+                                    class="form-control form-control-sm"
+                                    rows="2"></textarea>
+                        </div>
+
+                        <!-- Promo Code -->
+                        <div class="col-md-4">
+                            <label class="form-label">Promo Code</label>
+                            <input type="text" id="discountedPromoCode"
+                                class="form-control form-control-sm">
+                        </div>
+
+                        <!-- Discount Type -->
+                        <div class="col-md-4">
+                            <label class="form-label">Discount Type</label>
+                            <select id="discountedType"
+                                    class="form-select form-select-sm">
+                                <option value="">Select Type</option>
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="fixed">Fixed Amount</option>
+                                <option value="free_delivery">Free Delivery</option>
+                            </select>
+                        </div>
+
+                        <!-- Discount % -->
+                        <div class="col-md-4">
+                            <label class="form-label">Discount (%)</label>
+                            <input type="number" id="discount2"
+                                class="form-control form-control-sm"
+                                disabled>
+                        </div>
+
+                        <!-- Discounted Price -->
+                        <div class="col-md-4">
+                            <label class="form-label">Fixed Discount Amount</label>
+                            <input type="number" id="discountedPrice"
+                                class="form-control form-control-sm"
+                                disabled>
+                        </div>
+
+                        <!-- Compare At -->
+                        <div class="col-md-4">
+                            <label class="form-label">Compare At</label>
+                            <input type="number" id="compareAt"
+                                class="form-control form-control-sm"
+                                disabled>
+                        </div>
+
+                        <!-- Compare At Price -->
+                        <div class="col-md-4">
+                            <label class="form-label">Original Price</label>
+                            <input type="number" id="compareAtPrice"
+                                class="form-control form-control-sm"
+                                disabled>
+                        </div>
+
+                        <!-- Start Date -->
+                        <div class="col-md-6">
+                            <label class="form-label">Start Date</label>
+                            <input type="datetime-local"
+                                id="StartDate"
+                                class="form-control form-control-sm">
+                        </div>
+
+                        <!-- End Date -->
+                        <div class="col-md-6">
+                            <label class="form-label">End Date</label>
+                            <input type="datetime-local"
+                                id="EndDate"
+                                class="form-control form-control-sm">
+                        </div>
+
+                        <!-- Products -->
+                        <div class="col-md-6">
+                            <label class="form-label">Products</label>
+                            <select id="PromoProducts"
+                                    class="form-select form-select-sm"
+                                    multiple></select>
+                        </div>
+
+                        <!-- Categories -->
+                        <div class="col-md-6">
+                            <label class="form-label">Categories</label>
+                            <select id="PromoCategories"
+                                    class="form-select form-select-sm"
+                                    multiple></select>
+                        </div>
+
+                        <!-- Active -->
+                        <div class="col-md-12 mt-2">
+                            <input type="checkbox" id="PromoActive"
+                                class="form-check-input" checked>
+                            <label class="form-check-label">Active</label>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-dark w-100 btn-sm"
+                            onclick="savePromotion()">
+                        Save Promotion
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+           $('#discountedType').on('change', function() {
+        const $fields = $('#discount2, #compareAtPrice, #compareAt, #discountedPrice');
+        $fields.prop('disabled', true).prop('required', false);
+
+        switch(this.value) {
+            case 'percentage':
+                $('#discount2, #compareAt').prop('disabled', false).prop('required', true);
+                break;
+            case 'fixed':
+                $('#compareAtPrice, #compareAt').prop('disabled', false).prop('required', true);
+                break;
+            case 'free_delivery':
+                $('#compareAt').prop('disabled', false).prop('required', true);
+                break;
+        }
+    });
+          {% comment %} $(document).ready(function () {
+            $('#PromoProducts').select2({
+                placeholder: "Select Products"
+            });
+
+            $('#PromoCategories').select2({
+                placeholder: "Select Categories"
+            });
+        }); {% endcomment %}
+        fetch('{% url 'token_obtain_pair' %}', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                email: "mohsinali@gmail.com",
+                password: "Today@123"
+            })
+            })
+            .then(res => res.json())
+            .then(data => {
+                TOKEN=data.access;
+            // Save access token
+            localStorage.setItem("access_token", data.access);
+            })
+            .catch(err => console.error(err));
+
+        getDropDown("PromoProducts", "http://127.0.0.1:8000/Adminpanel/Products/api/v1/products/");
+        getDropDown("PromoCategories", "http://127.0.0.1:8000/Adminpanel/Products/api/v1/categories/");
+        function getDropDown(el = "Category",url="http://127.0.0.1:8000/Adminpanel/Products/api/v1/categories/") {
+            fetch(url, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+                    "Content-Type": "application/json"
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                let innerHtml = ``; 
+                data.forEach(function(item) {
+                innerHtml += `<option value="${item.id}">${item.name}</option>`;
+                });
+                $(`#${el}`).html(innerHtml);
+            })
+            .catch(err => {
+                showAlert("Failed to load data", "danger");
+                console.error(err);
+            });
+        }
+      
+        const PROMO_API = "http://127.0.0.1:8000/Adminpanel/Products/api/v1/promotionss/";
+
+        getPromotions();
+
+        function getPromotions() {
+
+            fetch(PROMO_API, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+
+                let html = "";
+
+                data.forEach(item => {
+
+                    html += `
+                        <tr>
+                            <td>${item.name ?? '-'}</td>
+                            <td>${item.discount_type ?? '-'}</td>
+                            <td>${item.discount_value ?? '-'}</td>
+                            <td>${formatDate(item.start_date)}</td>
+                            <td>${formatDate(item.end_date)}</td>
+                            <td>
+                                <span class="badge ${item.is_active ? 'bg-success' : 'bg-secondary'}">
+                                    ${item.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-secondary"
+                                    onclick='fillPromoModal(${JSON.stringify(item)})'
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#promoModal">
+                                    Edit
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                if (data.length === 0) {
+                    html = `<tr>
+                                <td colspan="7" class="text-center text-muted">
+                                    No promotions found
+                                </td>
+                            </tr>`;
+                }
+
+                $("#promoBody").html(html);
+            })
+            .catch(err => {
+                console.error("Promotion load error:", err);
+            });
+        }
+
+        function fillPromoModal(item) {
+
+            // Basic
+            $("#PromoId").val(item.id);
+            $("#PromoName").val(item.name);
+            $("#promotionDescription").val(item.description);
+            $("#discountedPromoCode").val(item.promo_code);
+
+            // Discount Type
+            $("#discountedType").val(item.discount_type).trigger('change');
+
+            // Discount Value Restore
+            if (item.discount_type === "percentage") {
+                $("#discount2").val(item.discount_value);
+            } 
+            else if (item.discount_type === "fixed") {
+                $("#discountedPrice").val(item.discount_value);
+            }
+
+            // Dates (convert ISO → datetime-local format)
+            $("#StartDate").val(formatDateTimeLocal(item.start_date));
+            $("#EndDate").val(formatDateTimeLocal(item.end_date));
+
+            // Active
+            $("#PromoActive").prop("checked", item.is_active);
+
+            // Products (Multi Select)
+            $('#PromoProducts').val(item.products).trigger('change');
+
+            // Categories (Multi Select)
+            $('#PromoCategories').val(item.categories).trigger('change');
+        }
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            let date = new Date(dateString);
+            return date.toLocaleDateString();
+        }
+
+        function formatDateTimeLocal(dateString) {
+            if (!dateString) return '';
+
+            let date = new Date(dateString);
+
+            let year = date.getFullYear();
+            let month = String(date.getMonth() + 1).padStart(2, '0');
+            let day = String(date.getDate()).padStart(2, '0');
+            let hours = String(date.getHours()).padStart(2, '0');
+            let minutes = String(date.getMinutes()).padStart(2, '0');
+
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+        function clearPromoModal() {
+
+            $("#PromoId").val("");
+            $("#PromoName").val("");
+            $("#promotionDescription").val("");
+            $("#discountedPromoCode").val("");
+
+            $("#discountedType").val("").trigger('change');
+
+            $("#discount2").val("");
+            $("#discountedPrice").val("");
+
+            $("#StartDate").val("");
+            $("#EndDate").val("");
+
+            $("#PromoActive").prop("checked", true);
+
+            $('#PromoProducts').val(null).trigger('change');
+            $('#PromoCategories').val(null).trigger('change');
+        }
+
+        function savePromotion() {
+
+            let id = $("#PromoId").val();
+
+            let data = {
+                name: $("#PromoName").val(),
+                description: $("#promotionDescription").val(),
+                promo_code: $("#discountedPromoCode").val(),
+                discount_type: $("#discountedType").val(),
+                discount_value: $("#discountedType").val() === "percentage"
+                                ? $("#discount2").val()
+                                : $("#discountedPrice").val(),
+                start_date: $("#StartDate").val(),
+                end_date: $("#EndDate").val(),
+                is_active: $("#PromoActive").is(":checked"),
+                products: $("#PromoProducts").val(),
+                categories: $("#PromoCategories").val()
+            };
+
+            let method = id ? "PATCH" : "POST";
+            let url = id ? `${PROMO_API}${id}/` : PROMO_API;
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(() => {
+                $("#promoModal").modal("hide");
+                getPromotions();
+            });
+        }
+
+    </script>
+{% endblock %}
+
+{% block extra_js %}
+
+
+{% endblock %}

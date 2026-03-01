@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}Attributes{% endblock %}
+
+{% block content %}
+<style>
+    span.select2-dropdown.select2-dropdown--below {
+    z-index: 100000;
+}
+</style>
+       <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-sliders"></i> Attributes
+                </div>
+                <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#attributeModal" onclick="clearBrandModal();">
+                    <i class="bi bi-plus-circle"></i> Add Attribute
+                </button>
+            </div>
+
+            <div class="card-body p-0">
+                <table class="table table-sm table-bordered mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Attribute Name</th>
+                            <th>Input Type</th>
+                            <th>Category</th>
+                            <th>Required</th>
+                            <th>Multiple</th>
+                            <th>Status</th>
+                            <th style="width:120px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attributesBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+<div class="modal fade" id="attributeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+            <!-- Header -->
+            <div class="modal-header">
+                <h6 class="modal-title">
+                    <i class="bi bi-sliders"></i> Attribute Management
+                </h6>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body">
+                <form>
+
+                    <div class="row g-2">
+
+                        <!-- Attribute Name -->
+                         <input type="hidden" id="AttributeId"/>
+                        <div class="col-md-6">
+                            <label class="form-label">Attribute Name</label>
+                            <input type="text" class="form-control form-control-sm" id="AttributeName" name="AttributeName" placeholder="e.g. Color">
+                        </div>
+
+                        <!-- Input Type -->
+                        <div class="col-md-6">
+                            <label class="form-label">Input Type</label>
+                            <select class="form-select form-select-sm" id="AttributeType" name="AttributeType"> 
+                                <option value="">Select Input Type</option>
+                            </select>
+                        </div>
+
+                        <!-- Category -->
+                        {% comment %} <div class="col-md-4">
+                            <label class="form-label">Category</label>
+                            <select class="form-select form-select-sm" id="Category" name="Category">
+                                <option>Select Category</option>
+                            </select>
+                        </div> {% endcomment %}
+
+                       <div class="col-md-12">
+                            <label class="form-label">Category</label>
+                            <select class="form-select form-select-sm" id="Category" name="Category" multiple="multiple" style="width: 100%">
+                                </select>
+                        </div>
+                        <!-- Toggles -->
+                        <div class="col-md-4 form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="attrRequired" name="attrRequired" checked>
+                            <label class="form-check-label" for="attrRequired">
+                                Required
+                            </label>
+                        </div>
+
+                        <div class="col-md-4 form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="attrMultiple" name="attrMultiple">
+                            <label class="form-check-label" for="attrMultiple">
+                                Multiple Selection
+                            </label>
+                        </div>
+
+                        <div class="col-md-4 form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="attrActive" name="attrActive" checked>
+                            <label class="form-check-label" for="attrActive">
+                                Active
+                            </label>
+                        </div>
+
+                    </div>
+
+                </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer">
+                <button class="btn btn-dark btn-sm w-100" onclick="saveAttribute()">
+                    Save Attribute
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    
+   var links = $(".sidebar a");
+    links.each(function() {
+        $(this).removeClass('active');
+    });
+    $("#AttributeLink").addClass('active');
+    
+    $(document).ready(function() {
+    // Initialize Select2
+    $('#Category').select2({
+        placeholder: "Select Categories",
+    });
+});
+    const API_BASE_URL = "http://127.0.0.1:8000/api/v1/attributes/";
+    var TOKEN ;
+    getAttributes();
+getDropDown(el = "AttributeType");
+getDropDown(el = "Category",url="http://127.0.0.1:8000/api/v1/categories/");
+function getDropDown(el = "AttributeType",url="http://127.0.0.1:8000/api/v1/attributetypes/") {
+    fetch(url, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Content-Type": "application/json"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        let innerHtml = ``; 
+        data.forEach(function(item) {
+            if(el=='AttributeType'){ innerHtml += `<option value="${item.id}">${item.input_type}</option>`;}
+            else {innerHtml += `<option value="${item.id}">${item.name}</option>`;}
+        });
+        $(`#${el}`).html(innerHtml);
+    })
+    .catch(err => {
+        showAlert("Failed to load data", "danger");
+        console.error(err);
+    });
+}
+function getAttributes(el = "attributesBody", parentId = null) {
+    // Construct URL with parent filter
+  
+
+    fetch(API_BASE_URL, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Content-Type": "application/json"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        let innerHtml = ""; // Initialize as empty string
+        
+        data.forEach(function(item) {
+           
+                innerHtml += `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td>${item.attribute_type}</td>
+                            <td>${item.categories}</td>
+                            <td><span class="badge bg-success">${item.is_required}es</span></td>
+                            <td><span class="badge bg-danger">${item.is_multiple}</span></td>
+                            <td><span class="badge bg-success">${item.is_active?'Active':'In Active'}</span></td>
+                            <td>
+                                <button class="btn btn-outline-secondary btn-sm" data-id="${item.id}" 
+                                        onclick='clearBrandModal();fillAttributeModal(${JSON.stringify(item)})'
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#attributeModal"
+                                        title="Edit Attribute">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </td>
+                        </tr>`;
+        });
+
+        if (data.length === 0) {
+            innerHtml = `<tr><td colspan="7" class="text-center text-muted">No items found here.</td></tr>`;
+        }
+
+        $(`#${el}`).html(innerHtml);
+    })
+    .catch(err => {
+        showAlert("Failed to load data", "danger");
+        console.error(err);
+    });
+}
+fetch('{% url 'token_obtain_pair' %}', {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+        email: "mohsinali@gmail.com",
+        password: "Today@123"
+    })
+    })
+    .then(res => res.json())
+    .then(data => {
+        TOKEN=data.access;
+    // Save access token
+    localStorage.setItem("access_token", data.access);
+    })
+    .catch(err => console.error(err));
+
+function fillAttributeModal(item) {
+    $('#AttributeId').val(item.id);
+    $('#AttributeName').val(item.name);
+    $('#AttributeType').val(item.attribute_type);
+    $('#Category').val(item.categories).trigger('change'); 
+    $('#attrRequired').prop('checked', item.is_required);
+    $('#attrMultiple').prop('checked', item.is_multiple);
+    $('#attrActive').prop('checked', item.is_active);
+}
+function clearBrandModal() {
+    $('#AttributeId').val("");
+    $('#AttributeName').val("");
+    $('#AttributeType').val("").val(null).trigger('change');
+    $('#attrRequired').prop('checked', true);
+    $('#attrMultiple').prop('checked', false);
+    $('#attrActive').prop('checked', true);
+    $('#Category').val(null).trigger('change');
+}
+function saveAttribute() {
+    let Category = $("#Category").val(); 
+    let AttributeName = $("#AttributeName").val(); 
+    let is_required = $("#attrRequired").is(':checked');
+    let is_active = $("#attrActive").is(':checked');
+    let is_multiple = $("#attrMultiple").is(':checked');
+    let AttributeId = $("#AttributeId").val();
+    let AttributeType = $("#AttributeType").val();
+    // Determine URL and Method
+    let url = AttributeId === '' ? API_BASE_URL : `${API_BASE_URL}${AttributeId}/`;
+    let method = AttributeId === '' ? "POST" : "PATCH";
+    let categoryIds = Category ? Category.map(Number) : [];
+    let body = { attribute_type:AttributeType, categories: categoryIds, is_active: is_active, is_required:is_required,is_multiple:is_multiple,name:AttributeName };
+    if (AttributeId != '') { body.id=AttributeId; } 
+    else { body.parent = null; }
+    fetch(url, {
+        method: method,
+        headers: {  "Authorization": `Bearer ${localStorage.getItem("access_token")}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    })
+    .then(res => {
+        // Handle different Status Codes
+        if (res.ok) { return res.json().then(data => ({ status: 'success', data })); }
+        else if (res.status === 400) { return res.json().then(data => ({ status: 'validation_error', data })); } 
+        else if (res.status === 401) { return { status: 'auth_error' }; } 
+        else {return { status: 'server_error' };}
+    })
+    .then(result => {
+        if (result.status === 'success') {
+            showAlert(AttributeId === '' ? "Atribute Created!" : "Atribute Updated!", "success");
+            $("#attributeModal").modal('hide');
+                getAttributes();
+
+
+        } 
+        else if (result.status === 'validation_error') {
+            let errorMsg = result.data.name ? `Name: ${result.data.name[0]}` : "Validation failed.";
+            showAlert(errorMsg, "warning");
+        } 
+        else if (result.status === 'auth_error') { showAlert("Session expired. Please login again.", "danger"); }
+        else { showAlert("Server error. Logged in database.", "danger"); }
+    })
+    .catch(err => {
+        showAlert("Connection failed!", "danger");
+        console.error("Fetch Error:", err);
+    });
+}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+
+
+{% endblock %}

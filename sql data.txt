@@ -1,0 +1,30 @@
+INSERT INTO products_attribute_types (
+    input_type, 
+    is_required, 
+    is_multiple, 
+    is_active, 
+    is_deleted, 
+    created_at, 
+    modified_at, 
+    created_by_id
+) VALUES 
+-- Selection Types
+('dropdown', true, false, true, false, NOW(), NOW(), 1),
+('radio', true, false, true, false, NOW(), NOW(), 1),
+('checkbox', false, true, true, false, NOW(), NOW(), 1),
+
+-- Basic Input Types
+('text', false, false, true, false, NOW(), NOW(), 1),
+('number', false, false, true, false, NOW(), NOW(), 1),
+('textarea', false, false, true, false, NOW(), NOW(), 1),
+
+-- Specialized Types
+('color', true, false, true, false, NOW(), NOW(), 1),
+('image', false, false, true, false, NOW(), NOW(), 1),
+('date', false, false, true, false, NOW(), NOW(), 1),
+('email', false, false, true, false, NOW(), NOW(), 1),
+('file', false, false, true, false, NOW(), NOW(), 1),
+('range', false, false, true, false, NOW(), NOW(), 1),
+('hidden', false, false, true, false, NOW(), NOW(), 1)
+
+ON CONFLICT (input_type) DO NOTHING;

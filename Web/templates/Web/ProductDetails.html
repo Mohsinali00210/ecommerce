@@ -1,0 +1,2194 @@
+{% extends "WebBase.html" %}
+
+{% block extra_css %}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/fontawesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/brands.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/solid.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/regular.min.css">
+    
+
+
+    <style>
+        .product-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 0px;
+            transition: all .2s ease-in-out;
+
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 18px rgba(0,0,0,.1);
+        }
+
+        .product-img {
+            width: 100%;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .sale-badge {
+            background: #e00;
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .price {
+                font-weight: bold;
+                color: #e85858;
+                font-size: 11px;
+            }
+
+            .old-price {
+                text-decoration: line-through;
+                color: gray;
+                margin-left: 4px;
+            }
+
+            .sold-text {
+                color: #555;
+                margin-left: 8px;
+            }
+
+            .rating-stars {
+                color: #f5b301;
+                font-size: 11px;
+            }
+            .rating-stars span{
+                font-size: 11px;
+            }
+            .add-cart-btn {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                border: 1px solid #333;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                font-size: 14px;
+                background: #fff;
+            }
+        .add-cart-btn:hover{
+            transform: translateY(-5px);
+                box-shadow: 0 5px 18px rgba(0,0,0,.1);
+        }
+            .view-more-btn {
+                width: 200px;
+                border-radius: 30px;
+                padding: 10px;
+                border: 1px solid #222;
+                background: #fff;
+                font-size: 14px;
+                cursor: pointer;
+                transition: .2s;
+            }
+
+            .view-more-btn:hover {
+                background: #f2f2f2;
+            }
+            .product-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 0px;
+            transition: all .2s ease-in-out;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+                    z-index: 2001 !important;
+
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 18px rgba(0,0,0,.1);
+        }
+
+        /* FIX: Same image height for all */
+        .product-img {
+            width: 100%;
+            height: 150px;       /* set equal height */
+            border-radius: 8px;
+            object-fit: cover;   /* crop nicely */
+        }
+
+        /* FIX: Make content grow evenly */
+        .product-info {
+            flex-grow: 1;
+            padding: 0px 9px;
+        }
+        .product-title {
+            font-size: 12px;
+        }
+        /* FIX: Align cart button at bottom */
+        .add-cart-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            background: #fff;
+            margin-top: auto;  /* pushes button to bottom */
+            position: relative;
+            top:-20px;
+        }
+        .carousel-item img{
+            width: 98%;
+
+        }
+        .product-container{
+                        z-index: 2001 !important;
+
+        }
+
+
+    
+        .old-price {
+                text-decoration: line-through;
+                color: gray;
+                font-size: 12px;
+                margin-left: 4px;
+            }
+        div#sliderProducts
+        {
+            height: 200px;
+        }
+        
+    </style>
+    <style>
+
+        /* Layout */
+        .cart-container {
+            display: flex;
+            gap: 25px;
+            padding: 30px;
+        }
+
+        .cart-left {
+            /* width: 70%;  */
+            border-radius: 10px;
+        }
+
+        .cart-right {
+            /* width: 30%; */
+            position: sticky;
+            top: 20px;
+        }
+
+        /* Cart Item */
+        .cart-item {
+            display: flex;
+            gap: 13px;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            /* padding: 10px; */
+            border: 1px solid #e2e2e2;
+            border-radius: 10px;
+        }
+
+        .cart-item img {
+            width: 120px;
+            border-radius: 5px;
+        }
+
+        .item-title {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .price-new {
+            font-size: 20px;
+            font-weight: bold;
+            color: #000;
+        }
+
+        .price-old {
+            text-decoration: line-through;
+            color: gray;
+            font-size: 14px;
+        }
+
+        .discount-tag {
+            background: #ff7f00;
+            color: white;
+            padding: 2px 6px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        /* Summary Card */
+        .summary-box {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+
+        .summary-box h4 {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .checkout-btn {
+            background: #ff7f00;
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 30px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .safe-payment {
+            margin-top: 20px;
+            font-size: 14px;
+            color: gray;
+        }
+
+        /* Select all */
+        .select-all-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 17px;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .remove-item {
+            cursor: pointer;
+            color: gray;
+            font-size: 18px;
+        }
+
+        .product-card {
+                background: #fff;
+                border-radius: 8px;
+                padding: 12px;
+                transition: all .2s ease-in-out;
+                        font-size: 12px;
+
+            }
+
+            .product-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 5px 18px rgba(0,0,0,.1);
+            }
+
+
+
+       
+
+
+
+        .product-page {
+            font-family: Arial;
+        }
+
+        /* LEFT SIDE THUMBNAILS */
+        .thumb-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .thumb {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid #ddd;
+        }
+
+        .thumb.active {
+            border: 2px solid red;
+        }
+
+        /* CENTER MAIN IMAGE */
+        .main-image-box {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .main-image {
+            width: 100%;
+            height: 420px;
+            object-fit: contain;
+        }
+
+        /* RIGHT SECTION */
+        .sale-banner {
+            background: #8f8f8f;
+            padding: 0px !important;
+            margin-bottom: 6px !important;
+            border-radius: 5px;
+            font-size: 14px;
+            display: flex;
+            gap: 12px;
+        }
+        .sale-banner span{
+            padding: 5px;
+                color: white;
+
+        }
+        .sale-banner :first-child{
+            background: red;
+            padding: 5px 13px;
+            border-top-right-radius: 81px;
+            color: white;
+            font-weight: bold;
+        }
+
+
+
+        .rating-box {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+
+        .tag {
+            background: #06c167;
+            padding: 4px 10px;
+            border-radius: 4px;
+            color: #fff;
+            display: inline-block;
+            margin-top: 6px;
+        }
+
+        /* PRICE AREA */
+        .price-section {
+            margin-top: 15px;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .price-now {
+            color: red;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .price-old {
+            text-decoration: line-through;
+            color: gray;
+        }
+
+        .discount {
+            background: red;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+
+        .clearance-box {
+            background: #ffe2e2;
+            color: red;
+            padding: 8px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        /* CART BUTTON */
+        .cart-btn {
+            width: 100%;
+            background: red;
+            color: #fff;
+            padding: 3px;
+            font-size: 14px;
+            border-radius: 40px;
+            border: none;
+            margin-top: 18px;
+        }
+
+        /* SECOND HALF - DETAILS */
+        .section-title {
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .details-row {
+            display: grid;
+            grid-template-columns: repeat(2,1fr);
+            gap: 12px;
+            font-size: 16px;
+        }
+
+        .details-image {
+            margin-top: 20px;
+            width: 100%;
+            border-radius: 10px;
+        }
+        .last-day {
+            font-size: 12px;
+        }
+
+
+        .my-slider {
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+            margin: auto;
+            border-radius: 12px;
+            padding: 15px;
+        }
+        .my-slider span{
+            font-size: 12px;
+        }
+        .my-slider h3{
+            font-size: 15px;
+        }
+        .slides {
+            display: flex;
+            transition: transform .5s ease-in-out;
+        }
+
+        .slide {
+            min-width: 100%;
+        }
+
+        .line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+        }
+
+        /* Arrows */
+        .prev, .next {
+            position: absolute;
+            top: 45%;
+            font-size: 22px;
+            width: 30px;
+            height: 30px;
+            background: rgba(0,0,0,.3);
+            color: #fff;
+            border-radius: 50%;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .prev { left: 10px; }
+        .next { right: 10px; }
+
+        /* Dots */
+        .dots {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .dots span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            margin: 5px;
+            background: #ccc;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .dots .active {
+            background: #0A8800;
+        }
+        /* REVIEW SECTION */
+        .reviews-section {
+            padding: 20px;
+            background: #fff;
+            border-radius: 12px;
+            margin-top: 40px;
+        }
+
+        .review-title {
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .review-box {
+            display: flex;
+            gap: 15px;
+            border-bottom: 1px solid #eee;
+            /* padding: 15px 0; */
+            border: 1px #ebebeb solid;
+            padding: 8px 20px;
+            font-size: 11px !important;
+            margin-bottom: 5px;
+            border-radius: 15px;
+        }
+
+        .review-box:last-child {
+            border-bottom: none;
+        }
+
+        /* USER PIC */
+        .review-pic {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ddd;
+        }
+
+        /* CONTENT */
+        .review-content {
+            flex: 1;
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .review-name {
+            font-weight: bold;
+            font-size: 15px;
+        }
+
+        .review-date {
+            color: #888;
+        }
+
+        .review-stars {
+            color: #f5b301;
+            margin: 5px 0;
+        }
+
+        .review-text {
+            color: #444;
+            line-height: 1.5;
+        }
+        /* SECTION TITLES */
+        .section-title {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        /* GUIDES SECTION */
+        .product-guides {
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 40px;
+        }
+
+        /* GUIDE ROW */
+        .guide-row {
+            display: flex;
+            align-items: center;
+            padding: 4px 17px;
+            border-bottom: 1px solid #eee;
+            background: #e2e2e2;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .guide-row:last-child {
+            border-bottom: none;
+        }
+
+        .guide-icon {
+            font-size: 30px;
+            margin-right: 15px;
+        }
+
+        .guide-title {
+            font-weight: 600;
+            font-size: 17px;
+        }
+
+        .guide-btn {
+            background: #ff8c00;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 6px;
+            border: none;
+            margin-top: 6px;
+            cursor: pointer;
+        }
+
+        /* PRODUCT DETAILS TABLE */
+        .product-detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .product-detail-table td {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .product-detail-table .left-col {
+            font-weight: 600;
+            width: 40%;
+        }
+
+        /* SAVE + REPORT */
+        .extra-options {
+            margin-top: 20px;
+        }
+        .small-text-btn {
+            background: none;
+            border: none;
+            color: #007bff;
+            margin-right: 20px;
+            cursor: pointer;
+        }
+
+        /* ATTACHMENT GRID */
+        .attachment-section {
+            margin-top: 45px;
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+        }
+        .attachment-grid {
+            /* display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); */
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .attachment-grid img {
+            width: 100%;
+            /* height: 130px;
+            object-fit: cover; */
+            border-radius: 10px;
+            cursor: pointer;
+            transition: .2s;
+        }
+        .attachment-grid img:hover {
+            transform: scale(1.03);
+        }
+
+        /* FULLSCREEN VIEWER */
+        .fullscreen-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .fullscreen-viewer img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 10px;
+        }
+
+        /* sipment modal */
+        .ship-section {
+            margin-bottom: 18px;
+        }
+
+        .ship-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .ship-text {
+            font-size: 15px;
+        }
+
+        .ship-text.green {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        /* COMPANY BADGES */
+        .ship-badges span {
+            display: inline-block;
+            background: #f2f2f2;
+            padding: 6px 12px;
+            margin: 4px 6px 0 0;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        /* ALERT */
+        .ship-alert {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px 12px;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .credit {
+            color: #d9534f;
+        }
+
+        /* TABLE */
+        .ship-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        .ship-table td {
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .ship-table td:last-child {
+            text-align: right;
+            font-weight: 600;
+        }
+        .shipping-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .shipping-table td {
+            background: #fff;
+        }
+
+        .shipping-table .badge {
+            font-size: 13px;
+            padding: 6px 10px;
+        }
+
+        .progress-container {
+            background-color: #e0e0e0;
+            border-radius: 8px;
+            width: 100%;
+            height: 20px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: #5a5a5a !important;
+            text-align: right;
+            padding-right: 5px;
+            color: white;
+            font-size: 12px;
+            line-height: 20px;
+            border-radius: 8px 0 0 8px;
+        }
+
+        .thumb {
+            width: 100%;
+            cursor: pointer;
+            margin-bottom: 10px;
+            border: 2px solid transparent;
+        }
+
+        .thumb.active {
+            border-color: #ff0000;
+        }
+
+        .main-image {
+            width: 100%;
+            cursor: zoom-in;
+        }
+
+        /* Modal thumbnails */
+        .modal-thumbs img {
+            width: 100%;
+            margin-bottom: 10px;
+            cursor: pointer;
+            border: 2px solid #444;
+        }
+
+        /* Zoom */
+        .zoom-img {
+            max-height: 80vh;
+            transition: transform 0.3s ease;
+            cursor: zoom-in;
+        }
+        #imageZoomModal img.zoom-img {
+            max-height: 90vh;
+            transition: transform 0.25s ease, transform-origin 0.1s ease;
+            cursor: zoom-in;
+            user-select: none;
+        }
+
+        #imageZoomModal .thumb {
+            cursor: pointer;
+        }
+
+
+        .img-hover-zoom {
+        height: 300px; /* Set a specific height for the container */
+        overflow: hidden; /* Hide the part of the image that overflows when zoomed */
+        }
+
+        .img-hover-zoom img {
+        /* Smooth transition for the zoom effect */
+        transition: transform .5s ease; 
+        display: block;
+        width: 100%;
+        }
+
+        .img-hover-zoom:hover img {
+        /* (150% zoom) */
+        transform: scale(1); 
+        }
+
+        /* Apply sticky add-to-cart only on medium (>=600px) and wider screens */
+        @media screen and (min-width: 760px) {
+            .addtocart-section {
+                position: sticky !important;
+                top: 20px !important;
+                z-index: 1000; /* optional, keep it above content */
+            }
+            .thumb-list {
+                flex-direction: column;
+            }
+        }
+
+        @media (min-width: 0px) and (max-width: 760px) {
+        .thumb-list {
+                display: flex;
+                flex-direction: row;
+                gap: 5px;
+            }
+            
+            
+        }
+        .product-description {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+        }
+        .product-description img {
+            max-width: 100%;
+            height: auto;
+        }
+        .extra-review {
+            transition: all 0.5s ease;
+            opacity: 0;
+        }
+        .extra-review.show {
+            opacity: 1;
+        }
+
+    </style>
+    <style>
+        .star-rating {
+            display: inline-flex;
+            flex-direction: row-reverse;
+            font-size: 24px;
+        }
+
+        .star-rating input {
+            display: none; /* Hide radio circle */
+        }
+
+        .star-rating label {
+            color: #ccc;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        /* Highlight on hover */
+        .star-rating label:hover,
+        .star-rating label:hover ~ label {
+            color: #ffc107;
+        }
+
+        /* Highlight selected stars */
+        .star-rating input:checked ~ label {
+            color: #ffc107;
+        }
+        .wishlist-btn i {
+            transition: 0.3s ease;
+        }
+
+        .wishlist-btn i.bi-heart-fill {
+            transform: scale(1.2);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+
+    <div class="mycontainer container my-5 product-page">
+
+        <div class="row">
+           
+            <!-- LEFT SIDE: SMALL IMAGES -->
+            <div class="row col-md-7 g-0">
+                {% if promotions %}
+                    {% with promo=promotions.0 %}
+                        <div class="sale-banner ">
+                            <span>{{promo.name}}</span>
+                            <span>{{ promo.description|default:"Promotion" }}</span>
+                            {% comment %} <span> Rs.280 Credit for delay </span> {% endcomment %}
+                        </div>
+                    {% endwith %}
+                {% endif %}
+
+                <div class="row align-items-center" id="productImagesSlider">
+                    <div class="col-md-2">
+                        <div class="thumb-list  overflow-auto justify-content-between">
+                            {% for image in images %}
+                                <img src="{{ image.image.url }}" alt="{{ image.alt_text }}"
+                                class="thumb {% if image.is_primary %}active{% endif %}" onclick="goToSlide1({{ forloop.counter0 }})">
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-10  text-center position-relative">
+                        <!-- Share Button -->
+                        <button class="btn btn-light shadow-sm rounded-circle position-absolute top-0 end-0 m-3 z-3 p-2"
+                                style="width: 40px; height: 40px;"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#shareModal">
+                            <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                        </button>
+
+                        <!-- Wishlist Button -->
+                        <button class="btn btn-light shadow-sm rounded-circle wishlist-btn 
+                                    position-absolute top-0 end-0 mt-5 me-3 z-3 p-2"
+                                data-id="{{ product.id }}"
+                                style="width: 40px; height: 40px;">
+
+                            <i class="{% if product.id in user_wishlist_ids %} fa-solid fa-heart text-danger
+                                    {% else %}
+                                        fa-regular fa-heart
+                                    {% endif %}">
+                            </i>
+                        </button>
+                        <div id="imageCarousel" class="carousel slide">
+                            <div class="carousel-inner">
+                            {% with 0 as slide_index %}
+    
+                                {# PRODUCT IMAGES #}
+                                {% for image in images %}
+                                    <div class="carousel-item {% if image.is_primary or forloop.first %}active{% endif %}">
+                                        <img src="{{ image.image.url }}"
+                                            class="zoom-img"
+                                            alt="{{ image.alt_text }}"
+                                            onmousemove="moveZoom(event)"
+                                            onclick="openImageModal({{ slide_index }})">
+                                    </div>
+                                    {% widthratio slide_index 1 1 as slide_index %}
+                                    {% with slide_index|add:1 as slide_index %}{% endwith %}
+                                {% endfor %}
+
+                                {# VARIANT IMAGES #}
+                                {% for variant in variant_images %}
+                                    {% if variant.image %}
+                                        <div class="carousel-item">
+                                            <img src="{{ variant.image.image.url }}"
+                                                class="zoom-img"
+                                                alt="{{ variant.image.alt_text }}"
+                                                onmousemove="moveZoom(event)"
+                                                onclick="openImageModal({{ slide_index }})">
+                                        </div>
+                                        {% with slide_index|add:1 as slide_index %}{% endwith %}
+                                    {% endif %}
+                                {% endfor %}
+
+                            {% endwith %}
+
+                                
+                            </div>
+        
+                            <button class="carousel-control-prev" type="button" data-bs-target="#imageCarousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon"></span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#imageCarousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- <div class="col-md-10 col-9">
+                    <div class="main-image-box">
+                        <img id="mainImage" src="../images/watch pic1.jpg" class="main-image" data-bs-toggle="modal" data-bs-target="#imageModal">
+                    </div>
+        
+                    
+                    
+                </div> -->
+                
+                <!-- PRODUCT GUIDES & DOCUMENTS SECTION -->
+                <div class="product-guides p-3">
+
+                    {% comment %} <h3 class="section-title">Product Guides & Documents</h3>
+
+                    <!-- USER MANUAL -->
+                    <div class="guide-row" onclick="openPdf()">
+                        <div class="guide-icon">📄</div>
+                        <div class="guide-info">
+                            <div class="guide-title">User Manual (PDF)</div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right self-end"></i>
+                    </div> {% endcomment %}
+
+                    <!-- PRODUCT DETAILS -->
+                    <h3 class="section-title mt-4">Product Details</h3>
+                    <div class="product-description">
+                        {% if product.description %}
+                            {{ product.description|safe }}
+                        {% else %}
+                            <p>No description available.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- REPORT + SAVE -->
+                    {% comment %} <div class="extra-options">
+                        <button class="small-text-btn">Save</button>
+                        <button class="small-text-btn">Report this item</button>
+                    </div> {% endcomment %}
+                </div>
+            </div>
+
+            <div class="col-md-5 addtocart-section vh-90 overflow-auto">
+
+            
+
+                <h3 class="product-title">{{product.name}}</h3>
+
+                <div class="rating-box">
+                    ⭐⭐⭐⭐☆ 
+                    <span>({{product.sold}}+ sold)</span>
+                </div>
+                {% if product.qoute %}
+                    <div class="tag">{{ product.qoute }}</div>
+                {% endif %}
+
+
+                <!-- Price Section -->
+               {% if promotions %}
+               
+                    {# Take first active promotion for display #}
+                    {% with promo=promotions.0 %}
+                        <div class="price-section">
+                            <div class="price-now">{{ promo.discounted_price }}</div>
+                            <div class="price-old">{{ product.price }}</div>
+
+                            {% if promo.discount_type == "percentage" %}
+                                <div class="discount">{{ promo.discount_value }}%</div>
+                            {% elif promo.discount_type == "fixed" %}
+                                <div class="discount">${{ promo.discount_value }}</div>
+                            {% elif promo.discount_type == "buy_x_get_y" %}
+                                <div class="discount">Buy X Get Y</div>
+                            {% elif promo.discount_type == "free_delivery" %}
+                                <div class="discount">Free Delivery</div>
+                            {% endif %}
+                            <!-- Countdown -->
+                        </div>
+                       
+                        <div class="clearance-box">
+                            {{promo.name}} — Ends in <span id="countdown">{{promo.end_date}}</span>
+                        </div>
+                    {% endwith %}
+                {% else %}
+                    <div class="price-section">
+                        <div class="price-now">{{ product.price }}</div>
+                    </div>
+                {% endif %}
+
+
+
+                
+                <input type="number" class="form-control qty-select mt-2" id="quantity" min="1" value="1" style="width:120px;">
+                 {% regroup options by option_name as grouped_options %}
+
+                <div id="productOptions">
+                    {% for group in grouped_options %}
+                        {% with group.grouper|slugify as group_id %}
+                        <div class="mb-3 option-group" data-option-name="{{ group.grouper }}">
+                            <label class="fw-semibold text-capitalize mb-1 d-block">
+                                {{ group.grouper }}
+                            </label>
+
+                            <div class="d-flex flex-wrap gap-2" id="{{ group_id }}-group">
+                                {% for item in group.list %}
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-secondary btn-sm {% if forloop.first %}default-option{% endif %}"
+                                        data-option-name="{{ group.grouper }}"
+                                        data-option-value="{{ item.option }}"
+                                        onclick="selectOption(
+                                            '{{ group.grouper|escapejs }}',
+                                            '{{ item.option|escapejs }}',
+                                            this
+                                        )">
+                                        {{ item.option|upper }}
+                                    </button>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endwith %}
+                    {% endfor %}
+                </div>
+                <button class="cart-btn" id="addToCartBtn">Add to cart {% if promotions %} {% with promo=promotions.0 %}<br>{{promo.discount_value}}% OFF {% endwith %}{% endif %}</button>
+                
+
+        
+
+
+                        <div class="safe-payment mt-3" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#shippingModal">
+                            <div><i class="fa-solid fa-truck text-success"></i><b>Free shipping on all orders<i class="fa-solid fa-angle-right"></i></b></div>
+                            {% if product.handling_time %}
+                                <div><span class="text-muted">Delivery:</span> with in {{ product.handling_time }} days</div>
+                            {% endif %}
+                            <div><span class="text-muted">Courier company:</span><b>TCS, Leopards...</b></div>
+                        </div>
+
+                        <div class="safe-payment mt-3">
+                            <i class="fa-solid fa-truck text-success"></i> 
+                            <b>Why Choose We?<i class="fa-solid fa-angle-right"></i></b>
+                            <!--  -->
+                            <div class="row" style="font-size: 12px;">
+                                <!-- Slide 1 -->
+                                <div class="col-md-6">
+                                    <h5 style="color:#0A8800" style="font-size: 11px !important;">Security & Privacy</h5>
+
+                                    <div class="mt-2">
+                                        <div class="line">
+                                            <svg width="18" height="18" fill="#222"><path d="M833.3 ..."></path></svg>
+                                            <span>Safe payments</span>
+                                        </div>
+
+                                        <div class="line">
+                                            <svg width="18" height="18" fill="#222"><path d="M833.3 ..."></path></svg>
+                                            <span>Secure privacy</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Slide 2 -->
+                                <div class="col-md-6">
+                                    <h5 style="color:#0A8800" style="font-size: 11px !important;">Delivery Guarantee</h5>
+
+                                    <div class="mt-2">
+                                        <div class="line">
+                                            <svg width="18" height="18" fill="#222"><path d="M833.3 ..."></path></svg>
+                                            <span>Rs.280 Credit for delay</span>
+                                        </div>
+
+                                        <div class="line">
+                                            <svg width="18" height="18" fill="#222"><path d="M833.3 ..."></path></svg>
+                                            <span>15-day no update refund</span>
+                                        </div>
+
+                                        <div class="line">
+                                            <svg width="18" height="18" fill="#222"><path d="M833.3 ..."></path></svg>
+                                            <span>Return if item damaged</span>
+                                        </div>
+
+                                        <div class="line">
+                                            <svg width="18" height="18" fill="#222"><path d="M833.3 ..."></path></svg>
+                                            <span>30-day no delivery refund</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="safe-payment mt-3" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#serviceModal">
+                            <i class="fa-solid fa-circle-left text-success"></i> 
+                            <b>Free returnsPrice adjustment<i class="fa-solid fa-angle-right"></i></b>
+                        </div>
+                        <!-- <div class="safe-payment mt-3">
+                            <i class="fa-solid fa-lock text-success"></i> 
+                            <b>Temu's Tree Planting Program (23M+ trees)<i class="fa-solid fa-angle-right"></i></b>
+                        </div> -->
+                    
+
+
+                </div>
+                
+            <div class="row col-md-7 ">
+
+                <!-- FULL SCREEN IMAGE ATTACHMENT SECTION -->
+                <div class="attachment-section">
+
+                    <h3 class="section-title">Product Attachments</h3>
+
+                    <div class="attachment-grid">
+                        {% for image in images %}
+                                <img src="{{ image.image.url }}" alt="{{ image.alt_text }}" onclick="openFullScreen(this.src)">
+                        {% endfor %}
+                        {% for variant in variants %}
+                            <img src="{{ variant.image.image.url }}" alt="{{ variant.image.alt_text }}" onclick="openFullScreen(this.src)">
+                        {% endfor %}
+                    </div>
+
+                </div>
+
+                <!-- FULLSCREEN VIEWER -->
+                <div id="fullscreenViewer" class="fullscreen-viewer" style="z-index: 40000;" onclick="closeFullScreen()">
+                    <img id="fullscreenImage" >
+                </div>
+                {% if Reviews %}
+                    <div class="reviews-section mt-5">
+
+                        <h3 class="review-title">Customer Reviews ({{ Reviews|length }})</h3>
+
+                        <div id="reviews-container">
+                            {% for review in Reviews %}
+                            <div class="review-box {% if forloop.counter > 3 %}d-none extra-review{% endif %}">
+                                {% load static %}
+                                <img src="{% static 'webimages/user-default.png' %}" class="review-pic" alt="User">
+
+                                <div class="review-content">
+                                    <div class="review-header">
+                                        <span class="review-name">{{ review.user|stringformat:"s" }}</span>
+                                        <span class="review-date">{{ review.created_at|date:"d M Y • h:i A" }}</span>
+                                    </div>
+
+                                    <!-- Rating Stars -->
+                                    <div class="review-stars">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= review.rating %}
+                                                <i class="fas fa-star text-warning"></i>
+                                            {% else %}
+                                                <i class="far fa-star text-muted"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+
+                                    <!-- Review Comment -->
+                                    <div class="review-text">
+                                        {{ review.comment }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        {% if Reviews|length > 3 %}
+                        <div class="text-center my-4">
+                            <button id="showMoreReviews" class="view-more-btn">View more ▼</button>
+                        </div>
+                        {% endif %}
+
+                    </div>
+                    {% endif %}
+                {% if can_review %}
+                    <div id="reviewSection">
+                        <h6>Add Review</h6>
+                        <div class="star-rating">
+
+                            <input type="radio" id="star5" name="rating" value="5">
+                            <label for="star5">★</label>
+
+                            <input type="radio" id="star4" name="rating" value="4">
+                            <label for="star4">★</label>
+
+                            <input type="radio" id="star3" name="rating" value="3">
+                            <label for="star3">★</label>
+
+                            <input type="radio" id="star2" name="rating" value="2">
+                            <label for="star2">★</label>
+
+                            <input type="radio" id="star1" name="rating" value="1">
+                            <label for="star1">★</label>
+
+                        </div>
+                        <textarea id="comment" class="form-control form-control-sm mb-2" placeholder="Write your review..."></textarea>
+                        <button class="btn btn-dark btn-sm w-100" onclick="submitReview({{ product.id }})"> Submit Review </button>
+                    </div>
+                {% endif %}
+
+                <div class="row g-1 product-container justify-content-center">
+
+                <!-- ========== PRODUCT CARD 1 ========== -->
+                {% for product in related_products %}
+                    <div class="col-md-3 col-6">
+                        <div class="product-card">
+                            <a href="{% url 'ProductDetails' id=product.id %}">
+                                {% if product.images.all %}
+                                    <img src="{{ product.images.all.0.image.url }}" alt="{{ product.name }}" class="product-img">
+                                {% endif %}
+                            </a>
+
+                            <div class="product-info">
+                                <div class="mt-2 product-title"><a href="{% url 'ProductDetails' id=product.id %}">{{product.name}}</a></div>
+
+                                <div class="price mt-1">
+                                    {{product.final_price}}
+                                    <span class="old-price">{{product.price}}</span>
+                                    <div class="sold-text">{{product.sold}}+ sold</div>
+                                </div>
+
+                                <div class="rating-stars d-flex justify-content-between mt-2">
+                                    <span>{% for i in "12345" %}{% if forloop.counter <= product.star_count %}★{% else %}☆{% endif %}{% endfor %} <span class="text-muted">({{product.rating_count}})</span></span>
+                                    <div class="add-cart-btn">🛒</div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                {% endfor %}
+
+
+
+            </div>
+
+            <!-- View More Button -->
+            <div class="text-center my-4">
+                <button class="view-more-btn">View more ▼</button>
+            </div>
+
+            </div>
+
+        
+            </div>
+
+            </div>
+        </div>
+
+    
+
+    </div>
+
+    <div class="modal fade"  id="shippingModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+
+                <!-- HEADER -->
+                <div class="modal-header">
+                    <h5 class="modal-title">Shipping Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <!-- BODY -->
+                <div class="modal-body" style="padding: 20px;">
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle shipping-table">
+                            <tbody>
+
+                                <!-- SHIPPING COMPANY -->
+                                <tr>
+                                    <th style="width: 35%">Shipping Company</th>
+                                    <td>
+                                        <span class="badge bg-secondary me-1">TCS</span>
+                                        <span class="badge bg-secondary me-1">Leopards</span>
+                                        <span class="badge bg-secondary me-1">POSTEX</span>
+                                        <span class="badge bg-secondary me-1">Speedaf</span>
+                                        <span class="badge bg-secondary me-1">CPEX</span>
+                                        <span class="badge bg-secondary">ECL</span>
+                                    </td>
+                                </tr>
+
+                                <!-- DELIVERY TIME -->
+                                <tr>
+                                    <th>Estimated Delivery Time</th>
+                                    <td>Dec 24 – Jan 6</td>
+                                </tr>
+
+                                <!-- SHIPPING COST -->
+                                <tr>
+                                    <th>Shipping Cost</th>
+                                    <td class="text-success fw-bold">Free on all orders</td>
+                                </tr>
+
+                                <!-- DELAY CREDIT -->
+                                <tr class="table-warning">
+                                    <th>Delivery Guarantee</th>
+                                    <td>
+                                        If delivered after <b>Jan 6</b>, you will get a  
+                                        <b class="text-danger">Rs.280 credit</b> within 48 hours.
+                                    </td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+                    </div>
+
+
+                    <!-- FASTEST DELIVERY -->
+                    <div class="ship-section">
+                        <div class="ship-title">Fastest Delivery <b>11 days</b></div>
+                    </div>
+
+                    <!-- DELIVERY PROBABILITY -->
+                    <div class="ship-section">
+                        <div class="ship-title">Delivery Time Probability</div>
+
+                        <table class="ship-table">
+                            <tr>
+                                <td style="width: 70px;">≤ 11 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:6.8%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">6.8%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">12 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:11%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">11%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">13 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:16.5%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">16.5%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">14 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:16.6%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">16.6%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">15 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:15.3%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">15.3%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">16 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:12.1%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">12.1%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">17 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:9.4%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">9.4%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">18 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:5.3%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">5.3%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">19 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:3%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">3%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">20 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:1.5%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">1.5%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">21 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:1%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">1%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">22 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:0.4%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">0.4%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">23 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:0.2%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">0.2%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">> 23 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:0.9%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">0.9%</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                </div>
+
+                
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="imageZoomModal" tabindex="-1">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content bg-black">
+                <div class="modal-body p-2">
+                    <button class="btn btn-light position-absolute top-0 end-0 m-3 z-3"
+                            data-bs-dismiss="modal">✕</button>
+
+                    <div id="modalSliderContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="serviceModal" tabindex="-1" aria-labelledby="serviceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="serviceModalLabel">Service Guarantee</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+            <h6>Free returns within 90 days of purchase</h6>
+            <ul>
+                <li>The first return of one or multiple returnable items for EVERY order is free!</li>
+                <li>This item can be returned within 90 days from the date of purchase.</li>
+                <li>If the returned item is used or damaged, or has missing parts/accessories, and this is not due to Temu or the seller, the refund will be reduced to compensate for the lost value of the item.</li>
+            </ul>
+            <a href="#">Read full return policy</a>
+
+            <h6 class="mt-3">Price adjustment within 30 days of payment</h6>
+            <ul>
+                <li>Items purchased from Temu are eligible for our price adjustment policy. Temu will provide the price difference in the currency that the order was paid in if the selling price of the item purchased was reduced within 30 days of payment in the same country or region.</li>
+                <li>The shipment of your order will not be affected by applying for a price adjustment before you receive your item(s). You can request a price adjustment refund by selecting the relevant order in 'Your Orders' and clicking on the 'Price adjustment' button.</li>
+                <li>Items that are promotional or no longer available may not be eligible for our price adjustment policy. Fees, including but not limited to shipping fees, will be excluded for any price adjustment calculation. Temu reserves the right to the final interpretation of our price adjustment policy, the right to modify the terms of this policy at any time, and the right to deny any price adjustment at our sole discretion.</li>
+            </ul>
+        </div>
+        </div>
+    </div>
+    </div>
+    <div class="modal fade" id="imageModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content bg-black">
+                <div class="modal-body">
+
+                    <div class="row">
+                        <!-- Thumbnails -->
+                        <div class="col-2  d-md-block">
+                            <div class="modal-thumbs d-flex justify-content-between">
+                                <img src="../images/watch pic1.jpg"  onclick="goToSlide1(0)">
+                                <img src="../images/watch pic2.jpg"  onclick="goToSlide1(1)">
+                                <img src="../images/watch pic3.jpg"  onclick="goToSlide1(2)">
+                                <img src="../images/watch pic4.jpg"  onclick="goToSlide1(3)">
+                                <img src="../images/watch pic5.jpg"  onclick="goToSlide1(4)">
+                            </div>
+                        </div>
+
+                        <!-- Main Slider -->
+                        <div class="col-md-10 text-center">
+                            <div id="imageCarousel" class="carousel slide">
+                                <div class="carousel-inner">
+                                    <div class="carousel-item active">
+                                        <img src="../images/watch pic1.jpg" class="zoom-img" onmousemove="moveZoom(event)" onclick="zoomIn(event)">
+                                    </div>
+                                    <div class="carousel-item">
+                                        <img src="../images/watch pic2.jpg" class="zoom-img" onmousemove="moveZoom(event)" onclick="zoomIn(event)">
+                                    </div>
+                                    <div class="carousel-item">
+                                        <img src="../images/watch pic3.jpg" class="zoom-img" onmousemove="moveZoom(event)" onclick="zoomIn(event)">
+                                    </div>
+                                    <div class="carousel-item">
+                                        <img src="../images/watch pic4.jpg" class="zoom-img" onmousemove="moveZoom(event)" onclick="zoomIn(event)">
+                                    </div>
+                                    <div class="carousel-item">
+                                        <img src="../images/watch pic5.jpg" class="zoom-img" onmousemove="moveZoom(event)" onclick="zoomIn(event)">
+                                    </div>
+                                </div>
+
+                                <button class="carousel-control-prev" type="button" data-bs-target="#imageCarousel" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon"></span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#imageCarousel" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon"></span>
+                                </button>
+                            </div>
+
+                            <!-- Zoom Buttons -->
+                            <div class="mt-3">
+                                <button class="btn btn-light btn-sm" onclick="zoomIn()">+</button>
+                                <button class="btn btn-light btn-sm" onclick="zoomOut()">−</button>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+        <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold" id="shareModalLabel">Share Product</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+            <div class="d-flex justify-content-around mb-4">
+            <a href="#" id="shareWA" target="_blank" class="text-decoration-none text-dark">
+                    <div class="bg-light p-3 rounded-circle mb-1">
+                        <i class="fa-brands fa-whatsapp text-success fs-3"></i>
+                    </div>
+                    <small>WhatsApp</small>
+                </a>
+
+                <a href="#" id="shareFB" target="_blank" class="text-decoration-none text-dark">
+                    <div class="bg-light p-3 rounded-circle mb-1">
+                        <i class="fa-brands fa-facebook-f text-primary fs-3"></i>
+                    </div>
+                    <small>Facebook</small>
+                </a>
+                <!-- <a href="#" class="text-decoration-none text-dark">
+                    <div class="bg-light p-3 rounded-circle mb-1"><i class="fa fa-messenger text-info fs-3"></i></div>
+                    <small>Messenger</small>
+                </a> -->
+            </div>
+
+            <div class="input-group mb-3">
+            <input type="text" id="productLink" class="form-control bg-light" value="" readonly>
+            <button class="btn btn-primary" type="button" onclick="copyToClipboard()">Copy</button>
+            </div>
+            <div id="copyFeedback" class="text-success small d-none">Link copied to clipboard!</div>
+        </div>
+        </div>
+    </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-zoom/1.7.21/jquery.zoom.min.js"></script>
+
+    <script>
+        fetch('{% url 'token_obtain_pair' %}', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                email: "mohsinali00260@gmail.com",
+                password: "Today@123"
+            })
+            })
+            .then(res => res.json())
+            .then(data => {
+                TOKEN=data.access;
+            // Save access token
+            localStorage.setItem("access_token", data.access);
+            })
+            .catch(err => console.error(err));
+
+            document.querySelectorAll(".wishlist-btn").forEach(button => {
+
+                button.addEventListener("click", function() {
+
+                    const productId = this.dataset.id;
+                    let url = "{% url 'toggle_wishlist' 0 %}";
+                    url = url.replace("0", productId);
+
+                    const icon = this.querySelector("i");
+
+                    fetch(url, {
+                        method: "GET",
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest"
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+
+                        if (data.status === "added") {
+                            // remove outline
+                            icon.classList.remove("fa-regular");
+                            icon.classList.remove("fa-heart");
+
+                            // add filled
+                            icon.classList.add("fa-solid");
+                            icon.classList.add("fa-heart");
+                            icon.classList.add("text-danger");
+                        } 
+                        else if (data.status === "removed") {
+                            // remove filled
+                            icon.classList.remove("fa-solid");
+                            icon.classList.remove("text-danger");
+
+                            // add outline
+                            icon.classList.add("fa-regular");
+                            icon.classList.add("fa-heart");
+                        }
+
+                    });
+
+                });
+
+            });
+        function getRating() {
+            const rating = document.querySelector('input[name="rating"]:checked');
+            return rating ? rating.value : null;
+        }
+        function submitReview(productId) {
+
+            const rating = getRating();
+            const comment = document.getElementById("comment").value;
+            if(rating=="" || comment=="" || rating==null){
+                showAlert("Please rat and add Comment.", "danger");
+                return;
+            }
+            fetch("{% url 'ProductReviewCreate' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                },
+                body: JSON.stringify({
+                    product: productId,
+                    rating: rating,
+                    comment: comment
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.id) {
+                    showAlert("Review submitted successfully", "success");
+                    location.reload();
+                } else {
+                    showAlert(data.detail || data.non_field_errors || "Error submitting review", "danger");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showAlert("Something went wrong", "danger");
+            });
+        }
+        $("#addToCartBtn").on("click",function(){
+        var url="http://127.0.0.1:8000/AddToCart/";
+        fetch("{% url 'AddToCart' %}", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}",/*"Authorization": `Bearer ${localStorage.getItem("access_token")}`*/ }, body: JSON.stringify({product_id: cartProduct,variant_id: cartVariant,quantity: $("#quantity").val()})})
+            .then(res => {
+                if (res.ok) { return res.json().then(data => ({ status: 'success', data })); }
+                else if (res.status === 400) { return res.json().then(data => ({ status: 'validation_error', data })); } 
+                else if (res.status === 401) { return { status: 'auth_error' }; } 
+                else {return { status: 'server_error' };}
+            })
+            .then(result => {
+                if (result.status === 'success') {
+                    showAlert(result.message, "success");
+                } 
+                //else if (result.status === 'validation_error') {
+                //    let errorMsg = result.data.name ? `Name: ${result.data.name[0]}` : "Validation failed.";
+                //    showAlert(errorMsg, "warning");
+                //} 
+                //else if (result.status === 'auth_error') { showAlert("Session expired. Please login again.", "danger"); }
+                //else { showAlert("Server error. Logged in database.", "danger"); }
+            })
+            .catch(err => {
+                showAlert("Connection failed!", "danger");
+                console.error("Fetch Error:", err);
+            });
+productData.variants.forEach((v, i) => {
+    console.log(`Variant :`, v.id);
+    console.log("product:", v.product);
+    console.log("Name:", v.name);
+    console.log("Price:", v.price);
+    console.log("SKU:", v.sku);
+});
+            console.log("cartProduct "+cartProduct);
+            console.log("cartVariant "+cartVariant);
+            console.log("cartPrice "+cartPrice);
+            console.log("qty "+$("#quantity").val());
+        });
+        const productData = {
+                variants: {{ variants_json|safe }},
+                options: [...document.querySelectorAll(".option-group")]
+        };
+        const selectedOptions = {};
+        function renderOptions(productData) {
+            const container = document.getElementById("productOptions");
+            container.innerHTML = "";
+
+            productData.options.forEach(opt => {
+                const group = document.createElement("div");
+                group.className = "mb-2";
+
+                group.innerHTML = `
+                    <label class="fw-semibold text-capitalize mb-1 d-block">
+                        ${opt.option_name}
+                    </label>
+                    <div class="d-flex flex-wrap gap-2" id="${opt.option_name}-group"></div>
+                `;
+
+                container.appendChild(group);
+
+                const btnGroup = group.querySelector(`#${opt.option_name}-group`);
+
+                opt.option.forEach(value => {
+                    const btn = document.createElement("button");
+                    btn.className = "btn btn-outline-secondary btn-sm";
+                    btn.innerText = value.toUpperCase();
+
+                    btn.onclick = () => selectOption(opt.option_name, value, btn);
+
+                    btnGroup.appendChild(btn);
+                });
+            });
+        }
+
+        // HANDLE SELECTION
+        function selectOption(type, value, btn) {
+            selectedOptions[type] = value;
+            btn.parentElement.querySelectorAll("button").forEach(b => b.classList.remove("active", "btn-dark"));
+            btn.classList.add("active", "btn-dark");
+            updateVariantPrice();
+        }
+        var cartPrice=0;
+        var cartVariant=0;
+        var cartProduct=0;
+        function updateVariantPrice() {
+            if (Object.keys(selectedOptions).length !== productData.options.length) return;
+            const variantName = Object.values(selectedOptions).join(" / ");
+            const variant = productData.variants.find( v => v.name.toLowerCase() === variantName.toLowerCase() );
+            
+            if (variant) { document.querySelector(".price-now").innerText = variant.price; cartPrice=variant.price; cartVariant=variant.id; cartProduct=variant.product; }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll(".default-option").forEach(btn => { btn.click(); });
+
+            const btn = document.getElementById('showMoreReviews');
+            if (!btn) return;
+
+            btn.addEventListener('click', function() {
+                const hiddenReviews = document.querySelectorAll('.extra-review');
+                hiddenReviews.forEach(r => r.classList.remove('d-none'));
+                //btn.style.display = 'none'; // hide button after click
+                hiddenReviews.forEach(r => r.classList.add('show'));
+            });
+        });
+
+        const postUrl = encodeURIComponent(window.location.href);
+        const currentUrl = window.location.href;
+        document.getElementById("productLink").value=currentUrl;
+        document.addEventListener("DOMContentLoaded", function() {
+            const postTitle = encodeURIComponent("Check out this amazing product!");
+            const waBtn = document.getElementById('shareWA');
+            waBtn.href = `https://wa.me/?text=${postTitle}%20${postUrl}`;
+            const fbBtn = document.getElementById('shareFB');
+            fbBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${postUrl}`;
+        });
+        function copyToClipboard() {
+            const feedback = document.getElementById("copyFeedback");
+            navigator.clipboard.writeText(currentUrl).then(() => {
+                feedback.classList.remove("d-none");
+                setTimeout(() => {
+                    feedback.classList.add("d-none");
+                }, 2000);
+            });
+        }
+
+            let scale = 1;
+        const MIN_ZOOM = 1;
+        const MAX_ZOOM = 2;
+        const ZOOM_STEP = 3;
+
+
+        function applyZoom(img, xPercent = 50, yPercent = 50) {
+            img.style.transformOrigin = `${xPercent}% ${yPercent}%`;
+            img.style.transform = `scale(${scale})`;
+
+            // Cursor change
+            img.style.cursor = scale >= MAX_ZOOM ? 'zoom-out' : 'zoom-in';
+        }
+
+        function zoomIn(event,container="modalImageCarousel") {
+            const img = document.querySelector("#"+container+' .carousel-item.active img');
+            if (!img || scale >= MAX_ZOOM) {zoomOut();return;}
+
+            scale = 2;
+
+            const rect = img.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / rect.width) * 100;
+            const y = ((event.clientY - rect.top) / rect.height) * 100;
+                // scale = Math.min(scale + ZOOM_STEP, MAX_ZOOM);
+
+            // const x = ((event.clientX - rect.left) / rect.width) * 100;
+            // const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+            applyZoom(img, x, y);
+        }
+
+        function zoomOut(container="modalImageCarousel") {
+            const img = document.querySelector("#"+container+' .carousel-item.active img');
+            if (!img) return;
+
+            scale = Math.max(MIN_ZOOM, scale - 2);
+            applyZoom(img);
+        }
+
+        function resetZoom() {
+            const img = document.querySelector('.carousel-item.active img');
+            if (!img) return;
+
+            scale = 1;
+            img.style.transform = 'scale(1)';
+            img.style.transformOrigin = 'center center';
+            img.style.cursor = 'zoom-in';
+        }
+        function moveZoom(event) {
+            const img = getActiveImage();
+            if (!img || scale <= 1) return;
+
+            const rect = img.getBoundingClientRect();
+
+            // Cursor position relative to the ORIGINAL image
+            const x = ((event.clientX  - rect.left) / rect.width) * 100;
+            const y = ((event.clientY  - rect.top) / rect.height) * 100;
+
+            // Clamp inside image bounds
+            const clampedX = Math.max(0, Math.min(100, x));
+            const clampedY = Math.max(0, Math.min(100, y));
+
+            img.style.transformOrigin = `${clampedX}% ${clampedY}%`;
+            img.style.transform = `scale(${scale})`;
+        }
+
+
+        function getActiveImage(container="modalImageCarousel") {
+            return document.querySelector(`#${container} .carousel-item.active img`);
+        }
+        /* Reset zoom when slide changes */
+        // document.getElementById('imageCarousel')
+        //     .addEventListener('slid.bs.carousel', resetZoom);
+        function goToSlide1(index,container='imageCarousel') {
+            const carousel = bootstrap.Carousel.getOrCreateInstance(
+                document.getElementById(container)
+            );
+            carousel.to(index);
+            let thumbs = document.getElementById(container).closest(".row").querySelectorAll('.thumb');
+            thumbs.forEach(t => t.classList.remove('active'));
+            if (thumbs[index]) thumbs[index].classList.add('active');
+
+            resetZoom();
+        }
+
+        function openImageModal(startIndex = 0) {
+        //     const imageZoomModal = document.getElementById('imageZoomModal');
+
+        // if (imageZoomModal.classList.contains('show')) {
+        //     zoomIn(event);
+        //     return;
+        // } 
+
+            const original = document.getElementById('productImagesSlider');
+            const clone = original.cloneNode(true);
+
+            clone.id = "modalProductSlider";
+            clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+
+            // Fix carousel id inside modal
+            const carousel = clone.querySelector('.carousel');
+            carousel.id = "modalImageCarousel";
+
+            clone.querySelectorAll('[data-bs-target]')
+                .forEach(btn => btn.setAttribute('data-bs-target', '#modalImageCarousel'));
+        // Thumbnails click
+        clone.querySelectorAll('.thumb').forEach((img, index) => {
+            img.onclick = null;
+
+            img.addEventListener('click', () => {
+                goToSlide1(index, 'modalImageCarousel');
+            });
+        });
+
+        // Zoom images
+        // clone.querySelectorAll('.zoom-img').forEach(img => {
+        //     img.onclick = null;
+
+        //     img.addEventListener('click', zoomIn);
+        //     img.addEventListener('mousemove', moveZoom);
+        // });
+        clone.querySelectorAll('.zoom-img').forEach(img => {
+            img.onclick = null;
+            img.onmousemove = null;
+
+            if (img.closest('.img-display')) return;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'img-display';
+
+            const zoomSpan = document.createElement('span');
+            zoomSpan.className = 'zoom';
+            zoomSpan.style.display = 'inline-block';
+
+            img.parentNode.insertBefore(wrapper, img);
+            zoomSpan.appendChild(img);
+            wrapper.appendChild(zoomSpan);
+
+            $(zoomSpan).zoom({
+                magnify: 0.8,            // zoom scale
+            });
+        });
+
+
+
+        
+
+
+            document.getElementById('modalSliderContainer').innerHTML = '';
+            document.getElementById('modalSliderContainer').appendChild(clone);
+
+            const modal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
+            modal.show();
+
+            const bsCarousel = new bootstrap.Carousel(carousel);
+            bsCarousel.to(startIndex);
+
+            scale = 1;
+        }
+    </script>
+    <script>
+        // let scale = 1;
+
+        function changeImage(el) {
+            document.getElementById("mainImage").src = el.src;
+            document.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+
+
+
+        // function applyZoom() {
+        //     document.querySelectorAll('.carousel-item.active img')
+        //         .forEach(img => img.style.transform = `scale(${scale})`);
+        // }
+
+
+    </script>
+    <script>
+        function changeImage(img) {
+            document.getElementById("mainImage").src = img.src;
+
+            // Remove previous highlight
+            document.querySelectorAll(".thumb").forEach(x => x.classList.remove("active"));
+
+            // Highlight selected thumbnail
+            img.classList.add("active");
+        }
+    </script>
+    <script>
+        let index = 0;
+        const slides = document.querySelector(".slides");
+        const total = document.querySelectorAll(".slide").length;
+        const dotsContainer = document.querySelector(".dots");
+
+        // Generate dots
+        // for (let i = 0; i < total; i++) {
+        //     let dot = document.createElement("span");
+        //     dot.addEventListener("click", () => goToSlide(i));
+        //     dotsContainer.appendChild(dot);
+        // }
+
+        // updateSlider();
+
+        // document.querySelector(".next").onclick = () => next();
+        // document.querySelector(".prev").onclick = () => prev();
+
+        function next() {
+            index = (index + 1) % total;
+            updateSlider();
+        }
+
+        function prev() {
+            index = (index - 1 + total) % total;
+            updateSlider();
+        }
+
+        function goToSlide(i) {
+            index = i;
+            updateSlider();
+        }
+
+        function updateSlider() {
+            slides.style.transform = `translateX(-${index * 100}%)`;
+
+            let dots = document.querySelectorAll(".dots span");
+            dots.forEach(d => d.classList.remove("active"));
+            dots[index].classList.add("active");
+        }
+
+        /* Auto Slide */
+        setInterval(next, 30000);
+
+
+
+        // View PDF
+        function openPdf() {
+            window.open("manual.pdf", "_blank");
+        }
+
+        // Open full screen viewer
+        function openFullScreen(src) {
+            document.getElementById("fullscreenImage").src = src;
+            document.getElementById("fullscreenViewer").style.display = "flex";
+        }
+
+        // Close full screen
+        function closeFullScreen() {
+            document.getElementById("fullscreenViewer").style.display = "none";
+        }
+
+    </script>
+{% endblock %}

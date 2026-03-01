@@ -1,0 +1,5 @@
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .auth_serializers import EmailVerifiedTokenObtainPairSerializer
+
+class EmailVerifiedTokenObtainPairView(TokenObtainPairView):
+    serializer_class = EmailVerifiedTokenObtainPairSerializer

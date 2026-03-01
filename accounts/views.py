@@ -1,0 +1,152 @@
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from django.shortcuts import get_object_or_404
+
+from .serializers import EmailRegisterSerializer
+from .models import User
+
+class EmailRegisterView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = EmailRegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        return Response(
+            {
+                "message": "Registration successful. Please verify your email.",
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "isEmailVerified": user.is_email_verified
+                },
+                "tokens": serializer.data["tokens"]
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, token):
+        user = get_object_or_404(User, email_verification_token=token)
+
+        if user.email_verification_expiry < timezone.now():
+            return Response(
+                {"error": "Verification token has expired"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.is_email_verified = True
+        user.email_verification_token = None
+        user.email_verification_expiry = None
+        user.save()
+
+        return Response(
+            {"message": "Email verified successfully"},
+            status=status.HTTP_200_OK
+        )
+class ResendVerificationEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get("email")
+
+        user = get_object_or_404(User, email=email)
+
+        if user.is_email_verified:
+            return Response(
+                {"message": "Email already verified"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.generate_email_verification()
+        send_verification_email(user)
+
+        return Response(
+            {"message": "Verification email resent"},
+            status=status.HTTP_200_OK
+        )
+
+
+
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+
+def login_view(request):
+    error = None
+
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+
+        user = authenticate(request, email=username, password=password)
+        if user is not None:
+            login(request, user)
+            # Redirect based on user type
+            if user.is_superuser:
+                return redirect("addProduct")  # Django admin panel
+            else:
+                return redirect("Home")  # regular user home page
+        else:
+            error = "Invalid username or password"
+
+    return render(request, "Login.html", {"error": error})
+
+from django.contrib import messages
+from django.contrib.auth.hashers import make_password
+
+def register_view(request):
+    error = None
+    # Pre-fill dictionary
+    initial_data = {
+        "full_name": "",
+        "email": "",
+        "mobile": ""
+    }
+
+    if request.method == "POST":
+        full_name = request.POST.get("full_name")
+        email = request.POST.get("email")
+        mobile = request.POST.get("mobile")
+        password1 = request.POST.get("password1")
+        password2 = request.POST.get("password2")
+
+        # Preserve entered values
+        initial_data = {
+            "full_name": full_name,
+            "email": email,
+            "mobile": mobile
+        }
+
+        # Validation
+        if not full_name or not email or not password1:
+            error = "Full name, email, and password are required."
+        elif password1 != password2:
+            error = "Passwords do not match."
+        elif User.objects.filter(email=email).exists():
+            error = "Email is already registered."
+        elif mobile and User.objects.filter(mobile=mobile).exists():
+            error = "Mobile number is already registered."
+        else:
+            # Create user
+            user = User(
+                full_name=full_name,
+                email=email,
+                mobile=mobile,
+                password=make_password(password1)
+            )
+            user.save()
+            messages.success(request, "Account created successfully! Please login.")
+            return redirect("login")
+
+    return render(request, "register.html", {"error": error, "data": initial_data})
+
+from django.contrib.auth import logout
+
+def logout_view(request):
+    logout(request)
+    return redirect("login")  # redirect to login page

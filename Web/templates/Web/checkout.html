@@ -1,0 +1,1713 @@
+
+{% extends "WebBase.html" %}
+
+{% block title %}Shan zee Shopping{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .product-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 0px;
+            transition: all .2s ease-in-out;
+
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 18px rgba(0,0,0,.1);
+        }
+
+        .product-img {
+            width: 100%;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .sale-badge {
+            background: #e00;
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .price {
+            font-weight: bold;
+            color: #e85858;
+            font-size: 11px;
+        }
+
+        .old-price {
+            text-decoration: line-through;
+            color: gray;
+            margin-left: 4px;
+        }
+
+        .sold-text {
+            color: #555;
+            margin-left: 8px;
+        }
+
+        .rating-stars {
+            color: #f5b301;
+            font-size: 11px;
+        }
+        .rating-stars span{
+            font-size: 11px;
+        }
+        .add-cart-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            background: #fff;
+        }
+        .add-cart-btn:hover{
+            transform: translateY(-5px);
+                box-shadow: 0 5px 18px rgba(0,0,0,.1);
+        }
+        .view-more-btn {
+            width: 200px;
+            border-radius: 30px;
+            padding: 10px;
+            border: 1px solid #222;
+            background: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .view-more-btn:hover {
+            background: #f2f2f2;
+        }
+        .product-card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 0px;
+        transition: all .2s ease-in-out;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+                z-index: 2001 !important;
+
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 18px rgba(0,0,0,.1);
+        }
+
+        /* FIX: Same image height for all */
+        .product-img {
+            width: 100%;
+            height: 150px;       /* set equal height */
+            border-radius: 8px;
+            object-fit: cover;   /* crop nicely */
+        }
+
+        /* FIX: Make content grow evenly */
+        .product-info {
+            flex-grow: 1;
+            padding: 0px 9px;
+        }
+        .product-title {
+            font-size: 12px;
+        }
+        /* FIX: Align cart button at bottom */
+        .add-cart-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            background: #fff;
+            margin-top: auto;  /* pushes button to bottom */
+            position: relative;
+            top:-20px;
+        }
+        .carousel-item img{
+            width: 98%;
+
+        }
+        .product-container{
+                        z-index: 2001 !important;
+
+        }
+
+
+        /* Top Navbar */
+        .topnav-main {
+            background: #8f8f8f;
+            color: white;
+        }
+
+        /* Sub Navbar (desktop) */
+        .sub-navbar {
+            background: #5f5f5f;
+            padding: 8px 15px;
+        }
+        .sub-navbar a {
+            color: white;
+            margin-right: 20px;
+            text-decoration: none;
+        }
+
+        /* Mobile Sidebar */
+        .mobile-sidebar {
+            width: 270px;
+            height: 100vh;
+            background: white;
+            position: fixed;
+            top: 0;
+            left: -300px;
+            padding-top: 20px;
+            overflow-y: auto;
+            transition: all .3s ease-in-out;
+            z-index: 2000;
+            border-right: 1px solid #ddd;
+        }
+
+        /* Show Sidebar */
+        .mobile-sidebar.open {
+            left: 0;
+        }
+
+        /* Sidebar links */
+        .mobile-sidebar a {
+            display: block;
+            padding: 10px 20px;
+            color: #333;
+            text-decoration: none;
+        }
+        .mobile-sidebar a:hover {
+            background: #f2f2f2;
+        }
+
+        /* Close button */
+        .close-btn {
+            font-size: 18px;
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+        }
+
+        /* Mobile Search box */
+        .search-mobile input {
+            border: 1px solid #999;
+            margin-bottom: 15px;
+        }
+
+        /* Hamburger icon */
+        .menu-toggle {
+            font-size: 22px;
+            cursor: pointer;
+        }
+
+        /* Hide sidebar on desktop */
+        @media (min-width: 992px) {
+            .mobile-sidebar.open .mobile-nav-items {
+                display: none;
+            }
+        }
+        .old-price {
+                text-decoration: line-through;
+                color: gray;
+                font-size: 12px;
+                margin-left: 4px;
+            }
+        div#sliderProducts
+        {
+            height: 200px;
+        }
+            
+    </style>
+
+    <style>
+
+        /* Layout */
+        .cart-container {
+            display: flex;
+            gap: 25px;
+            padding: 30px;
+        }
+
+        .cart-left {
+            /* width: 70%;  */
+            border-radius: 10px;
+        }
+
+        .cart-right {
+            /* width: 30%; */
+            position: sticky;
+            top: 20px;
+        }
+
+        /* Cart Item */
+        .cart-item {
+            display: flex;
+            gap: 13px;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            /* padding: 10px; */
+            border: 1px solid #e2e2e2;
+            border-radius: 10px;
+        }
+
+        .cart-item img {
+            width: 120px;
+            border-radius: 5px;
+        }
+
+        .item-title {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .price-new {
+            font-size: 20px;
+            font-weight: bold;
+            color: #000;
+        }
+
+        .price-old {
+            text-decoration: line-through;
+            color: gray;
+            font-size: 14px;
+        }
+
+        .discount-tag {
+            background: #ff7f00;
+            color: white;
+            padding: 2px 6px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        /* Summary Card */
+        .summary-box {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+
+        .summary-box h4 {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .checkout-btn {
+            background: #ff7f00;
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 30px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .safe-payment {
+            margin-top: 20px;
+            font-size: 14px;
+            color: gray;
+        }
+
+        /* Select all */
+        .select-all-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 17px;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .remove-item {
+            cursor: pointer;
+            color: gray;
+            font-size: 18px;
+        }
+
+        .product-card {
+                background: #fff;
+                border-radius: 8px;
+                padding: 12px;
+                transition: all .2s ease-in-out;
+                        font-size: 12px;
+
+            }
+
+            .product-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 5px 18px rgba(0,0,0,.1);
+            }
+
+            .product-img {
+                width: 100%;
+                border-radius: 8px;
+                object-fit: cover;
+            }
+
+            .sale-badge {
+                background: #e00;
+                color: #fff;
+                padding: 3px 8px;
+                font-size: 12px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+
+            .price {
+                font-size: 16px;
+                font-weight: bold;
+                color: #e85858;
+            }
+
+            .old-price {
+                text-decoration: line-through;
+                color: gray;
+                font-size: 12px;
+                margin-left: 4px;
+            }
+
+            .sold-text {
+                font-size: 12px;
+                color: #555;
+                margin-left: 8px;
+            }
+
+            .rating-stars {
+                color: #f5b301;
+                font-size: 16px;
+            }
+            .rating-stars span{
+                font-size: 11px;
+            }
+
+            .add-cart-btn {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                border: 1px solid #333;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                font-size: 18px;
+                background: #fff;
+            }
+
+            .view-more-btn {
+                width: 200px;
+                border-radius: 30px;
+                padding: 10px;
+                border: 1px solid #222;
+                background: #fff;
+                font-size: 18px;
+                cursor: pointer;
+                transition: .2s;
+            }
+
+            .view-more-btn:hover {
+                background: #f2f2f2;
+            }
+            .product-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 12px;
+            transition: all .2s ease-in-out;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+                    z-index: 2001 !important;
+
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 18px rgba(0,0,0,.1);
+        }
+
+        /* FIX: Same image height for all */
+        .product-img {
+            width: 100%;
+            height: 200px;       /* set equal height */
+            border-radius: 8px;
+            object-fit: cover;   /* crop nicely */
+        }
+
+        /* FIX: Make content grow evenly */
+        .product-info {
+            flex-grow: 1;
+        }
+
+        /* FIX: Align cart button at bottom */
+        .add-cart-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            background: #fff;
+            margin-top: auto;  /* pushes button to bottom */
+        }
+
+
+
+        /* Top Navbar */
+        .topnav-main {
+            background: #8f8f8f;
+            color: white;
+        }
+
+        /* Sub Navbar (desktop) */
+        .sub-navbar {
+            background: #5f5f5f;
+            padding: 8px 15px;
+        }
+        .sub-navbar a {
+            color: white;
+            margin-right: 20px;
+            text-decoration: none;
+        }
+
+        /* Mobile Sidebar */
+        .mobile-sidebar {
+            width: 270px;
+            height: 100vh;
+            background: white;
+            position: fixed;
+            top: 0;
+            left: -300px;
+            padding-top: 20px;
+            overflow-y: auto;
+            transition: all .3s ease-in-out;
+            z-index: 2000;
+            border-right: 1px solid #ddd;
+        }
+
+        /* Show Sidebar */
+        .mobile-sidebar.open {
+            left: 0;
+        }
+
+        /* Sidebar links */
+        .mobile-sidebar a {
+            display: block;
+            padding: 10px 20px;
+            color: #333;
+            text-decoration: none;
+        }
+        .mobile-sidebar a:hover {
+            background: #f2f2f2;
+        }
+
+        /* Close button */
+        .close-btn {
+            font-size: 24px;
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+        }
+
+        /* Mobile Search box */
+        .search-mobile input {
+            border: 1px solid #999;
+            margin-bottom: 15px;
+        }
+
+        /* Hamburger icon */
+        .menu-toggle {
+            font-size: 26px;
+            cursor: pointer;
+        }
+
+        /* Hide sidebar on desktop */
+        @media (min-width: 992px) {
+            .mobile-sidebar.open .mobile-nav-items {
+                display: none;
+            }
+        }
+        .product-card{
+            font-size: 11px;
+        }
+
+
+        /* sipment modal */
+        .ship-section {
+            margin-bottom: 18px;
+        }
+
+        .ship-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .ship-text {
+            font-size: 15px;
+        }
+
+        .ship-text.green {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        /* COMPANY BADGES */
+        .ship-badges span {
+            display: inline-block;
+            background: #f2f2f2;
+            padding: 6px 12px;
+            margin: 4px 6px 0 0;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        /* ALERT */
+        .ship-alert {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px 12px;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .credit {
+            color: #d9534f;
+        }
+
+        /* TABLE */
+        .ship-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        .ship-table td {
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .ship-table td:last-child {
+            text-align: right;
+            font-weight: 600;
+        }
+        .shipping-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .shipping-table td {
+            background: #fff;
+        }
+
+        .shipping-table .badge {
+            font-size: 13px;
+            padding: 6px 10px;
+        }
+
+        .progress-container {
+            background-color: #e0e0e0;
+            border-radius: 8px;
+            width: 100%;
+            height: 20px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: #5a5a5a !important;
+            text-align: right;
+            padding-right: 5px;
+            color: white;
+            font-size: 12px;
+            line-height: 20px;
+            border-radius: 8px 0 0 8px;
+        }
+    </style>
+    <script>
+        var addressid;
+    </script>
+{% endblock %}
+
+
+{% block content %}
+
+    <div class="container my-4">
+    <div class="row">
+
+        <!-- LEFT: PAYMENT METHODS -->
+        <div class="col-lg-8">
+            {% comment %} <div class="alert alert-success d-flex justify-content-between" style="padding: 4px 20px">
+                <span><i class="fa-solid fa-check"></i> Free shipping special for you</span>
+                <span class="text-muted">Limited-time offer</span>
+            </div> {% endcomment %}
+            <div class="row mb-3">
+                {% if defaultaddresses %}
+                    {% with defaultaddresses.0 as address %}
+                        <div class="col-md-6 shipping-address " style="font-size: 13px;">
+                            <h6 class="shipping-title">{{address.street_address}} <a href="#" class="float-end" data-bs-toggle="modal" data-bs-target="#addressSelectModal" style="font-size: 12px;">Change Adreess <i class="fa-solid fa-chevron-right "></i></a></h5>
+                            <div class="address-details" style="padding-left: 10px; position: relative;">
+                                <span style="position: absolute;top: 0px;right: 19px; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#editAddressModal" ><i class="fa-solid fa-pen-to-square"></i></span>
+                                <div class="name-phone"><b>{{address.full_name}} </b><span>{{address.phone}}</span></div>
+                                <div class="address">{{address.street_address}}</div>
+                                <div class="city-province"><b>{{address.city}}, {{address.state}} {{address.country}}</b></div>
+
+                            </div>
+                        </div>
+                        <script>
+                            addressid={{address.id}};
+                        </script>
+                    {% endwith %}
+                {% else %}
+                  <button class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#addAddressModal" >
+                    + Add new address
+                    </button>
+                {% endif %}
+                <div class="col-md-6">
+                
+                    <div class="safe-payment mt-3" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#shippingModal">
+                        <div><i class="fa-solid fa-truck text-success"></i><b>Free shipping on all orders<i class="fa-solid fa-angle-right"></i></b></div>
+                        <div style="padding-left: 20px;"><span class="text-muted">Delivery:</span> Dec 24-Jan 6</div>
+                        <div style="padding-left: 20px;"><span class="text-muted">Courier company:</span><b>TCS, Leopards...</b></div>
+                    </div>
+                </div>
+            </div>
+            <div class="cart-left bg-white mb-3">
+
+                    <!-- Select All -->
+                    <div>No. of Item (1)</div>
+
+                    <!-- CART ITEM -->
+                    {% if items %}
+                        {% for item in items %}
+                            <div class="cart-item" data-productid="{{item.product_id}}" 
+                                                    data-variantid="{{item.variant_id}}"
+                                                    >
+                                <img src="{{item.image}}" alt="">
+                                
+                                <div style="flex-grow:1;">
+                                    <div class="item-title">{{item.name}}</div>
+                                    <div class="d-flex align-items-center gap-2 mt-2">
+                                        
+                                        {# ===== PRICE LOGIC ===== #}
+                                        {% if item.discount_type == "percentage" %}
+                                            <span class="price-new" data-price="1788">{{item.final_price}}</span>
+                                            <span class="price-old">{{item.price}}</span>
+                                            <span class="discount-tag">{{item.discount_value}}</span>
+                                        {% elif item.discount_type == "fixed" %}
+                                            <span class="price-new" data-price="1788">{{item.discounted_price}}</span>
+                                            <span class="price-old">{{item.price}}</span>
+                                            <span class="discount-tag"></span>
+
+                                        {% comment %} {% elif promotion.discount_type == "buy_x_get_y" %}
+                                            <span class="fw-bold text-danger">
+                                                {{ product.price }}
+                                            </span>
+                                            <span class="discount-badge">
+                                                Buy X Get Y
+                                            </span>
+
+                                        {% elif promotion.discount_type == "free_delivery" %}
+                                            <span class="fw-bold text-danger">
+                                                {{ product.price }}
+                                            </span>
+                                            <span class="discount-badge">
+                                                Free Delivery
+                                            </span> {% endcomment %}
+                                        {% endif %}
+
+                                    </div>
+
+                                    <!-- Qty Select -->
+                                    
+                                    <input type="number" class="form-control qty-select mt-2" min="1" value="1" style="width:120px;">
+                                </div>
+
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                </div>
+                {% comment %} <a href="#" style="font-size: 14px;" data-bs-toggle="modal" data-bs-target="#giftModal">
+                    Add a free gift message card <i class="fa-solid fa-chevron-right"></i>
+                </a> {% endcomment %}
+                <h5 class="mb-3">Payment methods</h5>
+
+                
+
+            <!-- 
+                <div class="border rounded p-3 mb-3">
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input payment-radio" type="radio" id="cardPayment" name="payment" value="card" checked>
+                        <label class="form-check-label fw-semibold w-100" for="cardPayment" style="cursor: pointer;">Card</label>
+                    </div>
+
+                    <div id="cardSection">
+                        <small class="text-success fw-semibold">
+                        🔒 All transactions are secure and encrypted
+                        </small>
+
+                        <div class="mt-3">
+                            <label class="form-label fw-semibold">Card number</label>
+                            <input type="text" class="form-control" placeholder="1234 5678 9012 3456">
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Month</label>
+                                <select class="form-select">
+                                <option>MM</option>
+                                <option>01</option>
+                                <option>02</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Year</label>
+                                <select class="form-select">
+                                <option>YYYY</option>
+                                <option>2025</option>
+                                <option>2026</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">CVV</label>
+                                <input type="text" class="form-control" placeholder="3–4 digits">
+                            </div>
+                        </div>
+
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" checked>
+                            <label class="form-check-label small">
+                                Remember this card for future use (PCI DSS compliant)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                 -->
+                <div class="border rounded p-3 mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input payment-radio" checked type="radio" id="CashOnDelivary" name="payment" value="COD">
+                        <label class="form-check-label fw-semibold w-100" style="cursor: pointer;" for="CashOnDelivary">Cash On Delivary</label>
+                    </div>
+                </div>
+                <!-- JAZZCASH -->
+                <!--<div class="border rounded p-3 mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input payment-radio" type="radio" id="jazzCashPayment" name="payment" value="jazzcash">
+                        <label class="form-check-label fw-semibold w-100" style="cursor: pointer;" for="jazzCashPayment">JazzCash</label>
+                    </div>
+                </div>
+                <div class="border rounded p-3 mb-3 d-none" id="jazzcashMobileSection">
+                    <label class="form-label fw-semibold">Mobile number</label>
+                    <input type="tel" class="form-control" placeholder="03XX-XXXXXXX">
+                </div>
+                
+                <div class="border rounded p-3 mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input payment-radio" type="radio" id="easyPaisaPayment" name="payment" value="easypaisa">
+                        <label class="form-check-label fw-semibold w-100" style="cursor: pointer;" for="easyPaisaPayment">Easypaisa</label>
+                    </div>
+                </div>
+
+                <div class="border rounded p-3 mb-3 d-none" id="easypaisaMobileSection">
+                    <label class="form-label fw-semibold">Mobile number</label>
+                    <input type="tel" class="form-control" placeholder="03XX-XXXXXXX">
+                </div> -->
+
+            </div>
+
+        <!-- RIGHT: ORDER SUMMARY -->
+        <div class="col-lg-4 mt-4 mt-lg-0">
+        <div class="border rounded p-3">
+
+            <h6 class="fw-bold">Order summary</h6>
+
+            <!-- <div class="input-group my-3">
+            <input type="text" class="form-control" placeholder="Enter coupon code">
+            <button class="btn btn-outline-secondary">Apply</button>
+            </div> -->
+
+            <div class="d-flex justify-content-between">
+            <span>Item(s) total</span>
+            <span class="text-decoration-line-through" id="itemTotal">Rs.4,390</span>
+            </div>
+
+            <div class="d-flex justify-content-between text-danger">
+            <span>Item(s) discount</span>
+            <span id="itemDiscount">-Rs.2,602</span>
+            </div>
+
+            <hr>
+
+            <div class="d-flex justify-content-between fw-semibold">
+            <span>Subtotal</span>
+            <span id="subtotal">Rs.1,788</span>
+            </div>
+
+            <div class="d-flex justify-content-between">
+            <span>Shipping</span>
+            <span class="text-success">FREE</span>
+            </div>
+
+            <hr>
+
+            <div class="d-flex justify-content-between fs-5 fw-bold">
+            <span>Order total</span>
+            <span id="finalTotal">Rs.1,788</span>
+            </div>
+
+            <small class="text-muted d-block mt-2">
+            By submitting your order, you agree to our Terms & Privacy Policy.
+            </small>
+
+            
+
+            <!-- Submit -->
+            <span onclick="placeOrder()" class="btn btn-warning w-100 mt-3 fw-bold">
+            Submit order
+            </span>
+
+            <div class="safe-payment mt-3">
+                                <i class="fa-solid fa-circle-info text-success"></i>
+                                Item availability and pricing are not guaranteed until payment is final.
+                        </div>
+                        <div class="safe-payment mt-3">
+                            <i class="fa-solid fa-lock text-success"></i> You will not be charged until you review this order on the next page
+                        </div>
+                        <div class="safe-payment mt-3">
+                                <i class="fa-solid fa-shield text-success"></i>
+                                <b>Safe Payment Options</b>
+                                <div>
+                                    <span class="text-success">We committed to protecting your payment information.</span> We follow PCI DSS standards, use strong encryption, and perform regular reviews of its system to protect your privacy.
+                                </div>
+                        </div>
+                        <span>
+                        </span>
+                        <ol>
+                            <li>
+                                Payment Methods
+                            <div class="row g-1">
+                                        <div class="col-md-2 col-4"><img class="w-100" src="../images/easypaisa.jpeg" alt="" aria-hidden="true" class="lazy-image _2jzBO2ld loaded" data-retry-count="0" data-was-processed="true"></div>
+                                        <div class="col-md-2 col-4"><img class="w-100" src="../images/jazzcash.png" alt="" aria-hidden="true" class="lazy-image _2jzBO2ld loaded" data-retry-count="0" data-was-processed="true"></div>
+                                        <div class="col-md-2 col-4"><img class="w-100" src="../images/visa.png" alt="" aria-hidden="true" class="lazy-image _2jzBO2ld loaded" data-retry-count="0" data-was-processed="true"></div>
+                                </div>
+                            </li>
+                            <li>
+                                Security certification
+                                <div class="row g-1">
+                                    <div class="col-md-2 col-4"><img data-state="succ" class="w-100" src="https://aimg.kwcdn.com/upload_aimg/temu/80d57653-6e89-4bd5-82c4-ac1e8e2489fd.png.slim.png?imageView2/2/w/120/q/70/format/avif" alt="" aria-hidden="true" class="lazy-image _1bM17MOZ loaded" data-retry-count="0" data-was-processed="true"></div>
+                                    <div class="col-md-2 col-4"><img data-state="succ" class="w-100" src="https://aimg.kwcdn.com/upload_aimg/temu/bcb8bf23-78c9-45ab-b480-f7020d1a5f66.png.slim.png?imageView2/2/w/120/q/70/format/avif" alt="" aria-hidden="true" class="lazy-image _1bM17MOZ loaded" data-retry-count="0" data-was-processed="true"></div>
+                                    <div class="col-md-2 col-4"><img data-state="succ" class="w-100" src="https://aimg.kwcdn.com/upload_aimg/temu/28a227c9-37e6-4a82-b23b-0ad7814feed1.png.slim.png?imageView2/2/w/120/q/70/format/avif" alt="" aria-hidden="true" class="lazy-image _1bM17MOZ loaded" data-retry-count="0" data-was-processed="true"></div>
+                                    <div class="col-md-2 col-4"><img data-state="succ" class="w-100" src="https://aimg.kwcdn.com/upload_aimg/temu/f1c00d04-7dde-4d4a-ae3d-b8aad2de8f96.png.slim.png?imageView2/2/w/120/q/70/format/avif" alt="" aria-hidden="true" class="lazy-image _1bM17MOZ loaded" data-retry-count="0" data-was-processed="true"></div>
+                                    <div class="col-md-2 col-4"><img data-state="succ" class="w-100" src="https://aimg.kwcdn.com/upload_aimg/temu/65e96f45-9ff5-435a-afbf-0785934809ef.png.slim.png?imageView2/2/w/120/q/70/format/avif" alt="" aria-hidden="true" class="lazy-image _1bM17MOZ loaded" data-retry-count="0" data-was-processed="true"></div>
+                                    <div class="col-md-2 col-4"><img data-state="succ" class="w-100" src="https://aimg.kwcdn.com/upload_aimg/temu/1f29a857-fe21-444e-8617-f57f5aa064f4.png.slim.png?imageView2/2/w/120/q/70/format/avif" alt="" aria-hidden="true" class="lazy-image _1bM17MOZ loaded" data-retry-count="0" data-was-processed="true"></div>
+                                    <div class="col-md-2 col-4"><img data-state="succ" class="w-100" src="https://aimg.kwcdn.com/upload_aimg/temukr/c882af4f-f9f0-4c7f-b49c-3438e0278efa.png.slim.png?imageView2/2/w/120/q/70/format/avif" alt="" aria-hidden="true" class="lazy-image _1bM17MOZ loaded" data-retry-count="0" data-was-processed="true"></div>
+                                </div>
+                            </li>
+                        </ol>
+                        <div class="safe-payment mt-3">
+                            <i class="fa-solid fa-lock text-success"></i> 
+                            <b>Secure privacy</b>
+                            <div>
+                                Protecting your privacy is important to us! Please be assured that your information will be kept secured and uncompromised. We will only use your information in accordance with our privacy policy to provide and improve our services to you.
+                            </div>
+                            <div>
+                                <b>Learn more<i class="fa-solid fa-angle-right"></i></b>
+                            </div>
+                        </div>
+                        <div class="safe-payment mt-3">
+                            <i class="fa-solid fa-cart-shopping text-success"></i> 
+                            <b>Purchase Protection</b>
+                            <div>
+                                Shop confidently on Temu knowing that if something goes wrong, we've always got your back.
+                            </div>
+                            <div>
+                                <b>See program terms<i class="fa-solid fa-angle-right"></i></b>
+                            </div>
+                        </div>
+                        <div class="safe-payment mt-3">
+                            <i class="fa-solid fa-lock text-success"></i> 
+                            <b>Delivery guarantee</b>
+                            <div>
+                                <div>
+                                    <span class="text-success">
+                                        <svg class="Az7sxuI-" alt="" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1024 1024" width="1em" height="1em" fill="#222222" aria-hidden="true"><path d="M833.3 246.6c25.1-24.9 65.6-24.7 90.5 0.4 22.6 22.8 24.5 58.4 5.9 83.3l-6.3 7.2-496.3 492.2c-22.8 22.6-58.2 24.5-83.2 6l-7.2-6.2-245.5-246.1c-25-25-24.9-65.5 0.1-90.5 22.8-22.7 58.3-24.7 83.4-6.1l7.1 6.2 200.4 200.8 451.1-447.2z"></path></svg>
+                                    </span>
+                                    Rs.280 Credit for delay </div>
+                                <div>
+                                    <span class="text-success">
+                                        <svg class="Az7sxuI-" alt="" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1024 1024" width="1em" height="1em" fill="#222222" aria-hidden="true"><path d="M833.3 246.6c25.1-24.9 65.6-24.7 90.5 0.4 22.6 22.8 24.5 58.4 5.9 83.3l-6.3 7.2-496.3 492.2c-22.8 22.6-58.2 24.5-83.2 6l-7.2-6.2-245.5-246.1c-25-25-24.9-65.5 0.1-90.5 22.8-22.7 58.3-24.7 83.4-6.1l7.1 6.2 200.4 200.8 451.1-447.2z"></path></svg>
+                                    </span>
+                                    15-day no update refund</div>
+                                <div>
+                                    <span class="text-success">
+                                        <svg class="Az7sxuI-" alt="" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1024 1024" width="1em" height="1em" fill="#222222" aria-hidden="true"><path d="M833.3 246.6c25.1-24.9 65.6-24.7 90.5 0.4 22.6 22.8 24.5 58.4 5.9 83.3l-6.3 7.2-496.3 492.2c-22.8 22.6-58.2 24.5-83.2 6l-7.2-6.2-245.5-246.1c-25-25-24.9-65.5 0.1-90.5 22.8-22.7 58.3-24.7 83.4-6.1l7.1 6.2 200.4 200.8 451.1-447.2z"></path></svg>
+                                    </span>
+                                    Return if item damaged</div>
+                                <div>
+                                    <span class="text-success">
+                                        <svg class="Az7sxuI-" alt="" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1024 1024" width="1em" height="1em" fill="#222222" aria-hidden="true"><path d="M833.3 246.6c25.1-24.9 65.6-24.7 90.5 0.4 22.6 22.8 24.5 58.4 5.9 83.3l-6.3 7.2-496.3 492.2c-22.8 22.6-58.2 24.5-83.2 6l-7.2-6.2-245.5-246.1c-25-25-24.9-65.5 0.1-90.5 22.8-22.7 58.3-24.7 83.4-6.1l7.1 6.2 200.4 200.8 451.1-447.2z"></path></svg>
+                                    </span>
+                                    30-day no delivery refund</div>
+                                <div>
+                                    <b>Learn more<i class="fa-solid fa-angle-right"></i></b>
+                                </div>
+        
+                            </div>
+                        </div>
+                        <div class="safe-payment mt-3">
+                            <i class="fa-solid fa-lock text-success"></i> 
+                            <b>Our Tree Planting Program<i class="fa-solid fa-angle-right"></i></b>
+                        </div>
+        </div>
+        </div>
+
+    </div>
+    </div>
+
+
+
+    <div class="modal fade"  id="shippingModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+
+                <!-- HEADER -->
+                <div class="modal-header">
+                    <h5 class="modal-title">Shipping Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <!-- BODY -->
+                <div class="modal-body" style="padding: 20px;">
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle shipping-table">
+                            <tbody>
+
+                                <!-- SHIPPING COMPANY -->
+                                <tr>
+                                    <th style="width: 35%">Shipping Company</th>
+                                    <td>
+                                        <span class="badge bg-secondary me-1">TCS</span>
+                                        <span class="badge bg-secondary me-1">Leopards</span>
+                                        <span class="badge bg-secondary me-1">POSTEX</span>
+                                        <span class="badge bg-secondary me-1">Speedaf</span>
+                                        <span class="badge bg-secondary me-1">CPEX</span>
+                                        <span class="badge bg-secondary">ECL</span>
+                                    </td>
+                                </tr>
+
+                                <!-- DELIVERY TIME -->
+                                <tr>
+                                    <th>Estimated Delivery Time</th>
+                                    <td>Dec 24 – Jan 6</td>
+                                </tr>
+
+                                <!-- SHIPPING COST -->
+                                <tr>
+                                    <th>Shipping Cost</th>
+                                    <td class="text-success fw-bold">Free on all orders</td>
+                                </tr>
+
+                                <!-- DELAY CREDIT -->
+                                <tr class="table-warning">
+                                    <th>Delivery Guarantee</th>
+                                    <td>
+                                        If delivered after <b>Jan 6</b>, you will get a  
+                                        <b class="text-danger">Rs.280 credit</b> within 48 hours.
+                                    </td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+                    </div>
+
+
+                    <!-- FASTEST DELIVERY -->
+                    <div class="ship-section">
+                        <div class="ship-title">Fastest Delivery <b>11 days</b></div>
+                    </div>
+
+                    <!-- DELIVERY PROBABILITY -->
+                    <div class="ship-section">
+                        <div class="ship-title">Delivery Time Probability</div>
+
+                        <table class="ship-table">
+                            <tr>
+                                <td style="width: 70px;">≤ 11 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:6.8%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">6.8%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">12 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:11%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">11%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">13 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:16.5%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">16.5%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">14 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:16.6%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">16.6%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">15 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:15.3%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">15.3%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">16 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:12.1%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">12.1%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">17 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:9.4%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">9.4%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">18 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:5.3%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">5.3%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">19 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:3%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">3%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">20 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:1.5%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">1.5%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">21 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:1%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">1%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">22 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:0.4%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">0.4%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">23 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:0.2%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">0.2%</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 70px;">> 23 days</td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width:0.9%;"></div>
+                                    </div>
+                                </td>
+                                <td style="width: 70px;">0.9%</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                </div>
+
+                
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="giftModal" tabindex="-1" aria-labelledby="giftModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+        <div class="modal-header">
+            <h5 class="modal-title" id="giftModalLabel">Gift message</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+
+            <p class="small text-muted mb-2">
+            Sellers offer free gift message cards.
+            <a href="#" data-bs-toggle="modal" data-bs-target="#privacyModal" data-bs-dismiss="modal">
+                Learn more
+            </a>
+            </p>
+
+            <!-- Gift Message -->
+            <div class="mb-3">
+            <label class="form-label fw-semibold">* Gift message</label>
+            <textarea class="form-control" rows="3"
+                placeholder="Hope you enjoy this gift!"></textarea>
+            </div>
+
+            <!-- From Dropdown -->
+            <div class="mb-3">
+            <label class="form-label fw-semibold">From</label>
+            <select class="form-select">
+                <option selected>Leave as blank</option>
+                <option>Mom</option>
+                <option>Dad</option>
+                <option>Brother</option>
+                <option>Sister</option>
+                <option>Friend</option>
+                <option>Son</option>
+                <option>Daughter</option>
+                <option>Uncle</option>
+                <option>Aunty</option>
+                <option>Grand Mother</option>
+                <option>Grand Father</option>
+            </select>
+            </div>
+
+        </div>
+
+        <div class="modal-footer">
+            
+            <button class="btn btn-primary">
+            Save
+            </button>
+        </div>
+
+        </div>
+    </div>
+    </div>
+
+    <div class="modal fade" id="privacyModal" tabindex="-1" aria-labelledby="privacyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+
+        <div class="modal-header">
+            <h5 class="modal-title" id="privacyModalLabel">Gift message privacy details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+
+            <ol class="small">
+            <li>
+                Sellers offer complimentary cards for your gift message, which will be added to your package when preparing your order.
+            </li>
+            <li class="mt-2">
+                Please note that the content of the gift message card cannot be abusive, politically sensitive, or inappropriate.
+            </li>
+            <li class="mt-2">
+                Please ensure that your gift message does not include any sensitive information, such as information concerning health, sex life, or sexual orientation.
+                For further information, please refer to our
+                <a href="#">Privacy Policy</a>.
+            </li>
+            </ol>
+
+        </div>
+
+
+        </div>
+    </div>
+    </div>
+
+    <div class="modal fade" id="addressSelectModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Select shipping address</h5>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <!-- Address Item -->
+                    {% if addresses %}
+                        {% for address in addresses %}
+                            <div class="border rounded p-3 mb-3 d-flex align-items-start">
+                                <input class="form-check-input mt-1 me-3" type="radio" name="address" {% if address.is_default %} checked {% endif %}>
+
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">{{address.full_name}}</div>
+                                    <div class="small text-muted">
+                                    {{address.phone}}<br>
+                                    {{address.street_address}}, {{address.city}}, {{address.state}} {{address.country}}
+                                    </div>
+                                </div>
+
+                                <button class="btn btn-link text-decoration-none" data-id="{{address.id}}"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#addAddressModal"
+                                    data-bs-dismiss="modal" onclick="openEditAddress({{ address.id }})">
+                                    Edit
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Add New Address -->
+                    <button class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#addAddressModal" >
+                    + Add new address
+                    </button>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-primary">Confirm</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editAddressModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+
+        <div class="modal-header">
+            <h5 class="modal-title">Edit address</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+            <form>
+
+            <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" value="Mohsin">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Phone</label>
+                <input type="text" class="form-control" value="3473374186">
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                <label class="form-label">Province</label>
+                <select class="form-select">
+                    <option>Sindh</option>
+                    <option>Punjab</option>
+                </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                <label class="form-label">City</label>
+                <input type="text" class="form-control" value="DADU">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Area</label>
+                <input type="text" class="form-control" value="abc town">
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                <label class="form-label">Street</label>
+                <input type="text" class="form-control">
+                </div>
+
+                <div class="col-md-6 mb-3">
+                <label class="form-label">House / Building No</label>
+                <input type="text" class="form-control">
+                </div>
+            </div>
+
+            </form>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-primary" data-bs-dismiss="modal">Save</button>
+        </div>
+
+        </div>
+    </div>
+    </div>
+
+    <div class="modal fade" id="addAddressModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+
+                <form method="POST" id="AddressForm" >
+                    {% csrf_token %}
+                    <input type="hidden" name="address_id" id="address_id">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add / Edit Address</h5>
+                        <button class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+
+                        <div class="mb-3">
+                            <label class="form-label">Address Type</label>
+                            <select name="address_type" id="address_type" class="form-select" required>
+                                <option value="shipping">Shipping</option>
+                                <option value="billing">Billing</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="full_name" id="full_name" class="form-control" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="text" name="phone" id="phone" class="form-control" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">City</label>
+                                <input type="text" name="city" id="city" class="form-control" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">State / Province</label>
+                                <input type="text" name="state" id="state" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Street Address</label>
+                            <textarea name="street_address" id="street_address" class="form-control" rows="2" required></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Postal Code</label>
+                                <input type="text" name="postal_code" id="postal_code" class="form-control" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Country</label>
+                                <input type="text" name="country" id="country" class="form-control" value="Pakistan">
+                            </div>
+                        </div>
+
+                        <div class="form-check">
+                            <input type="checkbox" name="is_default" id="is_default" class="form-check-input" id="is_default">
+                            <label class="form-check-label" for="is_default">
+                                Set as default address
+                            </label>
+                        </div>
+
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="submit" id="AddressFormbtn" class="btn btn-primary">
+                            Save Address
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+
+    <script>
+       function placeOrder() {
+            if (addressid != null && addressid != "") {
+                let ordDate = {
+                    address_id: addressid,
+                    checkout_items: []
+                };
+
+                document.querySelectorAll(".cart-item").forEach(check => {
+                    ordDate.checkout_items.push({
+                        product_id: check.dataset.productid || null,
+                        variant_id: check.dataset.variantid || null,
+                        qty: parseInt(check.querySelector(".qty-select").value) || 1,
+                    });
+                });
+
+                console.log("ordDate", ordDate);
+
+                fetch("{% url 'place_order' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken") // make sure CSRF token is sent
+                    },
+                    body: JSON.stringify(ordDate)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.order_id) {
+                        showAlert("Order placed successfully!", "success");
+                        console.log("Order ID:", data.order_id, "Total:", data.total);
+                        window.location.href="{% url 'OrderSuccess' %}";
+                    } else {
+                        console.error(data);
+                        showAlert("Failed to place order.", "danger");
+                    }
+                })
+                .catch(err => console.error(err));
+
+            } else {
+                showAlert("Please add address.", "danger");
+                $("#addAddressModal").modal("show");
+            }
+        }
+        $("#addAddressModal").on("hidden.bs.modal", function () {
+            $("#AddressForm")[0].reset();
+            $("#address_id").val("");
+            $(".modal-title").text("Add Address");
+        });
+        function openEditAddress(addressId) {
+            fetch(`/address/${addressId}/`, {
+                method: "GET",
+                credentials: "same-origin",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            })
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to load address");
+                return res.json();
+            })
+            .then(data => {
+                 document.getElementById("address_id").value = data.id;
+                document.getElementById("address_type").value = data.address_type;
+                document.getElementById("full_name").value = data.full_name;
+                document.getElementById("phone").value = data.phone;
+                document.getElementById("street_address").value = data.street_address;
+                document.getElementById("city").value = data.city;
+                document.getElementById("state").value = data.state || "";
+                document.getElementById("country").value = data.country;
+                document.getElementById("postal_code").value = data.postal_code;
+                document.getElementById("is_default").checked = data.is_default;
+
+                document.querySelector(".modal-title").innerText = "Edit Address";
+            })
+            .catch(err => {
+                console.error(err);
+                showAlert("Unable to load address details", "danger");
+            });
+        }
+
+        $("#AddressForm").on("submit", function (e) {
+            e.preventDefault();          // 🚫 stops native submit
+            
+            
+            const btn = document.getElementById("AddressFormbtn");
+            btn.disabled = true;
+
+            const addressId = document.getElementById("address_id").value;
+            const isUpdate = Boolean(addressId);
+
+            const url = isUpdate
+                ? `/address/${addressId}/`
+                : `/address/`;
+
+            const method = isUpdate ? "PUT" : "POST";
+
+            const payload = {
+                address_type: document.getElementById("address_type").value.trim(),
+                full_name: document.getElementById("full_name").value.trim(),
+                phone: document.getElementById("phone").value.trim(),
+                street_address: document.getElementById("street_address").value.trim(),
+                city: document.getElementById("city").value.trim(),
+                state: document.getElementById("state").value.trim(),
+                country: document.getElementById("country").value.trim(),
+                postal_code: document.getElementById("postal_code").value.trim(),
+                is_default: document.getElementById("is_default").checked
+            };
+
+            fetch(url, {
+                method: method,
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(async res => {
+                const data = await res.json();
+                if (res.ok) return { status: "success", data };
+                if (res.status === 400) return { status: "validation_error", data };
+                if (res.status === 401) return { status: "auth_error" };
+                return { status: "server_error" };
+            })
+            .then(result => {
+                if (result.status === "success") {
+                    showAlert(result.data.message || "Address saved successfully", "success");
+                    bootstrap.Modal.getInstance(
+                        document.getElementById("addAddressModal")
+                    ).hide();
+                    if(!isUpdate){
+                        location.reload();
+                    }
+
+                } else if (result.status === "validation_error") {
+                    const firstError = Object.values(result.data)[0][0];
+                    showAlert(firstError, "warning");
+                } else if (result.status === "auth_error") {
+                    showAlert("Session expired. Please login again.", "danger");
+                } else {
+                    showAlert("Something went wrong. Try again.", "danger");
+                }
+            })
+            .catch(err => {
+                console.error("Fetch Error:", err);
+                showAlert("Network error. Please try again.", "danger");
+            })
+            .finally(() => {
+                btn.disabled = false;
+            });
+        });
+
+   
+
+
+
+        const radios = document.querySelectorAll('.payment-radio');
+        const cardSection = document.getElementById('cardSection');
+        const emobileSection = document.getElementById('easypaisaMobileSection');
+        const jmobileSection = document.getElementById('jazzcashMobileSection');
+        
+        radios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.value === 'card') {
+                    cardSection.classList.remove('d-none');
+                    emobileSection.classList.add('d-none');
+                    jmobileSection.classList.add('d-none');
+                } else if(radio.value === 'easypaisa') {
+                    cardSection.classList.add('d-none');
+                    jmobileSection.classList.add('d-none');
+                    emobileSection.classList.remove('d-none');
+                }
+                else if(radio.value === 'jazzcash') {
+                    cardSection.classList.add('d-none');
+                    emobileSection.classList.add('d-none');
+                    jmobileSection.classList.remove('d-none');
+                }
+            });
+        });
+    </script>
+
+
+    <script>
+        /* ================= JS FUNCTIONALITY ================= */
+
+        // Update totals
+        function updateTotals() {
+            let item = document.querySelector(".cart-item");
+            let qty = parseInt(item.querySelector(".qty-select").value);
+            let price = parseInt(item.querySelector(".price-new").getAttribute("data-price"));
+            let oldPrice = 4390;  
+            let discount = oldPrice - price;
+
+            document.getElementById("itemTotal").innerText = "Rs." + (oldPrice * qty);
+            document.getElementById("itemDiscount").innerText = "-Rs." + (discount * qty);
+            document.getElementById("finalTotal").innerText = "Rs." + (price * qty);
+            document.getElementById("subtotal").innerText = "Rs." + (price * qty);
+        }
+
+        // Qty change
+        document.querySelector(".qty-select").addEventListener("input", updateTotals);
+
+        // Select all
+        //document.getElementById("selectAll").addEventListener("change", function () {
+        //    document.querySelector(".item-check").checked = this.checked;
+        //});
+
+        // Remove item
+        //document.querySelector(".remove-item").addEventListener("click", function () {
+        //    document.querySelector(".cart-item").remove();
+        //    document.querySelector(".checkout-btn").innerText = "Checkout (0)";
+        //    document.getElementById("itemTotal").innerText = "Rs.0";
+        //    document.getElementById("itemDiscount").innerText = "-Rs.0";
+        //    document.getElementById("finalTotal").innerText = "Rs.0";
+        //});
+
+    </script>
+
+ 
+{% endblock %}
