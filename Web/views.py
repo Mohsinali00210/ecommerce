@@ -6,19 +6,18 @@ from django.core.serializers.json import DjangoJSONEncoder
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from .models import Cart, CartItem,SupportTicket,OrderItem
+from .models import Cart, CartItem,SupportTicket,OrderItem, Notification, NotificationRecipient
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticatedOrReadOnly,IsAuthenticated
 
 from rest_framework import status
-from .serializers import CheckoutSerializer,AddressSerializer,PlaceOrderSerializer
+from .serializers import CheckoutSerializer,AddressSerializer,PlaceOrderSerializer,NotificationSerializer
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from accounts.models import Address
-
 
 
 def Index(request):
@@ -480,6 +479,15 @@ class PlaceOrderAPIView(APIView):
 
         if serializer.is_valid():
             order = serializer.save()
+            notification = Notification.objects.create(
+                title="Order Placed Successfully",
+                message=f"Your order #{order.id} has been placed successfully. Total: {order.total}",
+                notification_type="order",
+                is_general=False,
+                is_active=True,
+                order=order
+            )
+            NotificationRecipient.objects.create(notification=notification,user=request.user,is_read=False)
             return Response(
                 {
                     "message": "Order placed successfully",
@@ -585,12 +593,17 @@ class OrderRequestAPIView(APIView):
         data["order"] = order.id
         data["user"] = request.user.id
 
-        serializer = OrderRequestSerializer(data=data,context={'request': request} )
+        # Fix invalid "undefined" for nullable choices
+        preferred_action = data.get("preferred_action")
+        if preferred_action in [None, "", "undefined"]:
+            data["preferred_action"] = None
+
+        serializer = OrderRequestSerializer(data=data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response({"success": True, "order_request": serializer.data}, status=status.HTTP_201_CREATED)
+        
         return Response({"success": False, "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
 
 from rest_framework.generics import CreateAPIView
 class ProductReviewCreateAPIView(CreateAPIView):
@@ -616,3 +629,39 @@ def toggle_wishlist(request, product_id):
         return JsonResponse({"status": "removed"})
 
     return JsonResponse({"status": "added"})
+
+
+# views.py
+
+from django.db.models import Q, OuterRef, Subquery, BooleanField, Value
+from django.db.models.functions import Coalesce
+
+
+
+class UserNotificationAPIView(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        user = request.user
+
+        # Subquery to get is_read from NotificationRecipient
+        recipient_subquery = NotificationRecipient.objects.filter(
+            notification=OuterRef('pk'),
+            user=user
+        ).values('is_read')[:1]
+
+        notifications = Notification.objects.filter(
+            is_active=True
+        ).filter(
+            Q(is_general=True) |
+            Q(order__user=user)
+        ).annotate(
+            is_read=Coalesce(
+                Subquery(recipient_subquery, output_field=BooleanField()),
+                Value(False)
+            )
+        ).order_by('-created_at')
+
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response(serializer.data)

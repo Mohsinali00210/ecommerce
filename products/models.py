@@ -541,6 +541,29 @@ class ProductVariantOption(BaseAuditModel):
     def __str__(self):
         return f"{self.option_name} - {self.product.name}"
 
+class ProductVariantInventory(BaseAuditModel):
+    MOVEMENT_TYPE = (
+        ('add', 'Stock Added'),
+        ('remove', 'Stock Removed'),
+        ('adjust', 'Stock Adjustment'),
+    )
+    variant = models.ForeignKey( 'ProductVariant', related_name="inventory_logs", on_delete=models.CASCADE )
+    movement_type = models.CharField( max_length=20, choices=MOVEMENT_TYPE, default='add' )
+    quantity = models.IntegerField()
+    old_price = models.DecimalField( max_digits=12, decimal_places=2, null=True, blank=True )
+    new_price = models.DecimalField( max_digits=12, decimal_places=2, null=True, blank=True )
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    def save(self, *args, **kwargs):
+        variant = self.variant
+        if self.new_price:
+            variant.price = self.new_price
+        variant.stock_quantity = variant.stock_quantity + self.quantity
+        variant.save()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.variant.sku} - {self.quantity}"
 class ProductImage(BaseAuditModel):
     product = models.ForeignKey(Product, related_name='images', on_delete=models.CASCADE, null=True)
     image = models.ImageField(upload_to='products/%Y/%m/')
@@ -619,6 +642,28 @@ class Promotion(BaseAuditModel):
             return  self.discounted_price
 
         return price
+    def create_promotion_notification(self):
+        from Web.models import Notification, NotificationRecipient
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        users = User.objects.filter(is_active=True)
+
+        notification = Notification.objects.create(
+            title="New Promotion Available ",
+            message=f"A new promotion '{self.name}' is now available.",
+            notification_type="promotion",
+            is_general=True,
+            is_active=True,
+            promotion=self
+        )
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+
+        if is_new:
+            self.create_promotion_notification()
     @property
     def is_currently_running(self):
         now = timezone.now()

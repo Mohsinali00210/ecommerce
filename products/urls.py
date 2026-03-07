@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import promotions_page,PromotionsViewSet,wishlist_page,admin_reviews_page,AdminReviewListAPIView,AdminReviewUpdateAPIView,AdminOrderRequestUpdateAPIView,support_ticket_list_view,OrderDetailAPIView,OrderUpdateStatusAPIView,OrdersListAPIView,orders,ProductPreview,editProduct,products,addProduct,CategoryViewSet,categories,ProductAttributeViewSet,attributes,AttributeTypesViewSet,BrandViewSet,brands,ProductViewSet,PromotionViewSet 
+from .views import inventory_page,VariantInventoryViewSet,ProductVariantViewSet,promotions_page,PromotionsViewSet,wishlist_page,admin_reviews_page,AdminReviewListAPIView,AdminReviewUpdateAPIView,AdminOrderRequestUpdateAPIView,support_ticket_list_view,OrderDetailAPIView,OrderUpdateStatusAPIView,OrdersListAPIView,orders,ProductPreview,editProduct,products,addProduct,CategoryViewSet,categories,ProductAttributeViewSet,attributes,AttributeTypesViewSet,BrandViewSet,brands,ProductViewSet,PromotionViewSet 
 
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet, basename='category')
@@ -10,6 +10,8 @@ router.register(r'brands', BrandViewSet, basename='brand')
 router.register(r'products', ProductViewSet, basename='product')
 router.register(r'promotions', PromotionViewSet, basename='promotion')
 router.register(r'promotionss', PromotionsViewSet, basename='promotions')
+router.register(r'product-variants', ProductVariantViewSet)
+router.register(r'inventory', VariantInventoryViewSet)
 
 
 urlpatterns = [
@@ -33,4 +35,5 @@ urlpatterns = [
     path("reviews-page/", admin_reviews_page, name="AdminReviewsPage"),
     path("wishlist/", wishlist_page, name="wishlist"),
     path("promotions-page/", promotions_page, name="promotions_page"),
+    path("inventory-page/", inventory_page, name="inventory-page"),
 ]

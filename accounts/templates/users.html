@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+
+<div class="card-header">
+<i class="bi bi-people"></i> Users
+</div>
+
+<div class="card-body p-0">
+
+<table class="table table-sm table-bordered">
+
+<thead class="table-light">
+<tr>
+<th>Name</th>
+<th>Email</th>
+<th>Mobile</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody id="usersBody"></tbody>
+
+</table>
+
+</div>
+</div>
+
+<script>
+ fetch('{% url 'token_obtain_pair' %}', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                email: "mohsinali@gmail.com",
+                password: "Today@123"
+            })
+            })
+            .then(res => res.json())
+            .then(data => {
+                TOKEN=data.access;
+            // Save access token
+            localStorage.setItem("access_token", data.access);
+            })
+            .catch(err => console.error(err));
+    const USER_API = "http://127.0.0.1:8000/api/v1/users/";
+
+getUsers();
+
+function getUsers(){
+
+fetch(USER_API,{
+headers:{
+"Authorization":`Bearer ${localStorage.getItem("access_token")}`
+}
+})
+.then(res=>res.json())
+.then(data=>{
+
+let html="";
+
+data.forEach(user=>{
+
+html+=`
+<tr>
+<td>${user.full_name}</td>
+<td>${user.email ?? ""}</td>
+<td>${user.mobile ?? ""}</td>
+
+<td>
+<span class="badge ${user.is_active ? 'bg-success':'bg-danger'}">
+${user.is_active ? 'Active':'Blocked'}
+</span>
+</td>
+
+<td>
+<button class="btn btn-sm ${user.is_active ? 'btn-danger' : 'btn-success'}"
+        onclick="toggleUserStatus(${user.id}, ${user.is_active})">
+    ${user.is_active ? 'Block' : 'Unblock'}
+</button>
+</td>
+</tr>
+`;
+
+});
+
+$("#usersBody").html(html);
+
+});
+
+}
+function toggleUserStatus(userId, currentStatus) {
+    let action = currentStatus ? "block" : "unblock";
+    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+
+    fetch(`http://127.0.0.1:8000/api/v1/users/${userId}/toggle_status/`, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Content-Type": "application/json"
+        }
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Failed to toggle user status");
+        return res.json();
+    })
+    .then(data => {
+        showAlert(data.message, data.is_active ? "success" : "warning");
+        getUsers();  // Refresh table
+    })
+    .catch(err => {
+        console.error(err);
+        showAlert("Could not update user status. Try again.", "danger");
+    });
+}
+</script>
+
+{% endblock %}

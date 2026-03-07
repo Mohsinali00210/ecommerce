@@ -504,6 +504,24 @@ class OrderUpdateStatusAPIView(UpdateAPIView):
         order.status = request.data.get("status", order.status)
         order.payment_status = request.data.get("payment_status", order.payment_status)
         order.save()
+        message_text = (
+                f"Your Order #{order.order_number} status "
+                f"has been change to {order.status}"
+            )
+        notification = Notification.objects.create(
+            title=f"Order has been {order.status}",
+            message=message_text,
+            notification_type="order_status",
+            is_general=False,
+            is_active=True,
+            order=order
+        )
+
+        NotificationRecipient.objects.create(
+            notification=notification,
+            user=order.user,
+            is_read=False
+        )
 
         return Response({"message": "Order updated successfully"})
 
@@ -523,7 +541,7 @@ def support_ticket_list_view(request):
 from django.db import transaction
 from rest_framework.permissions import IsAdminUser
 from rest_framework.generics import UpdateAPIView
-from Web.models import OrderRequest,OrderRequestComment,UserWalletTransaction,UserWallet
+from Web.models import OrderRequest,OrderRequestComment,UserWalletTransaction,UserWallet,Notification,NotificationRecipient
 
 from django.db import transaction
 
@@ -547,17 +565,34 @@ class AdminOrderRequestUpdateAPIView(UpdateAPIView):
             comment=comment_text
         )
 
-        # Only apply business logic when approved
-        if instance.status != "approved":
-            return
-
         order = instance.order
         user = order.user
+        # Only apply business logic when approved
+        if instance.status != "approved":
+
+            # 🔔 Notify User (Rejected Case)
+            notification = Notification.objects.create(
+                title="Order Request Rejected",
+                message=f"Your {instance.request_type} request for Order #{order.order_number} was rejected.",
+                notification_type="order_request",
+                is_general=False,
+                is_active=True,
+                order=order
+            )
+
+            NotificationRecipient.objects.create(
+                notification=notification,
+                user=order.user,
+                is_read=False
+            )
+            return
+
 
         # ================= CANCEL =================
         if instance.request_type == "cancel":
             order.status = "cancelled"
             order.save()
+            message_text = f"Your cancel request for Order #{order.order_number} has been approved."
 
         # ================= RETURN =================
         elif instance.request_type == "return":
@@ -568,6 +603,7 @@ class AdminOrderRequestUpdateAPIView(UpdateAPIView):
 
             order.status = "returned"
             order.save()
+
 
             wallet, _ = UserWallet.objects.get_or_create(user=user)
 
@@ -582,6 +618,24 @@ class AdminOrderRequestUpdateAPIView(UpdateAPIView):
                 description=f"Refund for Order #{order.order_number}",
                 order=order
             )
+            message_text = (
+                f"Your return request for Order #{order.order_number} "
+                f"has been approved. Amount refunded to wallet."
+            )
+        notification = Notification.objects.create(
+            title="Order Request Approved",
+            message=message_text,
+            notification_type="order_request",
+            is_general=False,
+            is_active=True,
+            order=order
+        )
+
+        NotificationRecipient.objects.create(
+            notification=notification,
+            user=order.user,
+            is_read=False
+        )
 
 from rest_framework.generics import ListAPIView
 from .serializers import AdminProductReviewSerializer
@@ -636,3 +690,94 @@ class PromotionsViewSet(viewsets.ModelViewSet):
 def promotions_page(request):
     
     return render(request, "promotions/promotions.html")
+
+@login_required
+def inventory_page(request):
+    
+    return render(request, "Inventory/Inventory.html")
+
+from .models import ProductVariantInventory
+from .serializers import ProductVariantInventorySerializer
+
+class VariantInventoryViewSet(viewsets.ModelViewSet):
+
+    queryset = ProductVariantInventory.objects.select_related(
+        "variant",
+        "variant__product"
+    )
+
+    serializer_class = ProductVariantInventorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+    def create(self, request, *args, **kwargs):
+
+        serializer = self.get_serializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        self.perform_create(serializer)
+
+        return Response(serializer.data, status=201)
+
+
+    def partial_update(self, request, *args, **kwargs):
+
+        instance = self.get_object()
+
+        serializer = self.get_serializer(
+            instance,
+            data=request.data,
+            partial=True
+        )
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        self.perform_update(serializer)
+
+        return Response(serializer.data)
+
+
+
+from rest_framework import viewsets, permissions
+from .models import ProductVariant
+from .serializers import ProductVariant2Serializer
+
+
+class ProductVariantViewSet(viewsets.ModelViewSet):
+
+    queryset = ProductVariant.objects.select_related('product')
+    serializer_class = ProductVariant2Serializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+    def create(self, request, *args, **kwargs):
+
+        serializer = self.get_serializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        self.perform_create(serializer)
+
+        return Response(serializer.data, status=201)
+
+
+    def partial_update(self, request, *args, **kwargs):
+
+        instance = self.get_object()
+
+        serializer = self.get_serializer(
+            instance,
+            data=request.data,
+            partial=True
+        )
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        self.perform_update(serializer)
+
+        return Response(serializer.data)

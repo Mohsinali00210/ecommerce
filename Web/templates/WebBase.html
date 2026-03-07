@@ -438,6 +438,27 @@
 
     {% block extra_css %}{% endblock %}
 
+
+<script>
+     fetch('{% url 'token_obtain_pair' %}', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                email: "mohsinali00260@gmail.com",
+                password: "Today@123"
+            })
+            })
+            .then(res => res.json())
+            .then(data => {
+                TOKEN=data.access;
+            // Save access token
+            localStorage.setItem("access_token", data.access);
+            })
+            .catch(err => console.error(err));
+
+</script>
 </head>
 
 <body>
@@ -473,101 +494,23 @@
         {% if request.user.is_authenticated %}
             <li class="nav-item">
                 <div class="dropdown">
-                <button class="btn position-relative" data-bs-toggle="dropdown">
-                    <i class="fa-solid fa-bell "></i>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">5</span>
-                </button>
+                    <button class="btn position-relative" data-bs-toggle="dropdown" onclick="loadNotifications()">
+                        <i class="fa-solid fa-bell"></i>
+                        <span id="notificationBadge"
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            0
+                        </span>
+                    </button>
 
-                <ul class="dropdown-menu dropdown-menu-end p-2" style="width: 350px;">
+                    <ul id="notificationDropdown"
+                        class="dropdown-menu dropdown-menu-end p-2"
+                        style="width: 350px; max-height: 400px; overflow-y: auto;">
 
-                    <!-- Order Placed -->
-                    <li class="notification-item unread">
-                    <div class="d-flex">
-                        <div class="icon bg-primary">
-                        <i class="bi bi-bag-check"></i>
-                        </div>
-                        <div class="ms-3">
-                        <div class="fw-semibold">Order Placed</div>
-                        <div class="small text-muted">
-                            Your order <b>#TMU1007</b> has been placed successfully.
-                        </div>
-                        <small class="text-muted">2 mins ago</small>
-                        </div>
-                    </div>
-                    </li>
+                        <li class="text-center text-muted p-3">
+                            Loading...
+                        </li>
 
-                    <!-- Order Dispatched -->
-                    <li class="notification-item unread">
-                    <div class="d-flex">
-                        <div class="icon bg-info">
-                        <i class="bi bi-truck"></i>
-                        </div>
-                        <div class="ms-3">
-                        <div class="fw-semibold">Order Dispatched</div>
-                        <div class="small text-muted">
-                            Order <b>#TMU1005</b> is on the way.
-                        </div>
-                        <small class="text-muted">1 hour ago</small>
-                        </div>
-                    </div>
-                    </li>
-
-                    <!-- Order Delivered -->
-                    <li class="notification-item">
-                    <div class="d-flex">
-                        <div class="icon bg-success">
-                        <i class="bi bi-check-circle"></i>
-                        </div>
-                        <div class="ms-3">
-                        <div class="fw-semibold">Order Delivered</div>
-                        <div class="small text-muted">
-                            Order <b>#TMU1001</b> has been delivered.
-                        </div>
-                        <small class="text-muted">Yesterday</small>
-                        </div>
-                    </div>
-                    </li>
-
-                    <!-- Order Canceled -->
-                    <li class="notification-item">
-                    <div class="d-flex">
-                        <div class="icon bg-danger">
-                        <i class="bi bi-x-circle"></i>
-                        </div>
-                        <div class="ms-3">
-                        <div class="fw-semibold">Order Canceled</div>
-                        <div class="small text-muted">
-                            Order <b>#TMU1002</b> has been canceled.
-                        </div>
-                        <small class="text-muted">2 days ago</small>
-                        </div>
-                    </div>
-                    </li>
-
-                    <!-- Offer -->
-                    <li class="notification-item">
-                    <div class="d-flex">
-                        <div class="icon bg-warning">
-                        <i class="bi bi-percent"></i>
-                        </div>
-                        <div class="ms-3">
-                        <div class="fw-semibold">Special Offer 🎉</div>
-                        <div class="small text-muted">
-                            Flat <b>20% OFF</b> on Smart Watches. Limited time!
-                        </div>
-                        <small class="text-muted">Today</small>
-                        </div>
-                    </div>
-                    </li>
-
-                    <li><hr class="dropdown-divider"></li>
-                    <li class="text-center">
-                    <a href="./Notifications.html" class="small text-decoration-none">
-                        View All Notifications
-                    </a>
-                    </li>
-
-                </ul>
+                    </ul>
                 </div>
             </li>
         {% endif %}
@@ -795,6 +738,141 @@
 </script>
 <script>
    
+    const NOTIFICATION_API = "http://127.0.0.1:8000/notifications/";
+    const MARK_READ_API = "http://127.0.0.1:8000/notifications/mark-read/";
+
+    /* ===============================
+    LOAD NOTIFICATIONS
+    ================================= */
+    function getIcon(type) {
+        switch(type) {
+            case "order_placed": return "bi bi-bag-check";
+            case "order_dispatched": return "bi bi-truck";
+            case "order_delivered": return "bi bi-check-circle";
+            case "order_canceled": return "bi bi-x-circle";
+            case "promotion": return "bi bi-percent";
+            default: return "bi bi-bell";
+        }
+    }
+
+    function getIconColor(type) {
+        switch(type) {
+            case "order_placed": return "bg-primary";
+            case "order_dispatched": return "bg-info";
+            case "order_delivered": return "bg-success";
+            case "order_canceled": return "bg-danger";
+            case "promotion": return "bg-warning";
+            default: return "bg-secondary";
+        }
+    }
+    function timeAgo(dateString) {
+
+        let date = new Date(dateString);
+        let seconds = Math.floor((new Date() - date) / 1000);
+
+        let intervals = {
+            year: 31536000,
+            month: 2592000,
+            day: 86400,
+            hour: 3600,
+            minute: 60
+        };
+
+        for (let key in intervals) {
+            let interval = Math.floor(seconds / intervals[key]);
+            if (interval >= 1) {
+                return interval + " " + key + (interval > 1 ? "s" : "") + " ago";
+            }
+        }
+
+        return "Just now";
+    }
+    function markAsRead(notificationId) {
+
+        fetch(MARK_READ_API, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ notification_id: notificationId })
+        })
+        .then(() => {
+            loadNotifications();
+        });
+    }
+    loadNotifications();
+    function loadNotifications() {
+
+        fetch(NOTIFICATION_API, {
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+
+            let html = "";
+            let unreadCount = 0;
+
+            if (data.length === 0) {
+                html = `
+                    <li class="text-center text-muted p-3">
+                        No notifications
+                    </li>`;
+            }
+
+            data.forEach(item => {
+
+                if (!item.is_read) unreadCount++;
+
+                html += `
+                <li class="notification-item ${!item.is_read ? 'unread bg-light' : ''}"
+                    onclick="markAsRead(${item.id})"
+                    style="cursor:pointer; border-radius:6px; padding:8px;">
+
+                    <div class="d-flex">
+                        <div class="icon ${getIconColor(item.notification_type)} 
+                                    text-white rounded-circle d-flex align-items-center 
+                                    justify-content-center"
+                            style="width:36px;height:36px;">
+                            <i class="${getIcon(item.notification_type)}"></i>
+                        </div>
+
+                        <div class="ms-3 w-100">
+                            <div class="fw-semibold">
+                                ${item.title}
+                            </div>
+
+                            <div class="small text-muted">
+                                ${item.message}
+                            </div>
+
+                            <small class="text-muted">
+                                ${timeAgo(item.created_at)}
+                            </small>
+                        </div>
+                    </div>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                `;
+            });
+
+            html += `
+            <li class="text-center">
+                <a href="/notifications/" 
+                class="small text-decoration-none">
+                View All Notifications
+                </a>
+            </li>`;
+
+            document.getElementById("notificationDropdown").innerHTML = html;
+            document.getElementById("notificationBadge").innerText = unreadCount;
+        })
+        .catch(error => {
+            console.error("Notification error:", error);
+        });
+    }
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {

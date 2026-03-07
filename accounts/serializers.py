@@ -52,3 +52,27 @@ class EmailRegisterSerializer(serializers.ModelSerializer):
             "access": str(refresh.access_token),
             "refresh": str(refresh)
         }
+
+
+class UserSerializer(serializers.ModelSerializer):
+
+    role_names = serializers.StringRelatedField(
+        source="roles",
+        many=True,
+        read_only=True
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "full_name",
+            "email",
+            "mobile",
+            "gender",
+            "avatar",
+            "is_active",
+            "is_varified",
+            "date_joined",
+            "role_names"
+        ]

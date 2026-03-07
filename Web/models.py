@@ -215,3 +215,44 @@ class OrderRequestComment(BaseAuditModel):
 
     def __str__(self):
         return f"Request #{self.request.id} - {self.status}"
+
+
+# models.py
+# models.py
+
+from django.conf import settings
+from django.db import models
+
+
+class Notification(BaseAuditModel):
+
+    NOTIFICATION_TYPES = [
+        ('order_placed', 'Order Placed'),
+        ('order_dispatched', 'Order Dispatched'),
+        ('order_delivered', 'Order Delivered'),
+        ('order_canceled', 'Order Canceled'),
+        ('order_status', 'Order Status'),
+        ('promotion', 'Promotion / Offer'),
+    ]
+
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    notification_type = models.CharField(max_length=50,choices=NOTIFICATION_TYPES)
+    # Optional relations
+    order = models.ForeignKey('Order',on_delete=models.CASCADE,null=True,blank=True)
+    promotion = models.ForeignKey('products.Promotion',on_delete=models.CASCADE,null=True,blank=True)
+    is_general = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.title
+
+
+class NotificationRecipient(models.Model):
+    notification = models.ForeignKey(Notification,on_delete=models.CASCADE,related_name="recipients")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="user_notifications")
+    is_read = models.BooleanField(default=False)
+    seen_at = models.DateTimeField(null=True, blank=True)
+    class Meta:
+        unique_together = ('notification', 'user')
+    def __str__(self):
+        return f"{self.user} - {self.notification.title}"

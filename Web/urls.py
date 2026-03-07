@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
-from .views import toggle_wishlist,ProductReviewCreateAPIView,OrderRequestAPIView,OrderDetailAPIView,Contact,MyOrders,PlaceOrderAPIView,AddressAPIView,SaveCheckoutSession,OrderSuccess,CheckoutPage,MyCart,Index,ProductDetails,AddToCartAPIView,CartDetailAPIView,RemoveCartItemAPIView,SaveCheckoutSession,CheckoutPage
+from .views import UserNotificationAPIView,toggle_wishlist,ProductReviewCreateAPIView,OrderRequestAPIView,OrderDetailAPIView,Contact,MyOrders,PlaceOrderAPIView,AddressAPIView,SaveCheckoutSession,OrderSuccess,CheckoutPage,MyCart,Index,ProductDetails,AddToCartAPIView,CartDetailAPIView,RemoveCartItemAPIView,SaveCheckoutSession,CheckoutPage
 urlpatterns = [
     path("", Index, name="Home"),
     path("Product/<int:id>/", ProductDetails, name="ProductDetails"),
@@ -21,6 +21,7 @@ urlpatterns = [
     path('order-request/', OrderRequestAPIView.as_view(), name='order-request'),
     path("review/",ProductReviewCreateAPIView.as_view(),name="ProductReviewCreate"),
     path("wishlisttoggle/<int:product_id>/", toggle_wishlist, name="toggle_wishlist"),
+    path("notifications/", UserNotificationAPIView.as_view(), name="notifications"),
 ]
 
 if settings.DEBUG:

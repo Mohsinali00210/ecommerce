@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 
 from .serializers import EmailRegisterSerializer
 from .models import User
+from django.contrib.auth.decorators import login_required
 
 class EmailRegisterView(APIView):
     permission_classes = [AllowAny]
@@ -150,3 +151,63 @@ from django.contrib.auth import logout
 def logout_view(request):
     logout(request)
     return redirect("login")  # redirect to login page
+
+
+
+from rest_framework import viewsets,permissions
+from rest_framework.decorators import action
+from .serializers import UserSerializer
+
+
+class UserViewSet(viewsets.ModelViewSet):
+
+    queryset = User.objects.prefetch_related("roles")
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+    def list(self, request):
+        users = self.get_queryset().order_by("-date_joined")
+        serializer = self.get_serializer(users, many=True)
+        return Response(serializer.data)
+
+
+    @action(detail=True, methods=["post"])
+    def toggle_status(self, request, pk=None):
+        """
+        Toggle the user's active status (block/unblock).
+        """
+        user = self.get_object()
+        user.is_active = not user.is_active
+        user.save()
+        status_str = "unblocked" if user.is_active else "blocked"
+        return Response({
+            "message": f"User has been {status_str}.",
+            "is_active": user.is_active
+        })
+    @action(detail=True, methods=["post"])
+    def block(self, request, pk=None):
+
+        user = self.get_object()
+        user.is_active = False
+        user.save()
+
+        return Response({"message": "User blocked"})
+
+
+    @action(detail=True, methods=["post"])
+    def unblock(self, request, pk=None):
+
+        user = self.get_object()
+        user.is_active = True
+        user.save()
+
+        return Response({"message": "User unblocked"})
+
+
+
+
+@login_required
+def users_page(request):
+    
+    return render(request, "users.html")

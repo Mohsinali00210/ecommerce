@@ -283,7 +283,33 @@ class ProductSerializer(serializers.ModelSerializer):
                     promo.categories.set(categories)
 
         return product
+from .models import ProductVariantInventory,ProductVariant
 
+class ProductVariantInventorySerializer(serializers.ModelSerializer):
+
+    variant_name = serializers.CharField(source='variant.name', read_only=True)
+    product_name = serializers.CharField(source='variant.product.name', read_only=True)
+
+    class Meta:
+        model = ProductVariantInventory
+        fields = "__all__"
+
+
+class ProductVariant2Serializer(serializers.ModelSerializer):
+
+    product_name = serializers.CharField(source='product.name', read_only=True)
+
+    class Meta:
+        model = ProductVariant
+        fields = [
+            'id',
+            'product',
+            'product_name',
+            'name',
+            'sku',
+            'price',
+            'stock_quantity'
+        ]
 # class ProductSerializer(serializers.ModelSerializer):
 #     # Nested Relationships
     
