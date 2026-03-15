@@ -195,7 +195,7 @@ function getBrands(el = "brandsBody") {
         console.error(err);
     });
 }
-fetch('{% url 'token_obtain_pair' %}', {
+{% comment %} fetch('{% url 'token_obtain_pair' %}', {
     method: "POST",
     headers: {
         "Content-Type": "application/json"
@@ -211,7 +211,7 @@ fetch('{% url 'token_obtain_pair' %}', {
     // Save access token
     localStorage.setItem("access_token", data.access);
     })
-    .catch(err => console.error(err));
+    .catch(err => console.error(err)); {% endcomment %}
 function fillBrandModal(item) {
     $('#BrandId').val(item.id);
     $('#BrandName').val(item.name);

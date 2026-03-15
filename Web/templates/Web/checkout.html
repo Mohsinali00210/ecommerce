@@ -4,233 +4,7 @@
 {% block title %}Shan zee Shopping{% endblock %}
 
 {% block extra_css %}
-    <style>
-        .product-card {
-            background: #fff;
-            border-radius: 8px;
-            padding: 0px;
-            transition: all .2s ease-in-out;
-
-        }
-
-        .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 18px rgba(0,0,0,.1);
-        }
-
-        .product-img {
-            width: 100%;
-            border-radius: 8px;
-            object-fit: cover;
-        }
-
-        .sale-badge {
-            background: #e00;
-            color: #fff;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .price {
-            font-weight: bold;
-            color: #e85858;
-            font-size: 11px;
-        }
-
-        .old-price {
-            text-decoration: line-through;
-            color: gray;
-            margin-left: 4px;
-        }
-
-        .sold-text {
-            color: #555;
-            margin-left: 8px;
-        }
-
-        .rating-stars {
-            color: #f5b301;
-            font-size: 11px;
-        }
-        .rating-stars span{
-            font-size: 11px;
-        }
-        .add-cart-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 1px solid #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 14px;
-            background: #fff;
-        }
-        .add-cart-btn:hover{
-            transform: translateY(-5px);
-                box-shadow: 0 5px 18px rgba(0,0,0,.1);
-        }
-        .view-more-btn {
-            width: 200px;
-            border-radius: 30px;
-            padding: 10px;
-            border: 1px solid #222;
-            background: #fff;
-            font-size: 14px;
-            cursor: pointer;
-            transition: .2s;
-        }
-
-        .view-more-btn:hover {
-            background: #f2f2f2;
-        }
-        .product-card {
-        background: #fff;
-        border-radius: 8px;
-        padding: 0px;
-        transition: all .2s ease-in-out;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-                z-index: 2001 !important;
-
-        }
-
-        .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 18px rgba(0,0,0,.1);
-        }
-
-        /* FIX: Same image height for all */
-        .product-img {
-            width: 100%;
-            height: 150px;       /* set equal height */
-            border-radius: 8px;
-            object-fit: cover;   /* crop nicely */
-        }
-
-        /* FIX: Make content grow evenly */
-        .product-info {
-            flex-grow: 1;
-            padding: 0px 9px;
-        }
-        .product-title {
-            font-size: 12px;
-        }
-        /* FIX: Align cart button at bottom */
-        .add-cart-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 1px solid #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 14px;
-            background: #fff;
-            margin-top: auto;  /* pushes button to bottom */
-            position: relative;
-            top:-20px;
-        }
-        .carousel-item img{
-            width: 98%;
-
-        }
-        .product-container{
-                        z-index: 2001 !important;
-
-        }
-
-
-        /* Top Navbar */
-        .topnav-main {
-            background: #8f8f8f;
-            color: white;
-        }
-
-        /* Sub Navbar (desktop) */
-        .sub-navbar {
-            background: #5f5f5f;
-            padding: 8px 15px;
-        }
-        .sub-navbar a {
-            color: white;
-            margin-right: 20px;
-            text-decoration: none;
-        }
-
-        /* Mobile Sidebar */
-        .mobile-sidebar {
-            width: 270px;
-            height: 100vh;
-            background: white;
-            position: fixed;
-            top: 0;
-            left: -300px;
-            padding-top: 20px;
-            overflow-y: auto;
-            transition: all .3s ease-in-out;
-            z-index: 2000;
-            border-right: 1px solid #ddd;
-        }
-
-        /* Show Sidebar */
-        .mobile-sidebar.open {
-            left: 0;
-        }
-
-        /* Sidebar links */
-        .mobile-sidebar a {
-            display: block;
-            padding: 10px 20px;
-            color: #333;
-            text-decoration: none;
-        }
-        .mobile-sidebar a:hover {
-            background: #f2f2f2;
-        }
-
-        /* Close button */
-        .close-btn {
-            font-size: 18px;
-            cursor: pointer;
-            position: absolute;
-            top: 10px;
-            right: 15px;
-        }
-
-        /* Mobile Search box */
-        .search-mobile input {
-            border: 1px solid #999;
-            margin-bottom: 15px;
-        }
-
-        /* Hamburger icon */
-        .menu-toggle {
-            font-size: 22px;
-            cursor: pointer;
-        }
-
-        /* Hide sidebar on desktop */
-        @media (min-width: 992px) {
-            .mobile-sidebar.open .mobile-nav-items {
-                display: none;
-            }
-        }
-        .old-price {
-                text-decoration: line-through;
-                color: gray;
-                font-size: 12px;
-                margin-left: 4px;
-            }
-        div#sliderProducts
-        {
-            height: 200px;
-        }
-            
-    </style>
+  
 
     <style>
 
@@ -475,54 +249,7 @@
 
 
 
-        /* Top Navbar */
-        .topnav-main {
-            background: #8f8f8f;
-            color: white;
-        }
-
-        /* Sub Navbar (desktop) */
-        .sub-navbar {
-            background: #5f5f5f;
-            padding: 8px 15px;
-        }
-        .sub-navbar a {
-            color: white;
-            margin-right: 20px;
-            text-decoration: none;
-        }
-
-        /* Mobile Sidebar */
-        .mobile-sidebar {
-            width: 270px;
-            height: 100vh;
-            background: white;
-            position: fixed;
-            top: 0;
-            left: -300px;
-            padding-top: 20px;
-            overflow-y: auto;
-            transition: all .3s ease-in-out;
-            z-index: 2000;
-            border-right: 1px solid #ddd;
-        }
-
-        /* Show Sidebar */
-        .mobile-sidebar.open {
-            left: 0;
-        }
-
-        /* Sidebar links */
-        .mobile-sidebar a {
-            display: block;
-            padding: 10px 20px;
-            color: #333;
-            text-decoration: none;
-        }
-        .mobile-sidebar a:hover {
-            background: #f2f2f2;
-        }
-
+     
         /* Close button */
         .close-btn {
             font-size: 24px;
@@ -530,18 +257,6 @@
             position: absolute;
             top: 10px;
             right: 15px;
-        }
-
-        /* Mobile Search box */
-        .search-mobile input {
-            border: 1px solid #999;
-            margin-bottom: 15px;
-        }
-
-        /* Hamburger icon */
-        .menu-toggle {
-            font-size: 26px;
-            cursor: pointer;
         }
 
         /* Hide sidebar on desktop */
@@ -699,53 +414,57 @@
                     <div>No. of Item (1)</div>
 
                     <!-- CART ITEM -->
-                    {% if items %}
-                        {% for item in items %}
-                            <div class="cart-item" data-productid="{{item.product_id}}" 
-                                                    data-variantid="{{item.variant_id}}"
-                                                    >
-                                <img src="{{item.image}}" alt="">
-                                
+                    {% if items and items.cart_items  %}
+                        {% for cartItem in items.cart_items  %}
+                            <div class="cart-item"
+                                data-id="{{ cartItem.id }}"
+                                data-price="{{ cartItem.product.final_price }}"
+                                data-qty="{{ cartItem.quantity }}"
+                                data-shipping="{{ cartItem.product.shipping_charges }}"
+                                data-additional="{{ cartItem.product.additional_shipping_charges }}">
+
+                                <input type="checkbox"
+                                    class="item-check cart-check" data-productId="{{cartItem.product.id}}"
+                                                        data-variantId="{{cartItem.variant.id}}"
+                                                        data-itemId="{{cartItem.id}}"
+                                                        data-shipping="{{ cartItem.product.shipping_charges }}"
+                                                        data-additional="{{ cartItem.product.additional_shipping_charges }}"
+                                                        checked>
+                                <a href="{% url 'ProductDetails' id=cartItem.product.id %}">
+                                    {% if cartItem.product.images.all %}
+                                        <img src="{{ cartItem.product.images.all.0.image.url }}"
+                                            alt="{{ cartItem.product.name }}">
+                                    {% endif %}
+                                </a>
+
                                 <div style="flex-grow:1;">
-                                    <div class="item-title">{{item.name}}</div>
-                                    <div class="d-flex align-items-center gap-2 mt-2">
-                                        
-                                        {# ===== PRICE LOGIC ===== #}
-                                        {% if item.discount_type == "percentage" %}
-                                            <span class="price-new" data-price="1788">{{item.final_price}}</span>
-                                            <span class="price-old">{{item.price}}</span>
-                                            <span class="discount-tag">{{item.discount_value}}</span>
-                                        {% elif item.discount_type == "fixed" %}
-                                            <span class="price-new" data-price="1788">{{item.discounted_price}}</span>
-                                            <span class="price-old">{{item.price}}</span>
-                                            <span class="discount-tag"></span>
-
-                                        {% comment %} {% elif promotion.discount_type == "buy_x_get_y" %}
-                                            <span class="fw-bold text-danger">
-                                                {{ product.price }}
-                                            </span>
-                                            <span class="discount-badge">
-                                                Buy X Get Y
-                                            </span>
-
-                                        {% elif promotion.discount_type == "free_delivery" %}
-                                            <span class="fw-bold text-danger">
-                                                {{ product.price }}
-                                            </span>
-                                            <span class="discount-badge">
-                                                Free Delivery
-                                            </span> {% endcomment %}
+                                    <div class="item-title">
+                                        {{ cartItem.product.name }}
+                                        {% if cartItem.variant %}
+                                            ({{ cartItem.variant.name }})
                                         {% endif %}
-
                                     </div>
 
-                                    <!-- Qty Select -->
-                                    
-                                    <input type="number" class="form-control qty-select mt-2" min="1" value="1" style="width:120px;">
+                                    <div class="mt-2">
+                                        <span class="price-new">
+                                            Rs.{{ cartItem.product.final_price }}
+                                        </span>
+                                    </div>
+
+                                    <input type="number"
+                                        class="form-control qty-select mt-2"
+                                        min="1"
+                                        value="{{ cartItem.quantity }}"
+                                        style="width:120px;">
                                 </div>
 
+                                <i class="fa-solid fa-trash remove-item"
+                                data-id="{{ cartItem.id }}"></i>
                             </div>
+
                         {% endfor %}
+                    {% else %}
+                        <p class="text-muted">Your cart is empty.</p>
                     {% endif %}
 
                 </div>
@@ -851,33 +570,32 @@
             <button class="btn btn-outline-secondary">Apply</button>
             </div> -->
 
+                
             <div class="d-flex justify-content-between">
-            <span>Item(s) total</span>
-            <span class="text-decoration-line-through" id="itemTotal">Rs.4,390</span>
+                <span>Item(s) total</span>
+                <span class="text-decoration-line-through" id="itemTotal">Rs.4,390</span>
             </div>
-
             <div class="d-flex justify-content-between text-danger">
-            <span>Item(s) discount</span>
-            <span id="itemDiscount">-Rs.2,602</span>
+                <span>Item(s) discount</span>
+                <span id="itemDiscount">Rs.{{ items.additional_total }}</span>
             </div>
-
             <hr>
-
             <div class="d-flex justify-content-between fw-semibold">
-            <span>Subtotal</span>
-            <span id="subtotal">Rs.1,788</span>
+                <span>Subtotal</span>
+                <span id="subtotal">Rs.{{items.subtotal}}</span>
             </div>
-
             <div class="d-flex justify-content-between">
-            <span>Shipping</span>
-            <span class="text-success">FREE</span>
+                <span>Shipping</span>
+                <span id="itemShippingCharges">Rs.{{ items.shipping_total }}</span>
             </div>
-
+            <div class="d-flex justify-content-between">
+                <span>additional Shipping</span>
+                <span id="itemAdditionalCharges">Rs.{{ items.additional_total }}</span>
+            </div>
             <hr>
-
             <div class="d-flex justify-content-between fs-5 fw-bold">
-            <span>Order total</span>
-            <span id="finalTotal">Rs.1,788</span>
+                <span>Order total</span>
+                <span id="finalTotal">Rs.{{ items.final_total }}</span>
             </div>
 
             <small class="text-muted d-block mt-2">
@@ -1491,6 +1209,47 @@
 
 
     <script>
+        function calculateCart() {
+
+            let subtotal = 0;
+            let shipping = 0;
+            let additional = 0;
+
+            document.querySelectorAll(".cart-item").forEach(item => {
+
+                const checked = item.querySelector(".cart-check").checked;
+
+                if(!checked) return;
+
+                const price = parseFloat(item.dataset.price);
+                const ship = parseFloat(item.dataset.shipping);
+                const add = parseFloat(item.dataset.additional);
+                const qty = parseInt(item.querySelector(".qty-select").value);
+
+                subtotal += price * qty;
+                shipping += ship;
+                additional += add;
+            });
+
+            const total = subtotal + shipping + additional;
+
+            document.getElementById("itemTotal").innerText = "Rs." + subtotal.toFixed(2);
+            document.getElementById("subtotal").innerText = "Rs." + subtotal.toFixed(2);
+            document.getElementById("itemShippingCharges").innerText = "Rs." + shipping.toFixed(2);
+            document.getElementById("itemAdditionalCharges").innerText = "Rs." + additional.toFixed(2);
+            document.getElementById("finalTotal").innerText = "Rs." + total.toFixed(2);
+        }
+
+        document.addEventListener("change", function(e){
+
+            if(e.target.classList.contains("qty-select") ||
+            e.target.classList.contains("cart-check")){
+                calculateCart();
+            }
+
+        });
+
+        calculateCart();
        function placeOrder() {
             if (addressid != null && addressid != "") {
                 let ordDate = {

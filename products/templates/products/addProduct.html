@@ -79,23 +79,23 @@
                             <label class="form-label" for="other_product_cost">Other Product Cost</label>
                             <input type="number" step="0.01" class="form-control form-control-sm" id="other_product_cost" name="other_product_cost" value="" min="0">
                         </div>
-                        <div class="col-md-4">
+                        {% comment %} <div class="col-md-4">
                             <label class="form-label">Discount (%)</label>
                             <input type="number" id="discount" class="form-control form-control-sm" placeholder="Enter discount">
-                        </div>
+                        </div> {% endcomment %}
 
                         <div class="col-md-6">
                             <label class="form-label">Stock Quantity</label>
-                            <input type="number" id="stockQuantity" class="form-control form-control-sm" placeholder="Enter stock">
+                            <input type="number" id="stockQuantity" disabled class="form-control form-control-sm" placeholder="Enter stock">
                         </div>
-                        <div class="col-md-6">
+                        {% comment %} <div class="col-md-6">
                                 <label class="form-label">Compare-at</label>
                                 <input type="number" id="compareAt1" class="form-control form-control-sm" placeholder="Enter compare at">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Compare-at Price</label>
-                                <input type="number" id="compareAtPrice1" class="form-control form-control-sm" placeholder="Enter original price">
-                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Compare-at Price</label>
+                            <input type="number" id="compareAtPrice1" class="form-control form-control-sm" placeholder="Enter original price">
+                        </div> {% endcomment %}
                         <div class="col-md-6">
                             <label class="form-label">Status</label>
                             <select class="form-select form-select-sm" id="status">
@@ -127,6 +127,7 @@
                             <input type="date" class="form-control form-control-sm" id="available_end_date" placeholder="Enter available end date"/>
                         </div>
                         <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="allow_customer_reviews" checked name="allow_customer_reviews"><label class="form-check-label" for="allow_customer_reviews">Allow Customer Reviews</label></div></div>
+                        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="customer_can_see_stock" checked name="customer_can_see_stock"><label class="form-check-label" for="customer_can_see_stock">Customer Can Se Stock</label></div></div>
                         <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="mark_as_new" checked name="mark_as_new"><label class="form-check-label" for="mark_as_new">Mark As New</label></div></div>
                         <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="available_for_preorder" checked name="available_for_preorder"><label class="form-check-label" for="available_for_preorder">Available For Pre-Order</label></div></div>
                         <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="disable_buy_button" name="disable_buy_button"><label class="form-check-label" for="disable_buy_button">Disable Buy Button</label></div></div>
@@ -135,7 +136,7 @@
 
                     <!-- ================= Pricing & Discounts ================= -->
                     <h6 class="border-bottom pb-1 mt-3 mb-3">
-                        <i class="bi bi-cash-stack"></i> Pricing & Discounts
+                        <i class="bi bi-cash-stack"></i> Promotions
                     </h6>
 
                         <!-- Standard Price -->
@@ -187,20 +188,7 @@
                                 <label class="form-label">Promotion End Date</label>
                                 <input type="date" id="promotionEDate" class="form-control form-control-sm">
                             </div>
-                            <div class="col-md-12">
-                                <div class="form-check"><input class="form-check-input" type="checkbox" id="tax_exempt" name="tax_exempt"><label class="form-check-label" for="tax_exempt">Tax Exempt</label></div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Tax Category</label>
-                                <select class="form-select form-select-sm" id="tax_category" width="100%" disabled>
-                                     <option  selected disabled>Select Tax Category</option>
-                                    {% for tax in tax_categories %}
-                                        <option value="{{ tax.id }}">
-                                            {{ tax.name }} ({{ tax.percentage }}%)
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
+                            
                         </div>
 
                         {% comment %} <!-- Bulk Discounts -->
@@ -289,6 +277,20 @@
                         <i class="bi bi-truck"></i> Shipping & Delivery
                     </h6>
                         <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-check"><input class="form-check-input" type="checkbox" id="tax_exempt" name="tax_exempt"><label class="form-check-label" for="tax_exempt">Tax Exempt</label></div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Tax Category</label>
+                                <select class="form-select form-select-sm" id="tax_category" width="100%" disabled>
+                                     <option  selected disabled>Select Tax Category</option>
+                                    {% for tax in tax_categories %}
+                                        <option value="{{ tax.id }}">
+                                            {{ tax.name }} ({{ tax.percentage }}%)
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                             <div class="col-12">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="shipping_enabled" name="shipping_enabled" checked>
@@ -721,7 +723,7 @@ function getBrands(el = "brandsBody") {
         console.error(err);
     });
 }
-fetch('{% url 'token_obtain_pair' %}', {
+{% comment %} fetch('{% url 'token_obtain_pair' %}', {
     method: "POST",
     headers: {
         "Content-Type": "application/json"
@@ -737,7 +739,7 @@ fetch('{% url 'token_obtain_pair' %}', {
     // Save access token
     localStorage.setItem("access_token", data.access);
     })
-    .catch(err => console.error(err));
+    .catch(err => console.error(err)); {% endcomment %}
 
 
 function saveProduct(e) {
@@ -764,6 +766,7 @@ function saveProduct(e) {
     formData.append('available_start_date', $('#available_start_date').val());
     formData.append('available_end_date', $('#available_end_date').val());
     formData.append('allow_customer_reviews', $('#allow_customer_reviews').is(':checked'));
+    formData.append('customer_can_see_stock', $('#customer_can_see_stock').is(':checked'));
     formData.append('qoute', $('#qoute').val());
     formData.append('product_type', $('#product_type').val());
     formData.append('mark_as_new', $('#mark_as_new').is(':checked'));
@@ -1009,10 +1012,11 @@ function fillProductForm(product) {
                     </td>
                 </tr>
             `);
+
         });
+        
     }
 }
-
 function loadProduct(productId) {
     fetch(`/api/v1/products/${productId}/`, {
         headers: {
@@ -1132,7 +1136,7 @@ function generateCombinations() {
             <td><input type="hidden" class="form-control form-control-sm variantName" value="${variantName}">${variantName}</td>
             <td><input type="text" class="form-control form-control-sm variantSku" value="${sku}"></td>
             <td><input type="number" class="form-control form-control-sm variantPrice" required placeholder="Price"></td>
-            <td><input type="number" class="form-control form-control-sm stockQuantity" required placeholder="Stock"></td>
+            <td><input type="number" class="form-control form-control-sm stockQuantity variantStockQTY" required placeholder="Stock"></td>
             <td>
                 <input type="file" class="variant-images" multiple accept="image/*">
                 <div class="image-preview d-flex flex-wrap gap-1 mt-1"></div>
@@ -1141,6 +1145,17 @@ function generateCombinations() {
         tableBody.appendChild(tr);
     });
 
+        const inputs = document.querySelectorAll(".variantStockQTY");
+        const totalDisplay = document.getElementById("stockQuantity");
+        const updateSum = () => {
+            const total = Array.from(inputs).reduce((sum, input) => {
+                const val = parseFloat(input.value) || 0;
+                return sum + val;
+            }, 0);
+            totalDisplay.value = total;
+            console.log(total);
+        };
+        inputs.forEach(input => {  input.addEventListener("blur", updateSum); });
     attachImagePreview();
 }
 
@@ -1300,6 +1315,7 @@ function renderTags() {
         const badge = document.createElement('span');
         badge.className = 'badge bg-secondary d-flex align-items-center';
         badge.style.gap = '5px';
+        badge.style.fontSize= '14px';
         badge.innerHTML = `${tag} <i class="bi bi-x-circle" style="cursor:pointer;"></i>`;
 
         badge.querySelector('i').addEventListener('click', () => {

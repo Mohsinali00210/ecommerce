@@ -211,3 +211,58 @@ class UserViewSet(viewsets.ModelViewSet):
 def users_page(request):
     
     return render(request, "users.html")
+
+
+
+from .models import User, Address
+from Web.models import UserWallet, UserWalletTransaction
+
+@login_required
+def profile_view(request):
+    user = request.user
+    addresses = user.addresses.all()
+    
+    # Wallet info (assuming you have Wallet and WalletTransaction models)
+    wallet = getattr(user, 'UserWallet', None)  # OneToOneField relation
+    transactions = UserWalletTransaction.objects.filter(wallet=UserWallet).order_by('-date') if wallet else []
+
+    context = {
+        'user': user,
+        'addresses': addresses,
+        'wallet': wallet,
+        'transactions': transactions,
+    }
+    return render(request, 'Profile.html', context)
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.utils.decorators import method_decorator
+
+@login_required
+@require_POST
+def update_profile_ajax(request):
+    """
+    Update user's profile via AJAX
+    """
+    user = request.user
+
+    # Get data from POST
+    full_name = request.POST.get('full_name')
+    email = request.POST.get('email')
+    mobile = request.POST.get('mobile')
+    dob = request.POST.get('dob')
+    gender = request.POST.get('gender')
+
+    # Basic validation (optional: you can enhance)
+    if not full_name or not email or not mobile:
+        return JsonResponse({"status": "error", "message": "Full name, email, and mobile are required."})
+
+    # Update user
+    user.full_name = full_name
+    user.email = email
+    user.mobile = mobile
+    user.dob = dob if dob else None
+    user.gender = gender
+    user.save()
+
+    return JsonResponse({"status": "success", "message": "Profile updated successfully."})

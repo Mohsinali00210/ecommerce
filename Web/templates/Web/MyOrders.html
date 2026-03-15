@@ -41,7 +41,7 @@
 
         <div class="accordion-item mb-1 order-item" data-status="{{ order.status }}">
           <h2 class="accordion-header">
-            <button class="accordion-button collapsed bg-white small"
+            <button class="accordion-button  bg-white small"
                     style="padding: 8px 17px;"
                     data-bs-toggle="collapse"
                     data-bs-target="#order{{ order.id }}">
@@ -64,7 +64,7 @@
             </button>
           </h2>
 
-          <div id="order{{ order.id }}" class="accordion-collapse collapse"
+          <div id="order{{ order.id }}" class="accordion-collapse collapse show"
               data-bs-parent="#ordersAccordion">
 
             <div class="accordion-body p-2">
@@ -242,6 +242,10 @@
             <div class="col-4 fw-semibold">Phone:</div>
             <div class="col-8" id="modalCustomerPhone"></div>
           </div>
+          <div class="row mb-1">
+            <div class="col-4 fw-semibold">QR Code:</div>
+            <div class="col-8" ><img id="modalOrderQRCode" src="" width="100%"/></div>
+          </div>
         </div>
         <h6 class="fw-semibold mb-2">Requests</h6>
         <div class="list-group mb-3" id="modalRequests"></div>
@@ -329,23 +333,7 @@
 
 <script>
   
-fetch('{% url 'token_obtain_pair' %}', {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-        email: "mohsinali@gmail.com",
-        password: "Today@123"
-    })
-    })
-    .then(res => res.json())
-    .then(data => {
-        TOKEN=data.access;
-    // Save access token
-    localStorage.setItem("access_token", data.access);
-    })
-    .catch(err => console.error(err));
+
 
 
     // ================================
@@ -670,6 +658,7 @@ document.getElementById("cancelReturnForm").addEventListener("submit", function(
         document.getElementById("modalCustomerName").innerText = data.customer_name;
         document.getElementById("modalCustomerEmail").innerText = data.customer_email;
         document.getElementById("modalCustomerPhone").innerText = data.customer_phone;
+        document.getElementById("modalOrderQRCode").src = data.qr_code;
 
         // Requests
         let requestHtml = "";

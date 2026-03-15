@@ -31,7 +31,9 @@ class CartItem(BaseAuditModel):
         return f"{self.product} x {self.quantity}"
 
 import uuid
-
+import qrcode
+from io import BytesIO
+from django.core.files import File
 class Order(BaseAuditModel):
     PAYMENT_METHODS = [
         ('cod', 'Cash on Delivery'),
@@ -53,6 +55,7 @@ class Order(BaseAuditModel):
     shipping_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name="shipping_orders")
     order_number = models.CharField(max_length=20, unique=True, blank=True)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     shipping_charges = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS, default='cod')
     status = models.CharField(max_length=20, choices=ORDER_STATUS, default='pending')
@@ -61,6 +64,7 @@ class Order(BaseAuditModel):
     delivered_at = models.DateTimeField(null=True, blank=True)
     transaction_id = models.CharField(max_length=100, blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
+    qr_code = models.ImageField(upload_to='qrcodes/', blank=True, null=True)
 
     def generate_order_number(self):
         return f"ORD-{uuid.uuid4().hex[:8].upper()}"
@@ -68,6 +72,12 @@ class Order(BaseAuditModel):
     def save(self, *args, **kwargs):
         if not self.order_number:
             self.order_number = self.generate_order_number()
+        if not self.qr_code:
+            qr_data = f"Order No: {self.order_number}\nName: {self.user.full_name}\nshipping Address: {self.shipping_address.street_address},{self.shipping_address.city},{self.shipping_address.state},{self.shipping_address.country}\nBilling Address: {self.billing_address.street_address},{self.billing_address.city},{self.billing_address.state},{self.billing_address.country}\nTotal: {self.total_amount}"
+            qr_img = qrcode.make(qr_data)
+            blob = BytesIO()
+            qr_img.save(blob, 'PNG')
+            self.qr_code.save(f"order_{self.order_number}.png", File(blob), save=False)
         super().save(*args, **kwargs)
     def __str__(self):
         return f"Order {self.order_number or self.id} - {self.user}"
@@ -83,6 +93,13 @@ class OrderItem(BaseAuditModel):
 
     def save(self, *args, **kwargs):
         self.total = self.price * self.quantity
+        if not self.pk:  
+            if self.variant:
+                if self.variant.stock_quantity < self.quantity:
+                    raise ValidationError("Not enough stock available")
+
+                self.variant.stock_quantity -= self.quantity
+                self.variant.save()
         super().save(*args, **kwargs)
 
     def __str__(self):

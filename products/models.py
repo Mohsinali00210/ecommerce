@@ -444,7 +444,7 @@ class Product(BaseAuditModel):
     name = models.CharField(max_length=255,blank=True)
     sku = models.CharField(max_length=100, unique=True)
     category = models.ManyToManyField(Category, related_name="products")
-    brand = models.ForeignKey('Brand', on_delete=models.SET_NULL, null=True)
+    brand = models.ForeignKey('Brand', on_delete=models.SET_NULL, null=True,blank=True)
     description = models.TextField(blank=True)
     brief_description = models.TextField(blank=True)
     
@@ -499,6 +499,7 @@ class Product(BaseAuditModel):
     available_start_date = models.DateField(null=True, blank=True)
     available_end_date = models.DateField(null=True, blank=True)
     allow_customer_reviews = models.BooleanField(default=True)
+    customer_can_see_stock = models.BooleanField(default=True)
     mark_as_new = models.BooleanField(default=False)
     available_for_preorder = models.BooleanField(default=False)
     disable_buy_button = models.BooleanField(default=False)

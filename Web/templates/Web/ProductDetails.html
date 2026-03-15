@@ -925,6 +925,32 @@
         .wishlist-btn i.bi-heart-fill {
             transform: scale(1.2);
         }
+
+        .in-stock{
+            color:#28a745;
+            font-weight:600;
+        }
+
+        .low-stock{
+            color:#ffc107;
+            font-weight:600;
+        }
+
+        .out-stock{
+            color:#dc3545;
+            font-weight:600;
+        }
+        .product-stock{
+            display:flex;
+            align-items:center;
+            gap:6px;
+            font-size:15px;
+            margin-top:10px;
+        }
+
+        .product-stock i{
+            color:#555;
+        }
     </style>
 {% endblock %}
 
@@ -949,6 +975,16 @@
                 <div class="row align-items-center" id="productImagesSlider">
                     <div class="col-md-2">
                         <div class="thumb-list  overflow-auto justify-content-between">
+                            {% if product.video %}
+                                <div class="video-thumb position-relative" onclick="goToSlide1(0)">
+                                    <video width="60" height="60">
+                                        <source src="{{ product.video.url }}" type="video/mp4">
+                                    </video>
+                                    <span class="position-absolute top-50 start-50 translate-middle text-white">
+                                        <i class="fa fa-play"></i>
+                                    </span>
+                                </div>
+                            {% endif %}
                             {% for image in images %}
                                 <img src="{{ image.image.url }}" alt="{{ image.alt_text }}"
                                 class="thumb {% if image.is_primary %}active{% endif %}" onclick="goToSlide1({{ forloop.counter0 }})">
@@ -978,36 +1014,44 @@
                         </button>
                         <div id="imageCarousel" class="carousel slide">
                             <div class="carousel-inner">
-                            {% with 0 as slide_index %}
-    
-                                {# PRODUCT IMAGES #}
-                                {% for image in images %}
-                                    <div class="carousel-item {% if image.is_primary or forloop.first %}active{% endif %}">
-                                        <img src="{{ image.image.url }}"
-                                            class="zoom-img"
-                                            alt="{{ image.alt_text }}"
-                                            onmousemove="moveZoom(event)"
-                                            onclick="openImageModal({{ slide_index }})">
+                                {% if product.video %}
+                                    <div class="carousel-item active">
+                                        <video class="w-100" controls>
+                                            <source src="{{ product.video.url }}" type="video/mp4">
+                                            Your browser does not support the video tag.
+                                        </video>
                                     </div>
-                                    {% widthratio slide_index 1 1 as slide_index %}
-                                    {% with slide_index|add:1 as slide_index %}{% endwith %}
-                                {% endfor %}
-
-                                {# VARIANT IMAGES #}
-                                {% for variant in variant_images %}
-                                    {% if variant.image %}
-                                        <div class="carousel-item">
-                                            <img src="{{ variant.image.image.url }}"
+                                {% endif %}
+                                {% with 0 as slide_index %}
+        
+                                    {# PRODUCT IMAGES #}
+                                    {% for image in images %}
+                                        <div class="carousel-item {% if image.is_primary or forloop.first %}active{% endif %}">
+                                            <img src="{{ image.image.url }}"
                                                 class="zoom-img"
-                                                alt="{{ variant.image.alt_text }}"
+                                                alt="{{ image.alt_text }}"
                                                 onmousemove="moveZoom(event)"
                                                 onclick="openImageModal({{ slide_index }})">
                                         </div>
+                                        {% widthratio slide_index 1 1 as slide_index %}
                                         {% with slide_index|add:1 as slide_index %}{% endwith %}
-                                    {% endif %}
-                                {% endfor %}
+                                    {% endfor %}
 
-                            {% endwith %}
+                                    {# VARIANT IMAGES #}
+                                    {% for variant in variant_images %}
+                                        {% if variant.image %}
+                                            <div class="carousel-item">
+                                                <img src="{{ variant.image.image.url }}"
+                                                    class="zoom-img"
+                                                    alt="{{ variant.image.alt_text }}"
+                                                    onmousemove="moveZoom(event)"
+                                                    onclick="openImageModal({{ slide_index }})">
+                                            </div>
+                                            {% with slide_index|add:1 as slide_index %}{% endwith %}
+                                        {% endif %}
+                                    {% endfor %}
+
+                                {% endwith %}
 
                                 
                             </div>
@@ -1096,6 +1140,9 @@
                             {% elif promo.discount_type == "free_delivery" %}
                                 <div class="discount">Free Delivery</div>
                             {% endif %}
+                            {% if product.customer_can_see_stock %}
+                                <div class="product-stock"><i class="fa fa-box"></i><span>Available:</span><strong id="stock-available"></strong> </div>                          
+                            {% endif %}
                             <!-- Countdown -->
                         </div>
                        
@@ -1106,6 +1153,9 @@
                 {% else %}
                     <div class="price-section">
                         <div class="price-now">{{ product.price }}</div>
+                        {% if product.customer_can_see_stock %}
+                            <div class="product-stock"><i class="fa fa-box"></i><span>Available:</span><strong id="stock-available"></strong> </div>                          
+                        {% endif %}
                     </div>
                 {% endif %}
 
@@ -1116,6 +1166,7 @@
                  {% regroup options by option_name as grouped_options %}
 
                 <div id="productOptions">
+                    
                     {% for group in grouped_options %}
                         {% with group.grouper|slugify as group_id %}
                         <div class="mb-3 option-group" data-option-name="{{ group.grouper }}">
@@ -1152,7 +1203,7 @@
                         <div class="safe-payment mt-3" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#shippingModal">
                             <div><i class="fa-solid fa-truck text-success"></i><b>Free shipping on all orders<i class="fa-solid fa-angle-right"></i></b></div>
                             {% if product.handling_time %}
-                                <div><span class="text-muted">Delivery:</span> with in {{ product.handling_time }} days</div>
+                                <div><span class="text-muted">Delivery:</span> till {{ estimated_date|date:"d M Y" }} </div>
                             {% endif %}
                             <div><span class="text-muted">Courier company:</span><b>TCS, Leopards...</b></div>
                         </div>
@@ -1714,23 +1765,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-zoom/1.7.21/jquery.zoom.min.js"></script>
 
     <script>
-        fetch('{% url 'token_obtain_pair' %}', {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                email: "mohsinali00260@gmail.com",
-                password: "Today@123"
-            })
-            })
-            .then(res => res.json())
-            .then(data => {
-                TOKEN=data.access;
-            // Save access token
-            localStorage.setItem("access_token", data.access);
-            })
-            .catch(err => console.error(err));
+    
 
             document.querySelectorAll(".wishlist-btn").forEach(button => {
 
@@ -1901,9 +1936,24 @@ productData.variants.forEach((v, i) => {
             const variantName = Object.values(selectedOptions).join(" / ");
             const variant = productData.variants.find( v => v.name.toLowerCase() === variantName.toLowerCase() );
             
-            if (variant) { document.querySelector(".price-now").innerText = variant.price; cartPrice=variant.price; cartVariant=variant.id; cartProduct=variant.product; }
+            if (variant) { document.querySelector(".price-now").innerText = variant.price; updateStock(variant.stock_quantity); cartPrice=variant.price; cartVariant=variant.id; cartProduct=variant.product; }
         }
+        function updateStock(stock){
+            const stockEl = document.getElementById("stock-available");
 
+            stockEl.textContent = stock;
+
+            if(stock > 10){
+                stockEl.className = "in-stock";
+            }
+            else if(stock > 0){
+                stockEl.className = "low-stock";
+            }
+            else{
+                stockEl.textContent = "Out of Stock";
+                stockEl.className = "out-stock";
+            }
+        }
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll(".default-option").forEach(btn => { btn.click(); });
 

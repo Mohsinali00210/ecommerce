@@ -86,53 +86,7 @@
                     </thead>
                     <tbody>
 
-                        <tr>
-                            <td>#ORD-10045</td>
-                            <td>John Doe</td>
-                            <td>12 Aug 2024</td>
-                            <td><span class="badge bg-success">Paid</span></td>
-                            <td>$249.99</td>
-                            <td><span class="badge bg-warning text-dark">Processing</span></td>
-                            <td>
-                                <button class="btn btn-outline-secondary btn-sm" title="View">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm" title="Update Status">
-                                    <i class="bi bi-arrow-repeat"></i>
-                                </button>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>#ORD-10044</td>
-                            <td>Jane Smith</td>
-                            <td>10 Aug 2024</td>
-                            <td><span class="badge bg-secondary">COD</span></td>
-                            <td>$99.50</td>
-                            <td><span class="badge bg-success">Delivered</span></td>
-                            <td>
-                                <button class="btn btn-outline-secondary btn-sm">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm">
-                                    <i class="bi bi-arrow-repeat"></i>
-                                </button>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>#ORD-10043</td>
-                            <td>Michael Brown</td>
-                            <td>08 Aug 2024</td>
-                            <td><span class="badge bg-danger">Failed</span></td>
-                            <td>$180.00</td>
-                            <td><span class="badge bg-danger">Cancelled</span></td>
-                            <td>
-                                <button class="btn btn-outline-secondary btn-sm">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                            </td>
-                        </tr>
+              
 
                     </tbody>
                 </table>
@@ -190,6 +144,10 @@
                                 <div class="col-md-6">
                                     <label class="form-label">Phone</label>
                                     <input type="text" class="form-control form-control-sm" id="CustomerPhone" readonly>
+                                </div>
+                                  <div class="col-md-6">
+                                    <label class="form-label">QR Code:</label>
+                                    <img id="modalOrderQRCode" src="" width="40%"/>
                                 </div>
                             </div>
                         </div>
@@ -336,7 +294,7 @@
 
                 const orderId = document.getElementById("OrderId").value;
                 const orderupdateBaseUrl = "{% url 'orderupdate' 0 %}";
-                 const url = orderupdateBaseUrl.replace("0", orderId);
+                const url = orderupdateBaseUrl.replace("0", orderId);
                 fetch(url, {
                     method: "PATCH",
                     headers: {
@@ -379,6 +337,7 @@
                         document.getElementById("CustomerName").value = data.customer_name;
                         document.getElementById("CustomerEmail").value = data.customer_email;
                         document.getElementById("CustomerPhone").value = data.customer_phone;
+                        document.getElementById("modalOrderQRCode").src = data.qr_code;
 
                         document.getElementById("ShippingAddress").value = data.shipping_address_text;
 
@@ -443,7 +402,7 @@
                         new bootstrap.Modal(document.getElementById('orderModal')).show();
                     });
             }
-            fetch('{% url 'token_obtain_pair' %}', {
+            {% comment %} fetch('{% url 'token_obtain_pair' %}', {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -459,7 +418,7 @@
                 // Save access token
                 localStorage.setItem("access_token", data.access);
                 })
-                .catch(err => console.error(err));
+                .catch(err => console.error(err)); {% endcomment %}
 
                 const ordersTableBody = document.querySelector("table tbody");
                 function openRequestModal(id, status) {

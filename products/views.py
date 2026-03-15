@@ -418,7 +418,7 @@ class OrdersListAPIView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        qs = Order.objects.filter(user=self.request.user).order_by("-created_at")
+        qs = Order.objects.order_by("-created_at")
 
         status_filter = self.request.GET.get("status")
         payment_filter = self.request.GET.get("payment")

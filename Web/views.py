@@ -11,7 +11,7 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticatedOrReadOnly,IsAuthenticated
 
 from rest_framework import status
-from .serializers import CheckoutSerializer,AddressSerializer,PlaceOrderSerializer,NotificationSerializer
+from .serializers import CheckoutSerializer,AddressSerializer,PlaceOrderSerializer,NotificationSerializer,CartSerializer
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -39,7 +39,9 @@ def ProductDetails(request, id):
         Product.objects.prefetch_related("images", "variants", "variant_options"),
         id=id
     )
-
+    
+    max_handling_days = product.handling_time
+    estimated_date = timezone.now() + timedelta(days=max_handling_days)
     now = timezone.now()
 
     # Product promotions
@@ -73,7 +75,7 @@ def ProductDetails(request, id):
     
     variants = product.variants.select_related("image")
     variants_json = json.dumps(
-        list(variants.values("name", "price","product","id")),
+        list(variants.values("name", "price","product","id","stock_quantity")),
         cls=DjangoJSONEncoder
     )
     can_review = OrderItem.objects.filter(
@@ -97,6 +99,7 @@ def ProductDetails(request, id):
         "related_products":related_products,
         "Reviews":Reviews,
         "can_review":can_review,
+        "estimated_date":estimated_date,
         "user_wishlist_ids": wishlist_ids
     }
 
@@ -154,6 +157,8 @@ class CartDetailAPIView(APIView):
         serializer = CartSerializer(cart)
         return Response(serializer.data)
 
+from decimal import Decimal
+from datetime import timedelta
 
 def MyCart(request):
     if request.user.is_authenticated:
@@ -181,10 +186,112 @@ def MyCart(request):
             )
             .first()
         )
+    shipping_total = Decimal(0)
+    additional_total = Decimal(0)
+    subtotal = Decimal(0)
+    handling_days = []
     if cart:
         current_date = timezone.now()
 
         for cartitem in cart.items.all():
+            product = cartitem.product
+
+            promo = (
+                product.promotions
+                .filter(start_date__lte=current_date, end_date__gte=current_date)
+                .first()
+            )
+            if promo:
+                final_price = promo.get_discounted_price(product.price)
+
+                product.final_price = final_price
+                product.discounted_price = final_price
+                product.discount_type = promo.discount_type
+                product.discount_value = promo.discount_value
+                product.has_discount = final_price < product.price
+            else:
+                product.final_price = product.price
+                product.discounted_price = product.price
+                product.discount_type = None
+                product.discount_value = None
+                product.has_discount = False
+            handling_days.append(product.handling_time)
+            subtotal += product.final_price * cartitem.quantity
+            shipping_total += product.shipping_charges
+            additional_total += product.additional_shipping_charges
+            print("shipping_charges ",product.shipping_charges)
+            print("additional_shipping_charges ",product.additional_shipping_charges)
+
+    max_handling_days = max(handling_days) if handling_days else 0
+    estimated_date = timezone.now() + timedelta(days=max_handling_days)
+    context = {
+        "cart": cart,
+        "subtotal": subtotal,
+        "shipping_total": shipping_total,
+        "additional_total": additional_total,
+        "final_total": subtotal + shipping_total + additional_total,
+        "estimated_date":estimated_date
+
+    }
+    return render(request, "Web/cart.html", context)
+
+from decimal import Decimal
+from django.utils import timezone
+
+def CheckoutPage(request):
+
+    defaultaddresses = Address.objects.filter(user=request.user, is_default=True)
+    addresses = Address.objects.filter(user=request.user)
+
+    checkout_items = request.session.get("checkout_items", [])
+
+    # create lookup dict
+    checkout_lookup = {str(i["cart_item_id"]): i for i in checkout_items}
+
+    if request.user.is_authenticated:
+        cart = (
+            Cart.objects
+            .filter(user=request.user, is_active=True)
+            .prefetch_related(
+                "items",
+                "items__product",
+                "items__variant",
+                "items__product__images",
+            )
+            .first()
+        )
+    else:
+        cart = (
+            Cart.objects
+            .filter(session_key=request.session.session_key, is_active=True)
+            .prefetch_related(
+                "items",
+                "items__product",
+                "items__variant",
+                "items__product__images",
+            )
+            .first()
+        )
+
+    shipping_total = Decimal(0)
+    additional_total = Decimal(0)
+    subtotal = Decimal(0)
+    handling_days = []
+
+    filtered_items = []
+
+    if cart:
+        current_date = timezone.now()
+
+        for cartitem in cart.items.all():
+
+            # skip if not selected for checkout
+            if str(cartitem.id) not in checkout_lookup:
+                continue
+
+            session_item = checkout_lookup[str(cartitem.id)]
+            quantity = session_item.get("quantity", cartitem.quantity)
+
             product = cartitem.product
 
             promo = (
@@ -207,13 +314,106 @@ def MyCart(request):
                 product.discount_type = None
                 product.discount_value = None
                 product.has_discount = False
+            handling_days.append(product.handling_time)
+            subtotal += product.final_price * quantity
+            shipping_total += product.shipping_charges
+            additional_total += product.additional_shipping_charges
+
+            cartitem.quantity = quantity
+            filtered_items.append(cartitem)
+    max_handling_days = max(handling_days) if handling_days else 0
+    estimated_date = timezone.now() + timedelta(days=max_handling_days)
+    context = {
+        "cart_items": filtered_items,
+        "subtotal": subtotal,
+        "shipping_total": shipping_total,
+        "additional_total": additional_total,
+        "final_total": subtotal + shipping_total + additional_total,
+        "estimated_date":estimated_date
+    }
+
+    return render(
+        request,
+        "Web/checkout.html",
+        {
+            "items": context,
+            "defaultaddresses": defaultaddresses,
+            "addresses": addresses
+        }
+    )
+    # defaultaddresses = Address.objects.filter(user=request.user,is_default=True)
+    # addresses = Address.objects.filter(user=request.user)
+    # checkout_items = request.session.get("checkout_items", [])
+
+    # updated_icheckout_items = request.session.get("checkout_items", [])
+    # updated_items = []
+    # shipping_total = Decimal(0)
+    # additional_total = Decimal(0)
+    # subtotal = Decimal(0)
+    # if checkout_items:
+    #     product_ids = [item["product_id"] for item in checkout_items]
+    #     variant_ids = [item.get("variant_id") for item in checkout_items if item.get("variant_id")]
+
+    #     products = (Product.objects.filter(id__in=product_ids).prefetch_related("images", "promotions"))
+    #     variants = (ProductVariant.objects.filter(id__in=variant_ids).select_related("product"))
+
+    #     product_map = {p.id: p for p in products}
+    #     variant_map = {v.id: v for v in variants}
+
+    #     now = timezone.now()
+
+    #     for item in checkout_items:
+    #         product_id = int(item["product_id"])          # 🔥 FIX
+    #         variant_id = int(item["variant_id"]) if item.get("variant_id") else None
+
+    #         product = product_map.get(product_id)
+    #         variant = variant_map.get(variant_id)
             
 
-    context = {
-        "cart": cart
-    }
-    return render(request, "Web/cart.html", context)
+    #         if not product:
+    #             continue
 
+    #         base_price = variant.price if variant else product.price
+
+    #         promo = product.promotions.filter(
+    #             start_date__lte=now,
+    #             end_date__gte=now
+    #         ).first()
+
+    #         final_price = promo.get_discounted_price(base_price) if promo else base_price
+            
+    #         subtotal += final_price * item.get("qty", 1)
+    #         shipping_total += product.shipping_charges
+    #         additional_total += product.additional_shipping_charges
+
+    #         updated_items.append({
+    #             "product_id": product.id,
+    #             "variant_id": variant.id if variant else None,
+    #             "name": product.name,
+    #             "variant_name": variant.name if variant else "",
+    #             "qty": item.get("qty", 1),
+    #             "price": base_price,
+    #             "final_price": final_price,
+    #             "subtotal": subtotal,
+    #             "shipping_total": shipping_total,
+    #             "additional_total": additional_total,
+    #             "discounted_price": final_price,
+    #             "discount_type": promo.discount_type if promo else None,
+    #             "image": (
+    #                 variant.image.image.url
+    #                 if variant and variant.image
+    #                 else product.images.first().image.url
+    #                 if product.images.exists()
+    #                 else ""
+    #             ),
+    #         })
+    #     print(updated_items)
+    #     # persist clean data back to session
+    #     # request.session["checkout_items"] = updated_items
+    #     # request.session.modified = True
+
+    
+    # return render( request, "Web/checkout.html",  {"items": updated_items,"defaultaddresses":defaultaddresses,"addresses":addresses})
 
 class RemoveCartItemAPIView(APIView):
     authentication_classes = [SessionAuthentication]
@@ -289,76 +489,6 @@ def SaveCheckoutSession(request):
         )
 
 
-def CheckoutPage(request):
-
-    defaultaddresses = Address.objects.filter(user=request.user,is_default=True)
-    addresses = Address.objects.filter(user=request.user)
-    checkout_items = request.session.get("checkout_items", [])
-
-    updated_icheckout_items = request.session.get("checkout_items", [])
-    updated_items = []
-
-    if checkout_items:
-        product_ids = [item["product_id"] for item in checkout_items]
-        variant_ids = [item.get("variant_id") for item in checkout_items if item.get("variant_id")]
-
-        products = (Product.objects.filter(id__in=product_ids).prefetch_related("images", "promotions"))
-        variants = (ProductVariant.objects.filter(id__in=variant_ids).select_related("product"))
-
-        product_map = {p.id: p for p in products}
-        variant_map = {v.id: v for v in variants}
-
-        now = timezone.now()
-
-        for item in checkout_items:
-            product_id = int(item["product_id"])          # 🔥 FIX
-            variant_id = int(item["variant_id"]) if item.get("variant_id") else None
-
-            product = product_map.get(product_id)
-            variant = variant_map.get(variant_id)
-            
-
-            if not product:
-                continue
-
-            base_price = variant.price if variant else product.price
-
-            promo = product.promotions.filter(
-                start_date__lte=now,
-                end_date__gte=now
-            ).first()
-
-            final_price = promo.get_discounted_price(base_price) if promo else base_price
-
-            updated_items.append({
-                "product_id": product.id,
-                "variant_id": variant.id if variant else None,
-                "name": product.name,
-                "variant_name": variant.name if variant else "",
-                "qty": item.get("qty", 1),
-                "price": base_price,
-                "final_price": final_price,
-                "discounted_price": final_price,
-                "discount_type": promo.discount_type if promo else None,
-                "image": (
-                    variant.image.image.url
-                    if variant and variant.image
-                    else product.images.first().image.url
-                    if product.images.exists()
-                    else ""
-                ),
-            })
-        print(updated_items)
-        # persist clean data back to session
-        # request.session["checkout_items"] = updated_items
-        # request.session.modified = True
-
-    
-    return render(
-        request,
-        "Web/checkout.html",
-        {"items": updated_items,"defaultaddresses":defaultaddresses,"addresses":addresses}
-    )
 
 def OrderSuccess(request):
 
@@ -481,7 +611,7 @@ class PlaceOrderAPIView(APIView):
             order = serializer.save()
             notification = Notification.objects.create(
                 title="Order Placed Successfully",
-                message=f"Your order #{order.id} has been placed successfully. Total: {order.total}",
+                message=f"Your order #{order.id} has been placed successfully. Total: {order.total_amount}",
                 notification_type="order",
                 is_general=False,
                 is_active=True,
@@ -492,7 +622,7 @@ class PlaceOrderAPIView(APIView):
                 {
                     "message": "Order placed successfully",
                     "order_id": order.id,
-                    "total": order.total,
+                    "total": order.total_amount,
                 },
                 status=status.HTTP_201_CREATED
             )
@@ -665,3 +795,174 @@ class UserNotificationAPIView(APIView):
 
         serializer = NotificationSerializer(notifications, many=True)
         return Response(serializer.data)
+
+
+from django.db.models import Q, F
+from products.models import Product, ProductVariant, Category, Brand
+from django.db.models import Count
+def product_list(request):
+    products = Product.objects.filter(status='active', visible_individually=True)
+    categories = Category.objects.annotate(
+        product_count=Count('products', filter=Q(products__status='active', products__visible_individually=True))
+    ).filter(product_count__gt=0)
+    brands = Brand.objects.all()
+
+    # ===== Filters =====
+    category_id = request.GET.get('category')
+    if category_id:
+        products = products.filter(category__id=category_id)
+
+    brand_id = request.GET.get('brand')
+    if brand_id:
+        products = products.filter(brand_id=brand_id)
+
+    price_min = request.GET.get('price_min')
+    price_max = request.GET.get('price_max')
+    if price_min:
+        products = products.filter(price__gte=float(price_min))
+    if price_max:
+        products = products.filter(price__lte=float(price_max))
+
+    availability = request.GET.get('availability')
+    if availability:
+        if availability == 'in_stock':
+            products = products.filter(stock_status='in_stock')
+        elif availability == 'low_stock':
+            products = products.filter(stock_status='low_stock')
+        elif availability == 'out_of_stock':
+            products = products.filter(stock_status='out_of_stock')
+
+    rating_min = request.GET.get('rating')
+    if rating_min:
+        products = products.filter(star_count__gte=int(rating_min))
+
+    search = request.GET.get('search')
+    if search:
+        products = products.filter(
+            Q(name__icontains=search) |
+            Q(description__icontains=search) |
+            Q(brief_description__icontains=search)
+        )
+
+    # ===== Sorting =====
+    sort = request.GET.get('sort')
+    if sort == 'price_asc':
+        products = products.order_by('price')
+    elif sort == 'price_desc':
+        products = products.order_by('-price')
+    elif sort == 'popularity':
+        products = products.order_by('-sold')
+    elif sort == 'new_arrivals':
+        products = products.order_by('-id')  # assuming id increments with new products
+    elif sort == 'discount':
+        products = products.order_by('-discount_percentage')
+
+    context = {
+        "products": products.distinct(),
+        "categories": categories,
+        "brands": brands,
+        "filters": request.GET
+    }
+
+    return render(request, 'web/product_list.html', context)
+
+
+
+
+from django.db.models import Sum
+
+class UserCartCountAPIView(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        if request.user.is_authenticated:
+            cart = (
+                Cart.objects
+                .filter(user=request.user,is_active=True)
+                .prefetch_related(
+                    "items",
+                    "items__product",
+                    "items__variant",
+                    "items__product__images",
+                )
+                .first()
+            )
+        else:
+
+            cart = (
+                Cart.objects
+                .filter(session_key=request.session.session_key, is_active=True)
+                .prefetch_related(
+                    "items",
+                    "items__product",
+                    "items__variant",
+                    "items__product__images",
+                )
+                .first()
+            )
+        shipping_total = Decimal(0)
+        additional_total = Decimal(0)
+        subtotal = Decimal(0)
+        cart_products_count=0
+        cart_items_count=0
+        if cart:
+            current_date = timezone.now()
+
+            for cartitem in cart.items.all():
+                product = cartitem.product
+
+                promo = (
+                    product.promotions
+                    .filter(start_date__lte=current_date, end_date__gte=current_date)
+                    .first()
+                )
+                if promo:
+                    final_price = promo.get_discounted_price(product.price)
+
+                    product.final_price = final_price
+                    product.discounted_price = final_price
+                    product.discount_type = promo.discount_type
+                    product.discount_value = promo.discount_value
+                    product.has_discount = final_price < product.price
+                else:
+                    product.final_price = product.price
+                    product.discounted_price = product.price
+                    product.discount_type = None
+                    product.discount_value = None
+                    product.has_discount = False
+                
+                subtotal += product.final_price * cartitem.quantity
+                shipping_total += product.shipping_charges
+                additional_total += product.additional_shipping_charges
+                print("shipping_charges ",product.shipping_charges)
+                print("additional_shipping_charges ",product.additional_shipping_charges)
+
+            cart_items_count = cart.items.aggregate(total=Sum("quantity"))["total"] or 0
+            cart_products_count = cart.items.count()
+        context = {
+            "cart": CartSerializer(cart).data,
+            "subtotal": subtotal,
+            "shipping_total": shipping_total,
+            "additional_total": additional_total,
+            "final_total": subtotal + shipping_total + additional_total,
+            "cart_items_count": cart_items_count,
+            "cart_products_count": cart_products_count,
+        }
+
+        return Response(context)
+
+
+
+
+from rest_framework_simplejwt.tokens import RefreshToken
+
+@login_required
+def get_token_for_logged_in_user(request):
+    user = request.user
+    refresh = RefreshToken.for_user(user)
+    
+    return JsonResponse({
+        'access': str(refresh.access_token),
+        'refresh': str(refresh),
+    })

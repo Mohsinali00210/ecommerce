@@ -1,0 +1,190 @@
+{% extends "WebBase.html" %}
+{% block content %}
+   <style>
+        .product-card {
+        transition: transform 0.2s;
+        }
+        .product-card:hover {
+        transform: translateY(-5px);
+        }
+        .product-card .hover-overlay {
+        transition: opacity 0.2s;
+        }
+        .product-card:hover .hover-overlay {
+        opacity: 1;
+        }
+        .card-img-top {
+        object-fit: cover;
+        height: 180px;
+        }
+        </style>
+
+<div class="container my-5">
+
+  <div class="row">
+    <!-- ===== FILTERS ===== -->
+    <div class="col-md-3">
+      <div class="card p-3 shadow-sm mb-3">
+        <h5 class="fw-bold mb-3">Filters</h5>
+
+        <!-- Search -->
+        <input type="text" id="searchInput" placeholder="Search products..." class="form-control mb-3" value="{{ filters.search|default:'' }}">
+
+        <!-- Categories -->
+        <h6 class="fw-semibold">Categories</h6>
+        <ul class="list-group mb-3">
+          {% for cat in categories %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="?category={{ cat.id }}{% if filters.brand %}&brand={{ filters.brand }}{% endif %}">{{ cat.name }}</a>
+            <span class="badge bg-primary rounded-pill">{{ cat.products.count }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+
+        <!-- Brands -->
+        <h6 class="fw-semibold">Brands</h6>
+        <select id="brandFilter" class="form-select mb-3">
+          <option value="">All Brands</option>
+          {% for b in brands %}
+          <option value="{{ b.id }}" {% if filters.brand == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+          {% endfor %}
+        </select>
+
+        <!-- Price -->
+        <h6 class="fw-semibold">Price</h6>
+        <div class="d-flex gap-2 mb-3">
+          <input type="number" id="priceMin" placeholder="Min" class="form-control" value="{{ filters.price_min|default:'' }}">
+          <input type="number" id="priceMax" placeholder="Max" class="form-control" value="{{ filters.price_max|default:'' }}">
+        </div>
+
+        <!-- Availability -->
+        <h6 class="fw-semibold">Availability</h6>
+        <select id="availabilityFilter" class="form-select mb-3">
+          <option value="">All</option>
+          <option value="in_stock" {% if filters.availability == "in_stock" %}selected{% endif %}>In Stock</option>
+          <option value="low_stock" {% if filters.availability == "low_stock" %}selected{% endif %}>Low Stock</option>
+          <option value="out_of_stock" {% if filters.availability == "out_of_stock" %}selected{% endif %}>Out of Stock</option>
+        </select>
+
+        <!-- Rating -->
+        <h6 class="fw-semibold">Minimum Rating</h6>
+        <select id="ratingFilter" class="form-select mb-3">
+          <option value="">Any</option>
+          {% for i in "12345" %}
+          <option value="{{ i }}" {% if filters.rating == i %}selected{% endif %}>{{ i }} Stars & Up</option>
+          {% endfor %}
+        </select>
+
+        <button class="btn btn-primary w-100" id="applyFilters">Apply Filters</button>
+      </div>
+    </div>
+
+    <!-- ===== PRODUCT LIST ===== -->
+    <div class="col-md-9">
+      <div class="d-flex justify-content-between mb-3">
+        <div>
+          <span class="fw-semibold">{{ products.count }} Products found</span>
+        </div>
+        <div>
+          <select id="sortFilter" class="form-select">
+            <option value="">Sort By</option>
+            <option value="price_asc" {% if filters.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
+            <option value="price_desc" {% if filters.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
+            <option value="popularity" {% if filters.sort == "popularity" %}selected{% endif %}>Popularity</option>
+            <option value="new_arrivals" {% if filters.sort == "new_arrivals" %}selected{% endif %}>New Arrivals</option>
+            <option value="discount" {% if filters.sort == "discount" %}selected{% endif %}>Discount</option>
+          </select>
+        </div>
+      </div>
+
+        <div class="row g-3">
+            {% for product in products %}
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="card product-card h-100 border-0 shadow-sm position-relative overflow-hidden">
+                    
+                        <!-- Product Image -->
+                        <a href="{% url 'ProductDetails' product.id %}" class="d-block position-relative">
+                            {% if product.images.all %}
+                            <img src="{{ product.images.all.0.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                            {% endif %}
+                            
+                            {% if product.old_price %}
+                            <span class="badge bg-danger position-absolute top-0 start-0 m-2">
+                            -{{ product.discount_percentage }}%
+                            </span>
+                            {% endif %}
+                        </a>
+
+                        <div class="card-body p-2">
+                            <!-- Product Name -->
+                            <h6 class="card-title text-truncate" title="{{ product.name }}">{{ product.name }}</h6>
+
+                            <!-- Price -->
+                            <div class="d-flex align-items-center mb-1">
+                            <span class="fw-bold text-danger me-1">${{ product.price }}</span>
+                            {% if product.old_price %}
+                            <span class="text-muted text-decoration-line-through small">${{ product.old_price }}</span>
+                            {% endif %}
+                            </div>
+
+                            <!-- Rating -->
+                            <div class="d-flex align-items-center mb-2">
+                            <span class="text-warning me-1">
+                                {% for i in "12345" %}
+                                {% if forloop.counter <= product.star_count %}★{% else %}☆{% endif %}
+                                {% endfor %}
+                            </span>
+                            <small class="text-muted">({{ product.rating_count }})</small>
+                            </div>
+
+                            <!-- Add to Cart Button (hover effect) -->
+                            <div class="d-grid">
+                            <button class="btn btn-sm btn-outline-primary add-to-cart-btn">🛒 Add</button>
+                            </div>
+                        </div>
+
+                        <!-- Hover Overlay for Quick Actions -->
+                        <div class="hover-overlay position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center opacity-0 bg-dark bg-opacity-25 transition">
+                            <div class="d-flex gap-2">
+                            <a href="{% url 'ProductDetails' product.id %}" class="btn btn-sm btn-light">View</a>
+                            <button class="btn btn-sm btn-primary">Add</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+     
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.getElementById('applyFilters').addEventListener('click', function() {
+    const params = new URLSearchParams(window.location.search);
+
+    const category = params.get('category');
+    const brand = document.getElementById('brandFilter').value;
+    const priceMin = document.getElementById('priceMin').value;
+    const priceMax = document.getElementById('priceMax').value;
+    const availability = document.getElementById('availabilityFilter').value;
+    const rating = document.getElementById('ratingFilter').value;
+    const sort = document.getElementById('sortFilter').value;
+    const search = document.getElementById('searchInput').value;
+
+    if(brand) params.set('brand', brand); else params.delete('brand');
+    if(priceMin) params.set('price_min', priceMin); else params.delete('price_min');
+    if(priceMax) params.set('price_max', priceMax); else params.delete('price_max');
+    if(availability) params.set('availability', availability); else params.delete('availability');
+    if(rating) params.set('rating', rating); else params.delete('rating');
+    if(sort) params.set('sort', sort); else params.delete('sort');
+    if(search) params.set('search', search); else params.delete('search');
+
+    window.location.search = params.toString();
+});
+</script>
+
+{% endblock %}

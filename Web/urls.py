@@ -1,7 +1,8 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
-from .views import UserNotificationAPIView,toggle_wishlist,ProductReviewCreateAPIView,OrderRequestAPIView,OrderDetailAPIView,Contact,MyOrders,PlaceOrderAPIView,AddressAPIView,SaveCheckoutSession,OrderSuccess,CheckoutPage,MyCart,Index,ProductDetails,AddToCartAPIView,CartDetailAPIView,RemoveCartItemAPIView,SaveCheckoutSession,CheckoutPage
+from .views import get_token_for_logged_in_user,UserCartCountAPIView,product_list,UserNotificationAPIView,toggle_wishlist,ProductReviewCreateAPIView,OrderRequestAPIView,OrderDetailAPIView,Contact,MyOrders,PlaceOrderAPIView,AddressAPIView,SaveCheckoutSession,OrderSuccess,CheckoutPage,MyCart,Index,ProductDetails,AddToCartAPIView,CartDetailAPIView,RemoveCartItemAPIView,SaveCheckoutSession,CheckoutPage
+from accounts.views import profile_view,update_profile_ajax
 urlpatterns = [
     path("", Index, name="Home"),
     path("Product/<int:id>/", ProductDetails, name="ProductDetails"),
@@ -22,6 +23,11 @@ urlpatterns = [
     path("review/",ProductReviewCreateAPIView.as_view(),name="ProductReviewCreate"),
     path("wishlisttoggle/<int:product_id>/", toggle_wishlist, name="toggle_wishlist"),
     path("notifications/", UserNotificationAPIView.as_view(), name="notifications"),
+    path("profile/", profile_view, name="profile"),
+        path('ajax/update-profile/', update_profile_ajax, name='update_profile_ajax'),
+        path('product_list/', product_list, name='product_list'),
+        path('User_Cart_Count/', UserCartCountAPIView.as_view(), name='User_Cart_Count'),
+    path('get-my-token/', get_token_for_logged_in_user, name='get_my_token'),
 ]
 
 if settings.DEBUG:

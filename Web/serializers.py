@@ -190,7 +190,7 @@ class PlaceOrderSerializer(serializers.Serializer):
         variant_map = {v.id: v for v in variants}
 
         now = timezone.now()
-        shipping_charge = 250 if address.city.lower() != "karachi" else 0
+        shipping_charge = 280 if address.city.lower() != "karachi" else 0
 
         order = Order.objects.create(
             user=user,
@@ -234,7 +234,7 @@ class PlaceOrderSerializer(serializers.Serializer):
             subtotal += final_price * qty
 
         order.subtotal = subtotal
-        order.total = subtotal + shipping_charge
+        order.total_amount = subtotal + shipping_charge
         order.save()
 
         # clear session
@@ -332,6 +332,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "shipping_address_text",
             "billing_address_text",
             "items",
+            "qr_code",
             "requests",
         ]
 
@@ -457,6 +458,6 @@ class NotificationSerializer(serializers.ModelSerializer):
             'title',
             'message',
             'notification_type',
-            'is_read',
+            # 'is_read',
             'created_at'
         ]

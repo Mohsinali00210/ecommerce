@@ -138,7 +138,94 @@
 </head>
 <body>
 
+<script>
+    function syncSessionWithToken() {
+        fetch(`{% url 'get_my_token' %}`)
+        .then(res => {
+            if (res.status === 403) {
+                console.error("User is not logged into Django session.");
+                return;
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (data && data.access) {
+                localStorage.setItem("access_token", data.access);
+                localStorage.setItem("refresh_token", data.refresh);
+            }
+        })
+        .catch(err => console.error("Sync error:", err));
+    }
+    $(document).ready(function() {
+        syncSessionWithToken().then(() => {
+            setInterval(refreshToken, 50 * 60 * 1000);
+        });
+    });
+    window.onfocus = function() {
+        refreshToken();
+    };
+    async function refreshToken() {
+        const refresh = localStorage.getItem("refresh_token");
 
+        if (!refresh) {
+            console.warn("No refresh token found. User must log in.");
+            return null;
+        }
+
+        try {
+            const response = await fetch('/api/token/refresh/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ refresh: refresh }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // Update the access token in storage
+                localStorage.setItem("access_token", data.access);
+                console.log("Access token refreshed successfully.");
+                return data.access;
+            } else {
+                // If the refresh token is also expired or invalid
+                console.error("Refresh token expired. Logging out...");
+                localStorage.clear();
+                window.location.href = "/login/"; 
+                return null;
+            }
+        } catch (error) {
+            console.error("Error during token refresh:", error);
+            return null;
+        }
+    }
+    async function authorizedApiCall(url, options = {}) {
+        let token = localStorage.getItem("access_token");
+
+        // Add Authorization header
+        options.headers = {
+            ...options.headers,
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+        };
+
+        let response = await fetch(url, options);
+
+        // If token is expired (Django returns 401)
+        if (response.status === 401) {
+            console.log("Access token expired, attempting refresh...");
+            const newToken = await refreshToken();
+
+            if (newToken) {
+                // Update header with the NEW token and retry the call once
+                options.headers["Authorization"] = `Bearer ${newToken}`;
+                response = await fetch(url, options);
+            }
+        }
+
+        return response;
+    }    
+<script>
 
 
 <!-- Sidebar -->

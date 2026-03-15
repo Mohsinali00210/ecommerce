@@ -5,233 +5,6 @@
 {% block extra_css %}
     
 <style>
-    .product-card {
-        background: #fff;
-        border-radius: 8px;
-        padding: 0px;
-        transition: all .2s ease-in-out;
-
-    }
-
-    .product-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 18px rgba(0,0,0,.1);
-    }
-
-    .product-img {
-        width: 100%;
-        border-radius: 8px;
-        object-fit: cover;
-    }
-
-    .sale-badge {
-        background: #e00;
-        color: #fff;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-weight: bold;
-    }
-    .price {
-            font-weight: bold;
-            color: #e85858;
-            font-size: 11px;
-        }
-
-        .old-price {
-            text-decoration: line-through;
-            color: gray;
-            margin-left: 4px;
-        }
-
-        .sold-text {
-            color: #555;
-            margin-left: 8px;
-        }
-
-        .rating-stars {
-            color: #f5b301;
-            font-size: 11px;
-        }
-        .rating-stars span{
-            font-size: 11px;
-        }
-        .add-cart-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 1px solid #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 14px;
-            background: #fff;
-        }
-    .add-cart-btn:hover{
-        transform: translateY(-5px);
-            box-shadow: 0 5px 18px rgba(0,0,0,.1);
-    }
-        .view-more-btn {
-            width: 200px;
-            border-radius: 30px;
-            padding: 10px;
-            border: 1px solid #222;
-            background: #fff;
-            font-size: 14px;
-            cursor: pointer;
-            transition: .2s;
-        }
-
-        .view-more-btn:hover {
-            background: #f2f2f2;
-        }
-        .product-card {
-        background: #fff;
-        border-radius: 8px;
-        padding: 0px;
-        transition: all .2s ease-in-out;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-                z-index: 2001 !important;
-
-    }
-
-    .product-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 18px rgba(0,0,0,.1);
-    }
-
-    /* FIX: Same image height for all */
-    .product-img {
-        width: 100%;
-        height: 150px;       /* set equal height */
-        border-radius: 8px;
-        object-fit: cover;   /* crop nicely */
-    }
-
-    /* FIX: Make content grow evenly */
-    .product-info {
-        flex-grow: 1;
-        padding: 0px 9px;
-    }
-    .product-title {
-        font-size: 12px;
-    }
-    /* FIX: Align cart button at bottom */
-    .add-cart-btn {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        border: 1px solid #333;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        font-size: 14px;
-        background: #fff;
-        margin-top: auto;  /* pushes button to bottom */
-        position: relative;
-        top:-20px;
-    }
-    .carousel-item img{
-        width: 98%;
-
-    }
-    .product-container{
-                    z-index: 2001 !important;
-
-    }
-
-
-    /* Top Navbar */
-    .topnav-main {
-        background: #8f8f8f;
-        color: white;
-    }
-
-    /* Sub Navbar (desktop) */
-    .sub-navbar {
-        background: #5f5f5f;
-        padding: 8px 15px;
-    }
-    .sub-navbar a {
-        color: white;
-        margin-right: 20px;
-        text-decoration: none;
-    }
-
-    /* Mobile Sidebar */
-    .mobile-sidebar {
-        width: 270px;
-        height: 100vh;
-        background: white;
-        position: fixed;
-        top: 0;
-        left: -300px;
-        padding-top: 20px;
-        overflow-y: auto;
-        transition: all .3s ease-in-out;
-        z-index: 2000;
-        border-right: 1px solid #ddd;
-    }
-
-    /* Show Sidebar */
-    .mobile-sidebar.open {
-        left: 0;
-    }
-
-    /* Sidebar links */
-    .mobile-sidebar a {
-        display: block;
-        padding: 10px 20px;
-        color: #333;
-        text-decoration: none;
-    }
-    .mobile-sidebar a:hover {
-        background: #f2f2f2;
-    }
-
-    /* Close button */
-    .close-btn {
-        font-size: 18px;
-        cursor: pointer;
-        position: absolute;
-        top: 10px;
-        right: 15px;
-    }
-
-    /* Mobile Search box */
-    .search-mobile input {
-        border: 1px solid #999;
-        margin-bottom: 15px;
-    }
-
-    /* Hamburger icon */
-    .menu-toggle {
-        font-size: 22px;
-        cursor: pointer;
-    }
-
-    /* Hide sidebar on desktop */
-    @media (min-width: 992px) {
-        .mobile-sidebar.open .mobile-nav-items {
-            display: none;
-        }
-    }
-    .old-price {
-            text-decoration: line-through;
-            color: gray;
-            font-size: 12px;
-            margin-left: 4px;
-        }
-    div#sliderProducts
-    {
-        height: 200px;
-    }
-    
-</style>
-<style>
 
     /* Layout */
     .cart-container {
@@ -474,53 +247,6 @@
 
 
 
-    /* Top Navbar */
-    .topnav-main {
-        background: #8f8f8f;
-        color: white;
-    }
-
-    /* Sub Navbar (desktop) */
-    .sub-navbar {
-        background: #5f5f5f;
-        padding: 8px 15px;
-    }
-    .sub-navbar a {
-        color: white;
-        margin-right: 20px;
-        text-decoration: none;
-    }
-
-    /* Mobile Sidebar */
-    .mobile-sidebar {
-        width: 270px;
-        height: 100vh;
-        background: white;
-        position: fixed;
-        top: 0;
-        left: -300px;
-        padding-top: 20px;
-        overflow-y: auto;
-        transition: all .3s ease-in-out;
-        z-index: 2000;
-        border-right: 1px solid #ddd;
-    }
-
-    /* Show Sidebar */
-    .mobile-sidebar.open {
-        left: 0;
-    }
-
-    /* Sidebar links */
-    .mobile-sidebar a {
-        display: block;
-        padding: 10px 20px;
-        color: #333;
-        text-decoration: none;
-    }
-    .mobile-sidebar a:hover {
-        background: #f2f2f2;
-    }
 
     /* Close button */
     .close-btn {
@@ -531,17 +257,6 @@
         right: 15px;
     }
 
-    /* Mobile Search box */
-    .search-mobile input {
-        border: 1px solid #999;
-        margin-bottom: 15px;
-    }
-
-    /* Hamburger icon */
-    .menu-toggle {
-        font-size: 26px;
-        cursor: pointer;
-    }
 
     /* Hide sidebar on desktop */
     @media (min-width: 992px) {
@@ -602,20 +317,23 @@
                         <input type="checkbox" id="selectAll">
                         <label for="selectAll" class="m-0">Select all (1)</label>
                     </div>
-
+                    
                     {% if cart and cart.items.all %}
                         {% for cartItem in cart.items.all %}
                             <div class="cart-item"
                                 data-id="{{ cartItem.id }}"
                                 data-price="{{ cartItem.product.final_price }}"
-                                data-qty="{{ cartItem.quantity }}">
+                                data-qty="{{ cartItem.quantity }}"
+                                data-shipping="{{ cartItem.product.shipping_charges }}"
+                                data-additional="{{ cartItem.product.additional_shipping_charges }}">
 
                                 <input type="checkbox"
-                                    class="item-check" data-productId="{{cartItem.product.id}}"
+                                    class="item-check cart-check" data-productId="{{cartItem.product.id}}"
                                                         data-variantId="{{cartItem.variant.id}}"
                                                         data-itemId="{{cartItem.id}}"
-                                    checked>
-
+                                                        data-shipping="{{ cartItem.product.shipping_charges }}"
+                                                        data-additional="{{ cartItem.product.additional_shipping_charges }}"
+                                                        checked>
                                 <a href="{% url 'ProductDetails' id=cartItem.product.id %}">
                                     {% if cartItem.product.images.all %}
                                         <img src="{{ cartItem.product.images.all.0.image.url }}"
@@ -700,25 +418,41 @@
                 <div class="cart-right">
                     <div class="summary-box">
                         <h4>Order Summary</h4>
-
+                        <hr>
                         <div class="summary-row">
                             <span>Item total:</span>
-                            <span id="itemTotal">Rs.4,390</span>
+                            <span id="itemTotal">Rs.{{ subtotal }}</span>
                         </div>
 
                         <div class="summary-row">
-                            <span>Item discount:</span>
-                            <span id="itemDiscount" class="text-danger">-Rs.2,602</span>
+                            <span>Shipping:</span>
+                            <span id="itemShippingCharges">Rs.{{ shipping_total }}</span>
                         </div>
 
-                        <hr>
+                        <div class="summary-row">
+                            <span>Additional Shipping:</span>
+                            <span id="itemAdditionalCharges">Rs.{{ additional_total }}</span>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Discount:</span>
+                            <span id="itemDiscount">Rs.{{ additional_total }}</span>
+                        </div>
 
                         <div class="summary-row fw-bold">
                             <span>Total</span>
-                            <span id="finalTotal">Rs.1,788</span>
+                            <span id="finalTotal">Rs.{{ final_total }}</span>
                         </div>
 
+                        
+
+
+
                         <a href="./CheckOut.html" class="checkout-btn">Checkout (1)</a>
+                        <div class="safe-payment mt-3">
+                                <i class="fa-solid fa-circle-info text-success"></i>
+                                Delivary: till {{ estimated_date|date:"d M Y" }}
+                        </div>
                         <div class="safe-payment mt-3">
                                 <i class="fa-solid fa-circle-info text-success"></i>
                                 Item availability and pricing are not guaranteed until payment is final.
@@ -826,6 +560,47 @@
 {% block extra_js %}
 
     <script>
+        function calculateCart() {
+
+            let subtotal = 0;
+            let shipping = 0;
+            let additional = 0;
+
+            document.querySelectorAll(".cart-item").forEach(item => {
+
+                const checked = item.querySelector(".cart-check").checked;
+
+                if(!checked) return;
+
+                const price = parseFloat(item.dataset.price);
+                const ship = parseFloat(item.dataset.shipping);
+                const add = parseFloat(item.dataset.additional);
+                const qty = parseInt(item.querySelector(".qty-select").value);
+
+                subtotal += price * qty;
+                shipping += ship;
+                additional += add;
+            });
+
+            const total = subtotal + shipping + additional;
+
+            document.getElementById("itemTotal").innerText = "Rs." + subtotal.toFixed(2);
+            document.getElementById("itemShippingCharges").innerText = "Rs." + shipping.toFixed(2);
+            document.getElementById("itemAdditionalCharges").innerText = "Rs." + additional.toFixed(2);
+            document.getElementById("finalTotal").innerText = "Rs." + total.toFixed(2);
+        }
+
+        document.addEventListener("change", function(e){
+
+            if(e.target.classList.contains("qty-select") ||
+            e.target.classList.contains("cart-check")){
+                calculateCart();
+            }
+
+        });
+
+        calculateCart();
+
         document.querySelector(".checkout-btn").addEventListener("click", function (e) {
             e.preventDefault();
             const selectedItems = [];

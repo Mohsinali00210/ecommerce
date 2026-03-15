@@ -1,0 +1,341 @@
+{% extends "WebBase.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+
+  <div class="row">
+
+    <!-- ===== PROFILE SECTION ===== -->
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0 fw-semibold">My Profile</h5>
+          <button class="btn btn-outline-primary btn-sm" id="editBtn">Edit Profile</button>
+        </div>
+        <div class="card-body">
+          <form id="profileForm">
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Full Name</label>
+              <input type="text" class="form-control profile-input" value="{{ user.full_name }}" disabled id="full_name">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Email Address</label>
+              <input type="email" class="form-control profile-input" value="{{ user.email }}" disabled id="email">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Phone Number</label>
+              <input type="tel" class="form-control profile-input" value="{{ user.mobile }}" disabled id="mobile">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Gender</label>
+              <select class="form-select profile-input" disabled id="gender">
+                <option {% if user.gender == 'Male' %}selected{% endif %}>Male</option>
+                <option {% if user.gender == 'Female' %}selected{% endif %}>Female</option>
+                <option {% if user.gender == 'Other' %}selected{% endif %}>Other</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Date of Birth</label>
+              <input type="date" class="form-control profile-input" value="{{ user.dob|date:'Y-m-d' }}" disabled id="dob">
+            </div>
+
+            <div class="d-none" id="actionButtons">
+              <button type="button" class="btn btn-success me-2" id="saveProfile">Save Changes</button>
+              <button type="button" class="btn btn-outline-secondary" id="cancelBtn">Cancel</button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== WALLET SECTION ===== -->
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white">
+          <h5 class="mb-0 fw-semibold">Wallet</h5>
+        </div>
+        <div class="card-body">
+          <h3 class="text-success">
+            Balance: Rs. 
+            {% if wallet %}
+              {{ wallet.balance }}
+            {% else %}
+              0.00
+            {% endif %}
+          </h3>
+          <hr>
+          <h6>Recent Transactions</h6>
+          <ul class="list-group list-group-flush">
+            {% if transactions %}
+              {% for tx in transactions %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ tx.description|default:"-" }}
+                <span class="fw-bold {% if tx.type == 'credit' %}text-success{% else %}text-danger{% endif %}">
+                  {% if tx.type == 'credit' %}+{% else %}-{% endif %} Rs.{{ tx.amount }}
+                </span>
+              </li>
+              {% endfor %}
+            {% else %}
+              <li class="list-group-item">No transactions yet</li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== ADDRESSES ===== -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <h5 class="mb-0 fw-semibold">My Addresses</h5>
+      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addAddressModal">+ Add New Address</button>
+    </div>
+    <div class="card-body">
+      {% for addr in addresses %}
+      <div class="border rounded p-3 mb-2 position-relative">
+        {% if addr.is_default %}
+        <span class="badge bg-success position-absolute top-0 end-0 m-2">Default</span>
+        {% endif %}
+        <div class="d-flex align-items-start gap-3">
+          <input type="radio" class="form-check-input mt-1 address-radio"
+                 name="address"
+                 data-id="{{ addr.id }}"
+                 data-name="{{ addr.full_name }}"
+                 data-phone="{{ addr.phone }}"
+                 data-street="{{ addr.street_address }}"
+                 data-city="{{ addr.city }}"
+                 data-state="{{ addr.state }}"
+                 data-country="{{ addr.country }}"
+                 {% if addr.is_default %}checked{% endif %}>
+          <div>
+            <div class="fw-semibold">{{ addr.full_name }}</div>
+            <div class="small text-muted">
+              {{ addr.phone }}<br>
+              {{ addr.street_address }}<br>
+              {{ addr.city }}, {{ addr.state }}, {{ addr.country }}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <p>No addresses added yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== ADD ADDRESS MODAL ===== -->
+
+    <div class="modal fade" id="addAddressModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+
+                <form method="POST" id="AddressForm" >
+                    {% csrf_token %}
+                    <input type="hidden" name="address_id" id="address_id">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add / Edit Address</h5>
+                        <button class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+
+                        <div class="mb-3">
+                            <label class="form-label">Address Type</label>
+                            <select name="address_type" id="address_type" class="form-select" required>
+                                <option value="shipping">Shipping</option>
+                                <option value="billing">Billing</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="full_name" id="full_name" class="form-control" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="text" name="phone" id="phone" class="form-control" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">City</label>
+                                <input type="text" name="city" id="city" class="form-control" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">State / Province</label>
+                                <input type="text" name="state" id="state" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Street Address</label>
+                            <textarea name="street_address" id="street_address" class="form-control" rows="2" required></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Postal Code</label>
+                                <input type="text" name="postal_code" id="postal_code" class="form-control" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Country</label>
+                                <input type="text" name="country" id="country" class="form-control" value="Pakistan">
+                            </div>
+                        </div>
+
+                        <div class="form-check">
+                            <input type="checkbox" name="is_default" id="is_default" class="form-check-input" id="is_default">
+                            <label class="form-check-label" for="is_default">
+                                Set as default address
+                            </label>
+                        </div>
+
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="submit" id="AddressFormbtn" class="btn btn-primary">
+                            Save Address
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+<!-- ===== SCRIPTS ===== -->
+<script>
+  // Profile edit toggle
+  const editBtn = document.getElementById('editBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const saveProfileBtn = document.getElementById('saveProfile');
+  const inputs = document.querySelectorAll('.profile-input');
+  const actionButtons = document.getElementById('actionButtons');
+
+  editBtn.addEventListener('click', () => {
+    inputs.forEach(i => i.disabled = false);
+    actionButtons.classList.remove('d-none');
+    editBtn.classList.add('d-none');
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    inputs.forEach(i => i.disabled = true);
+    actionButtons.classList.add('d-none');
+    editBtn.classList.remove('d-none');
+  });
+
+  // Save profile via AJAX
+  saveProfileBtn.addEventListener('click', () => {
+    const data = {
+      'full_name': document.getElementById('full_name').value,
+      'email': document.getElementById('email').value,
+      'mobile': document.getElementById('mobile').value,
+      'gender': document.getElementById('gender').value,
+      'dob': document.getElementById('dob').value,
+      'csrfmiddlewaretoken': '{{ csrf_token }}'
+    };
+    const csrfToken = '{{ csrf_token }}'; // ensure csrf_token is in template
+
+    fetch("{% url 'update_profile_ajax' %}", {
+      method: 'POST',
+      headers: {'X-Requested-With':'XMLHttpRequest', "X-CSRFToken": csrfToken},
+      body: new URLSearchParams(data)
+    }).then(res => res.json())
+      .then(res => showAlert(res.message,"success"))
+      .catch(err => showAlert("Someting went Wrong!","danger"));
+  });
+        $("#addAddressModal").on("hidden.bs.modal", function () {
+            $("#AddressForm")[0].reset();
+            $("#address_id").val("");
+            $(".modal-title").text("Add Address");
+        });
+  
+        $("#AddressForm").on("submit", function (e) {
+            e.preventDefault();          // 🚫 stops native submit
+            
+            
+            const btn = document.getElementById("AddressFormbtn");
+            btn.disabled = true;
+
+            const addressId = document.getElementById("address_id").value;
+            const isUpdate = Boolean(addressId);
+
+            const url = isUpdate
+                ? `/address/${addressId}/`
+                : `/address/`;
+
+            const method = isUpdate ? "PUT" : "POST";
+
+            const payload = {
+                address_type: document.getElementById("address_type").value.trim(),
+                full_name: document.getElementById("full_name").value.trim(),
+                phone: document.getElementById("phone").value.trim(),
+                street_address: document.getElementById("street_address").value.trim(),
+                city: document.getElementById("city").value.trim(),
+                state: document.getElementById("state").value.trim(),
+                country: document.getElementById("country").value.trim(),
+                postal_code: document.getElementById("postal_code").value.trim(),
+                is_default: document.getElementById("is_default").checked
+            };
+
+            fetch(url, {
+                method: method,
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(async res => {
+                const data = await res.json();
+                if (res.ok) return { status: "success", data };
+                if (res.status === 400) return { status: "validation_error", data };
+                if (res.status === 401) return { status: "auth_error" };
+                return { status: "server_error" };
+            })
+            .then(result => {
+                if (result.status === "success") {
+                    showAlert(result.data.message || "Address saved successfully", "success");
+                    bootstrap.Modal.getInstance(
+                        document.getElementById("addAddressModal")
+                    ).hide();
+                    if(!isUpdate){
+                        location.reload();
+                    }
+
+                } else if (result.status === "validation_error") {
+                    const firstError = Object.values(result.data)[0][0];
+                    showAlert(firstError, "warning");
+                } else if (result.status === "auth_error") {
+                    showAlert("Session expired. Please login again.", "danger");
+                } else {
+                    showAlert("Something went wrong. Try again.", "danger");
+                }
+            })
+            .catch(err => {
+                console.error("Fetch Error:", err);
+                showAlert("Network error. Please try again.", "danger");
+            })
+            .finally(() => {
+                btn.disabled = false;
+            });
+        });
+
+</script>
+{% endblock %}

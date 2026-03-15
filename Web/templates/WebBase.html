@@ -11,6 +11,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/fontawesome.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/solid.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
     <style>
         body {
             background: #f3f3f3;
@@ -440,7 +441,7 @@
 
 
 <script>
-     fetch('{% url 'token_obtain_pair' %}', {
+     {% comment %} fetch('{% url 'token_obtain_pair' %}', {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -456,7 +457,100 @@
             // Save access token
             localStorage.setItem("access_token", data.access);
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err)); {% endcomment %}
+
+            function syncSessionWithToken() {
+                fetch(`{% url 'get_my_token' %}`)
+                .then(res => {
+                    if (res.status === 403) {
+                        console.error("User is not logged into Django session.");
+                        return;
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (data && data.access) {
+                        localStorage.setItem("access_token", data.access);
+                        localStorage.setItem("refresh_token", data.refresh);
+                        loadUserCartItemsCount();
+                        loadNotifications();
+                    }
+                })
+                .catch(err => console.error("Sync error:", err));
+            }
+            $(document).ready(function() {
+                syncSessionWithToken().then(() => {
+                    setInterval(refreshToken, 50 * 60 * 1000);
+                    loadUserCartItemsCount();
+                    loadNotifications();
+                });
+            });
+            window.onfocus = function() {
+                refreshToken();
+                loadUserCartItemsCount(); 
+                loadNotifications();
+            };
+            async function refreshToken() {
+            const refresh = localStorage.getItem("refresh_token");
+
+            if (!refresh) {
+                console.warn("No refresh token found. User must log in.");
+                return null;
+            }
+
+            try {
+                const response = await fetch('/api/token/refresh/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ refresh: refresh }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // Update the access token in storage
+                    localStorage.setItem("access_token", data.access);
+                    console.log("Access token refreshed successfully.");
+                    return data.access;
+                } else {
+                    // If the refresh token is also expired or invalid
+                    console.error("Refresh token expired. Logging out...");
+                    localStorage.clear();
+                    window.location.href = "/login/"; 
+                    return null;
+                }
+            } catch (error) {
+                console.error("Error during token refresh:", error);
+                return null;
+            }
+        }
+        async function authorizedApiCall(url, options = {}) {
+            let token = localStorage.getItem("access_token");
+
+            // Add Authorization header
+            options.headers = {
+                ...options.headers,
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            };
+
+            let response = await fetch(url, options);
+
+            // If token is expired (Django returns 401)
+            if (response.status === 401) {
+                console.log("Access token expired, attempting refresh...");
+                const newToken = await refreshToken();
+
+                if (newToken) {
+                    // Update header with the NEW token and retry the call once
+                    options.headers["Authorization"] = `Bearer ${newToken}`;
+                    response = await fetch(url, options);
+                }
+            }
+
+            return response;
+        }
 
 </script>
 </head>
@@ -486,13 +580,21 @@
     <ul class="navbar-nav ms-auto d-none d-lg-flex">
         {% if request.user.is_authenticated %}
             <li class="nav-item"><a href="{% url 'logout' %}" class="nav-link "><i class="fa-solid fa-right-to-bracket"></i></a></li>
+            <li class="nav-item"><a href="{% url 'profile' %}" class="nav-link "><i class="fa-solid fa-person"></i></a></li>
             <li class="nav-item"><a href="{% url 'MyOrders' %}" class="nav-link ">Orders / Returns</a></li>
         {% else %}
             <li class="nav-item"><a href="{% url 'login' %}" class="nav-link "><i class="fa-solid fa-user"></i></a></li>
         {% endif %}
-        <li class="nav-item"><a href="{% url 'Cart' %}" class="nav-link "><i class="fa-solid fa-cart-shopping"></i></a></li>
+        <li class="nav-item p-1">
+            <a href="{% url 'Cart' %}" class="nav-link position-relative d-inline-block">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span class="cartcountBadge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    0
+                </span>
+            </a>
+        </li>
         {% if request.user.is_authenticated %}
-            <li class="nav-item">
+            <li class="nav-item p-1">
                 <div class="dropdown">
                     <button class="btn position-relative" data-bs-toggle="dropdown" onclick="loadNotifications()">
                         <i class="fa-solid fa-bell"></i>
@@ -536,11 +638,19 @@
         <ul class="navbar-nav ms-auto  d-flex flex-row " style="font-size: 12px;">
             {% if request.user.is_authenticated %}
                 <li class="nav-item p-1"><a href="{% url 'logout' %}" class="nav-link "><i class="fa-solid fa-right-to-bracket"></i></a></li>
+                <li class="nav-item p-1"><a href="{% url 'profile' %}" class="nav-link "><i class="fa-solid fa-person"></i></a></li>
                 <li class="nav-item p-1"><a href="{% url 'MyOrders' %}" class="nav-link "><i class="fa-solid fa-arrow-down-short-wide"></i></a></li>
             {% else %}
                 <li class="nav-item p-1"><a href="{% url 'login' %}" class="nav-link "><i class="fa-solid fa-user"></i></a></li>
             {% endif %}
-            <li class="nav-item p-1"><a href="{% url 'Cart' %}" class="nav-link "><i class="fa-solid fa-cart-shopping"></i></a></li>
+            <li class="nav-item p-1">
+                <a href="{% url 'Cart' %}" class="nav-link position-relative d-inline-block">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span class="cartcountBadge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        0
+                    </span>
+                </a>
+            </li>
             
         </ul>
     </div>
@@ -585,7 +695,12 @@
         {% else %}
             <a href="{% url 'login' %}"><i class="fa-solid fa-right-to-bracket me-2"></i> Sign In</a>
         {% endif %}
-        <a href="{% url 'Cart' %}"><i class="fa-solid fa-cart-shopping me-2"></i> Cart</a>
+        <a href="{% url 'Cart' %}" class="position-relative"><i class="fa-solid fa-cart-shopping me-2"></i> Cart
+                        <span class="cartcountBadge"
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            0
+                        </span>
+        </a>
         {% if request.user.is_authenticated %}
             <a href="javascript:void(0)" id="toggleNotifications" class="d-flex justify-content-between align-items-center">
                 <span>
@@ -739,6 +854,7 @@
 <script>
    
     const NOTIFICATION_API = "http://127.0.0.1:8000/notifications/";
+    const carcount_API = "http://127.0.0.1:8000/User_Cart_Count/";
     const MARK_READ_API = "http://127.0.0.1:8000/notifications/mark-read/";
 
     /* ===============================
@@ -801,14 +917,9 @@
             loadNotifications();
         });
     }
-    loadNotifications();
     function loadNotifications() {
 
-        fetch(NOTIFICATION_API, {
-            headers: {
-                "Authorization": `Bearer ${localStorage.getItem("access_token")}`
-            }
-        })
+        authorizedApiCall(NOTIFICATION_API)
         .then(res => res.json())
         .then(data => {
 
@@ -872,6 +983,17 @@
         .catch(error => {
             console.error("Notification error:", error);
         });
+    }
+
+    function loadUserCartItemsCount() {
+        authorizedApiCall(carcount_API) // Uses the smart wrapper above
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.cart_products_count !== undefined) {
+                    $(".cartcountBadge").html(data.cart_products_count);
+                }
+            })
+            .catch(err => console.error("Final Cart Error:", err));
     }
     function getCookie(name) {
         let cookieValue = null;

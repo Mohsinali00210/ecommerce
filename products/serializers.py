@@ -153,7 +153,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'free_shipping', 'handling_time', 'meta_title', 'meta_description', 
             'slug', 'focus_keywords', 'tags', 'stock_status','stock_quantity','status', 'variants', 
             'images', 'reviews', 'promotions', 'is_active','options','video', 'available_start_date',
-            'available_end_date','allow_customer_reviews','product_type', 
+            'available_end_date','allow_customer_reviews','customer_can_see_stock','product_type', 
             'mark_as_new','available_for_preorder','admin_comment','disable_buy_button',
             'disable_wishlist_button','tax_category','tax_exempt','old_price','original_price',
             'other_product_cost','shipping_enabled','ship_separately','shipping_charges',
@@ -675,6 +675,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "shipping_address_text",
             "billing_address_text",
             "items",
+            "qr_code",
             "requests",
         ]
 
