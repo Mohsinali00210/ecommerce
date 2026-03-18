@@ -419,7 +419,10 @@
                             <div class="cart-item"
                                 data-id="{{ cartItem.id }}"
                                 data-price="{{ cartItem.product.final_price }}"
+                                data-oldprice="{{ cartItem.product.price }}"
                                 data-qty="{{ cartItem.quantity }}"
+                                data-offprice="{{ cartItem.product.off_price }}"
+                                data-pricewithoutdiscount="{{ cartItem.product.total_price_without_discount }}"
                                 data-shipping="{{ cartItem.product.shipping_charges }}"
                                 data-additional="{{ cartItem.product.additional_shipping_charges }}">
 
@@ -573,11 +576,11 @@
                 
             <div class="d-flex justify-content-between">
                 <span>Item(s) total</span>
-                <span class="text-decoration-line-through" id="itemTotal">Rs.4,390</span>
+                <span class="text-decoration-line-through" id="itemTotal">Rs.{{items.total_price_without_discount}}</span>
             </div>
             <div class="d-flex justify-content-between text-danger">
                 <span>Item(s) discount</span>
-                <span id="itemDiscount">Rs.{{ items.additional_total }}</span>
+                <span id="itemDiscount" data-offprice="{{ items.total_off_price }}">Rs.{{ items.total_off_price }} Off</span>
             </div>
             <hr>
             <div class="d-flex justify-content-between fw-semibold">
@@ -1213,8 +1216,11 @@
 
             let subtotal = 0;
             let shipping = 0;
+            let pricewithoutdiscount = 0;
             let additional = 0;
 
+            let offprice = 0;
+            
             document.querySelectorAll(".cart-item").forEach(item => {
 
                 const checked = item.querySelector(".cart-check").checked;
@@ -1222,18 +1228,23 @@
                 if(!checked) return;
 
                 const price = parseFloat(item.dataset.price);
+                const pricewithoutdis = parseFloat(item.dataset.pricewithoutdiscount);
+                const offprc = parseFloat(item.dataset.offprice);
                 const ship = parseFloat(item.dataset.shipping);
                 const add = parseFloat(item.dataset.additional);
                 const qty = parseInt(item.querySelector(".qty-select").value);
 
                 subtotal += price * qty;
+                pricewithoutdiscount += pricewithoutdis * qty;
+                offprice += offprc * qty;
                 shipping += ship;
                 additional += add;
             });
 
             const total = subtotal + shipping + additional;
 
-            document.getElementById("itemTotal").innerText = "Rs." + subtotal.toFixed(2);
+            document.getElementById("itemTotal").innerText = "Rs." + pricewithoutdiscount.toFixed(2);
+            document.getElementById("itemDiscount").innerText = "Rs." + offprice.toFixed(2)+" Off";
             document.getElementById("subtotal").innerText = "Rs." + subtotal.toFixed(2);
             document.getElementById("itemShippingCharges").innerText = "Rs." + shipping.toFixed(2);
             document.getElementById("itemAdditionalCharges").innerText = "Rs." + additional.toFixed(2);
@@ -1440,17 +1451,20 @@
             let item = document.querySelector(".cart-item");
             let qty = parseInt(item.querySelector(".qty-select").value);
             let price = parseInt(item.querySelector(".price-new").getAttribute("data-price"));
-            let oldPrice = 4390;  
+            let offprice = parseInt(item.getAttribute("data-offprice"));
+            let pricewithoutdiscount = parseInt(item.getAttribute("data-pricewithoutdiscount"));
+            let oldPrice = parseInt(item.getAttribute("data-oldprice"));  
             let discount = oldPrice - price;
 
-            document.getElementById("itemTotal").innerText = "Rs." + (oldPrice * qty);
-            document.getElementById("itemDiscount").innerText = "-Rs." + (discount * qty);
+            //document.getElementById("itemTotal").innerText = "Rs." + (oldPrice * qty);
+            document.getElementById("itemTotal").innerText = "Rs." + (pricewithoutdiscount * qty);
+            document.getElementById("itemDiscount").innerText = "-Rs." + (offprice * qty)+" Off";
             document.getElementById("finalTotal").innerText = "Rs." + (price * qty);
             document.getElementById("subtotal").innerText = "Rs." + (price * qty);
         }
 
         // Qty change
-        document.querySelector(".qty-select").addEventListener("input", updateTotals);
+        {% comment %} document.querySelector(".qty-select").addEventListener("input", updateTotals); {% endcomment %}
 
         // Select all
         //document.getElementById("selectAll").addEventListener("change", function () {

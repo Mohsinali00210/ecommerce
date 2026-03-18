@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Pictures{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="bi bi-images"></i> Pictures
+        </div>
+
+        <button class="btn btn-dark btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#pictureModal"
+                onclick="clearPictureModal()">
+            <i class="bi bi-plus-circle"></i> Add Picture
+        </button>
+    </div>
+
+    <div class="card-body p-0">
+        <table class="table table-sm table-bordered mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Type</th>
+                    <th>Title</th>
+                    <th>Image</th>
+                    <th>Status</th>
+                    <th style="width:120px;">Action</th>
+                </tr>
+            </thead>
+
+            <tbody id="picturesBody"></tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- Modal -->
+
+<div class="modal fade" id="pictureModal" tabindex="-1">
+    <div class="modal-dialog modal-md">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h6 class="modal-title">
+                    <i class="bi bi-images"></i> Picture Management
+                </h6>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <input type="hidden" id="PictureId">
+
+                <div class="row g-2">
+
+                    <div class="col-md-12">
+                        <label class="form-label">Picture Type</label>
+
+                        <select class="form-select form-select-sm" id="PictureType">
+                            <option value="banner">Banner</option>
+                            <option value="slider">Slider</option>
+                            <option value="gallery">Gallery</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label">Title</label>
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               id="PictureTitle">
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label">Alt Text</label>
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               id="PictureAlt">
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label">Image</label>
+                        <input type="file"
+                               class="form-control form-control-sm"
+                               id="PictureImage"
+                               accept="image/*">
+
+                        <div id="imagePreview"></div>
+                    </div>
+
+                    <div class="col-md-12 mt-2">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               id="Active"
+                               checked>
+
+                        <label class="form-check-label">
+                            Active
+                        </label>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-dark btn-sm w-100"
+                        onclick="savePicture()">
+                    Save Picture
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+
+const API_BASE_URL = "http://127.0.0.1:8000/Adminpanel/Products/api/v1/pictures/";
+
+getPictures();
+
+
+/* Image Preview */
+
+$("#PictureImage").change(function () {
+
+    const file = this.files[0];
+
+    if (file) {
+
+        let reader = new FileReader();
+
+        reader.onload = function (event) {
+
+            $("#imagePreview").html(
+                `<img src="${event.target.result}" 
+                class="img-thumbnail mt-2"
+                style="max-height:100px">`
+            );
+        };
+
+        reader.readAsDataURL(file);
+    }
+});
+
+
+/* Load Pictures */
+
+function getPictures(el="picturesBody") {
+
+fetch(API_BASE_URL, {
+
+    headers:{
+        "Authorization":`Bearer ${localStorage.getItem("access_token")}`
+    }
+
+})
+.then(res=>res.json())
+.then(data=>{
+
+let innerHtml="";
+
+data.forEach(item=>{
+
+innerHtml += `
+<tr>
+
+<td>${item.picture_type}</td>
+
+<td>${item.title ?? ''}</td>
+
+<td>
+<img src="${item.picture}"
+style="width:60px"
+class="img-fluid">
+</td>
+
+<td>
+<span class="badge bg-secondary">
+${item.is_active ? 'Active' : 'Inactive'}
+</span>
+</td>
+
+<td>
+
+<button class="btn btn-outline-secondary btn-sm"
+
+onclick='clearPictureModal();fillPictureModal(${JSON.stringify(item)})'
+
+data-bs-toggle="modal"
+data-bs-target="#pictureModal">
+
+<i class="bi bi-pencil"></i>
+
+</button>
+
+</td>
+
+</tr>
+`;
+
+});
+
+if(data.length === 0){
+
+innerHtml = `<tr>
+<td colspan="5" class="text-center text-muted">
+No pictures found
+</td>
+</tr>`;
+
+}
+
+$(`#${el}`).html(innerHtml);
+
+});
+
+}
+
+
+/* Fill modal for edit */
+
+function fillPictureModal(item){
+
+$("#PictureId").val(item.id);
+$("#PictureType").val(item.picture_type);
+$("#PictureTitle").val(item.title);
+$("#PictureAlt").val(item.alt);
+$("#Active").prop('checked',item.is_active);
+
+$("#imagePreview").html(
+`<img src="${item.picture}" class="img-thumbnail" style="max-height:100px">`
+);
+
+}
+
+
+/* Clear modal */
+
+function clearPictureModal(){
+
+$("#PictureId").val("");
+$("#PictureType").val("banner");
+$("#PictureTitle").val("");
+$("#PictureAlt").val("");
+$("#Active").prop('checked',true);
+$("#PictureImage").val("");
+$("#imagePreview").html("");
+
+}
+
+
+/* Save Picture */
+
+function savePicture(){
+
+let PictureId = $("#PictureId").val();
+
+let formData = new FormData();
+
+formData.append('picture_type',$("#PictureType").val());
+formData.append('title',$("#PictureTitle").val());
+formData.append('alt',$("#PictureAlt").val());
+formData.append('is_active',$("#Active").is(':checked'));
+
+let imageFile = document.querySelector('#PictureImage').files[0];
+
+if(imageFile){
+formData.append('picture',imageFile);
+}
+
+let url = PictureId === '' ? API_BASE_URL : `${API_BASE_URL}${PictureId}/`;
+let method = PictureId === '' ? "POST" : "PATCH";
+
+
+fetch(url,{
+method:method,
+headers:{
+"Authorization":`Bearer ${localStorage.getItem("access_token")}`
+},
+body:formData
+})
+
+.then(res=>res.json())
+.then(data=>{
+
+$("#pictureModal").modal('hide');
+
+getPictures();
+
+showAlert(
+PictureId === '' ? "Picture Created!" : "Picture Updated!",
+"success"
+);
+
+})
+.catch(err=>{
+showAlert("Error saving picture","danger");
+console.error(err);
+});
+
+}
+
+</script>
+
+{% endblock %}

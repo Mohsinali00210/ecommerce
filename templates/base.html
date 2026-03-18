@@ -34,14 +34,34 @@
     .sidebar.collapsed {
         width: 60px;
     }
-
+    {% comment %} 
     .sidebar:hover {
         width: 230px;
+    } {% endcomment %}
+    
+
+    /* expand sidebar */
+    .sidebar:hover{
+        width:230px;
     }
 
-    .sidebar.collapsed .menu-text {
-        display: none;
+    /* hide text & caret by default */
+    .sidebar.collapsed .menu-text,
+    .sidebar.collapsed .caret-icon,
+    .sidebar.collapsed .collapse.show{
+        display:none;
     }
+
+    /* show when sidebar expands */
+    .sidebar.collapsed:hover .menu-text,
+    .sidebar.collapsed:hover .caret-icon,
+    .sidebar.collapsed:hover .collapse.show{
+        display:inline;
+    }
+
+    {% comment %} .sidebar.collapsed .menu-text, .sidebar.collapsed .caret-icon {
+        display: none;
+    } {% endcomment %}
 
     .sidebar .logo {
         height: 50px;
@@ -133,12 +153,20 @@
         border-radius: 10px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
+    .caret-icon{
+        transition: transform 0.3s;
+    }
+
+    a:not(.collapsed) .caret-icon{
+        transform: rotate(180deg);
+    }
 </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
 
 <script>
+    
     function syncSessionWithToken() {
         fetch(`{% url 'get_my_token' %}`)
         .then(res => {
@@ -225,81 +253,100 @@
 
         return response;
     }    
-<script>
+</script>
 
 
 <!-- Sidebar -->
 <div class="sidebar collapsed" id="sidebar">
     <div class="logo">ADMIN</div>
+    <!-- Dashboard -->
     <a href="#" class="active">
         <i class="bi bi-speedometer2"></i>
         <span class="menu-text">Dashboard</span>
     </a>
 
-    <a href="{% url 'products' %}" id="ProductLink">
+    <!-- Products Section -->
+    <a href="#productsSubmenu" data-bs-toggle="collapse" class="collapsed">
         <i class="bi bi-box-seam"></i>
         <span class="menu-text">Products</span>
-    </a>
+        <i class="bi bi-chevron-down caret-icon"></i>
 
-    <a href="{% url 'categories' %}" id="CategoryLink">
-        <i class="bi bi-tags"></i>
-        <span class="menu-text">Categories</span>
     </a>
+    <div class="collapse" id="productsSubmenu">
+        <a href="{% url 'products' %}" class="submenu-link">All Products</a>
+        <a href="{% url 'categories' %}" class="submenu-link">Categories</a>
+        <a href="{% url 'brands' %}" class="submenu-link">Brands</a>
+        <a href="{% url 'attributes' %}" class="submenu-link">Attributes</a>
+        <a href="{% url 'inventory-page' %}" class="submenu-link">Inventory</a>
+    </div>
 
-    <a href="{% url 'brands' %}" id="BrandLink">
-        <i class="bi bi-award"></i>
-        <span class="menu-text">Brands</span>
-    </a>
-
-    <a href="{% url 'attributes' %}" id="AttributeLink">
-        <i class="bi bi-sliders"></i>
-        <span class="menu-text">Attributes</span>
-    </a>
-
-    <a href="{% url 'Orders' %}">
+    <!-- Orders Section -->
+    <a href="#ordersSubmenu" data-bs-toggle="collapse" class="collapsed">
         <i class="bi bi-receipt"></i>
         <span class="menu-text">Orders</span>
-    </a>
+        <i class="bi bi-chevron-down caret-icon"></i>
 
+    </a>
+    <div class="collapse" id="ordersSubmenu">
+        <a href="{% url 'Orders' %}" class="submenu-link">All Orders</a>
+        <a href="{% url 'OrdersByStatus' 'pending' %}" class="submenu-link">Pending</a>
+        <a href="{% url 'OrdersByStatus' 'processing' %}" class="submenu-link">Processing</a>
+        <a href="{% url 'OrdersByStatus' 'shipped' %}" class="submenu-link">Shipped</a>
+        <a href="{% url 'OrdersByStatus' 'submited' %}" class="submenu-link">Submitted</a>
+    </div>
+
+    <!-- Customer Support -->
     <a href="{% url 'support_ticket_list' %}">
         <i class="bi bi-headset"></i>
-        <span class="menu-text">Contacts</span>
+        <span class="menu-text">Contacts / Support</span>
     </a>
 
+    <!-- Reviews -->
     <a href="{% url 'AdminReviewsPage' %}">
         <i class="bi bi-star"></i>
         <span class="menu-text">Reviews</span>
     </a>
 
-    <a href="{% url 'wishlist' %}">
-        <i class="bi bi-heart"></i>
-        <span class="menu-text">Wishlist</span>
+    <!-- Wishlist & Promotions -->
+    <a href="#marketingSubmenu" data-bs-toggle="collapse" class="collapsed">
+        <i class="bi bi-gift"></i>
+        <span class="menu-text">Marketing</span>
+        <i class="bi bi-chevron-down caret-icon"></i>
     </a>
+    <div class="collapse" id="marketingSubmenu">
+        <a href="{% url 'wishlist' %}" class="submenu-link">Wishlist</a>
+        <a href="{% url 'promotions_page' %}" class="submenu-link">Promotions</a>
+    </div>
 
-    <a href="{% url 'promotions_page' %}">
-        <i class="bi bi-heart"></i>
-        <span class="menu-text">Promotions</span>
-    </a>
-
-    <a href="{% url 'inventory-page' %}">
-        <i class="bi bi-heart"></i>
-        <span class="menu-text">Inventory</span>
-    </a>
-
+    <!-- Users Section -->
     <a href="{% url 'users-page' %}">
         <i class="bi bi-people"></i>
         <span class="menu-text">Users</span>
     </a>
 
-    <a href="#">
+    <!-- Reports & Settings -->
+    <a href="#reportsSubmenu" data-bs-toggle="collapse" class="collapsed">
         <i class="bi bi-bar-chart"></i>
         <span class="menu-text">Reports</span>
+        <i class="bi bi-chevron-down caret-icon"></i>
     </a>
+    <div class="collapse" id="reportsSubmenu">
+        <a href="#" class="submenu-link">Sales</a>
+        <a href="#" class="submenu-link">Customers</a>
+        <a href="#" class="submenu-link">Inventory</a>
+    </div>
 
-    <a href="#">
+    <a href="#settingsSubmenu" data-bs-toggle="collapse" class="collapsed">
         <i class="bi bi-gear"></i>
         <span class="menu-text">Settings</span>
+        <i class="bi bi-chevron-down caret-icon"></i>
     </a>
+    <div class="collapse" id="settingsSubmenu">
+        <a href="#" class="submenu-link">General</a>
+        <a href="#" class="submenu-link">Payment</a>
+        <a href="#" class="submenu-link">Shipping</a>
+        <a href="{% url 'picture-page' %}" class="submenu-link">Pictures</a>
+    </div>
 </div>
 
 <!-- Main -->
@@ -355,6 +402,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+    
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('collapsed');
         document.getElementById('main').classList.toggle('collapsed');

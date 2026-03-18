@@ -404,13 +404,17 @@ def ProductPreview(request):
 def orders(request):
     return render(request, "orders/Orders.html")
 
+def OrdersByStatus(request, status):
+    return render(request, "orders/OrdersByStatus.html",{"status":status})
+
 
 # views.py
 
 from rest_framework import generics, permissions
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from .serializers import OrderSerializer
-
+from Web.models import OrderSeenLog
+from django.db.models import Exists, OuterRef
 
 class OrdersListAPIView(generics.ListAPIView):
     serializer_class = OrderSerializer
@@ -418,7 +422,9 @@ class OrdersListAPIView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        qs = Order.objects.order_by("-created_at")
+        user = self.request.user
+        seen_log = OrderSeenLog.objects.filter( order=OuterRef('pk'), user=user )
+        qs = (Order.objects.annotate(is_seen=Exists(seen_log)).order_by("-created_at"))
 
         status_filter = self.request.GET.get("status")
         payment_filter = self.request.GET.get("payment")
@@ -475,8 +481,9 @@ class OrdersListAPIView(generics.ListAPIView):
 
 from rest_framework.generics import RetrieveAPIView, UpdateAPIView
 from rest_framework.permissions import IsAuthenticated
-from Web.models import Order
+from Web.models import Order,OrderSeenLog
 from .serializers import OrderDetailSerializer
+from django.utils import timezone
 
 
 class OrderDetailAPIView(RetrieveAPIView):
@@ -492,6 +499,26 @@ class OrderDetailAPIView(RetrieveAPIView):
     )
     serializer_class = OrderDetailSerializer
     permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        order = self.get_object()
+        user = request.user
+        log, created = OrderSeenLog.objects.get_or_create(
+            order=order,
+            user=user,
+            defaults={
+                "is_seen_by_admin": True,
+                "created_at": timezone.now()
+            }
+        )
+
+        # If log exists but not marked as seen, update it
+        if not created and not log.is_seen_by_admin:
+            log.is_seen_by_admin = True
+            log.save(update_fields=["is_seen_by_admin"])
+
+        return response
 
 class OrderUpdateStatusAPIView(UpdateAPIView):
     queryset = Order.objects.all()
@@ -781,3 +808,28 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
         self.perform_update(serializer)
 
         return Response(serializer.data)
+
+
+from .models import Picture
+from .serializers import PictureSerializer
+class PictureViewSet(viewsets.ModelViewSet):
+    queryset = Picture.objects.all().order_by('-created_at')
+    serializer_class = PictureSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Picture.objects.filter(is_active=True).order_by('-created_at')
+
+        picture_type = self.request.query_params.get('picture_type')
+
+        if picture_type:
+            queryset = queryset.filter(picture_type=picture_type)
+
+        return queryset
+
+@login_required
+def picture_page(request):
+    return render(request, "Other/pictures.html")
+
+
+

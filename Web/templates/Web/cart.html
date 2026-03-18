@@ -325,6 +325,8 @@
                                 data-price="{{ cartItem.product.final_price }}"
                                 data-qty="{{ cartItem.quantity }}"
                                 data-shipping="{{ cartItem.product.shipping_charges }}"
+                                data-offprice="{{ cartItem.product.off_price }}"
+                                data-pricewithoutdiscount="{{ cartItem.product.total_price_without_discount }}"
                                 data-additional="{{ cartItem.product.additional_shipping_charges }}">
 
                                 <input type="checkbox"
@@ -332,6 +334,7 @@
                                                         data-variantId="{{cartItem.variant.id}}"
                                                         data-itemId="{{cartItem.id}}"
                                                         data-shipping="{{ cartItem.product.shipping_charges }}"
+                                                        data-offprice="{{ cartItem.product.off_price }}"
                                                         data-additional="{{ cartItem.product.additional_shipping_charges }}"
                                                         checked>
                                 <a href="{% url 'ProductDetails' id=cartItem.product.id %}">
@@ -373,7 +376,7 @@
 
 
                 </div>
-                
+{% comment %}                 
                 <div class="container  my-3">
 
                     <div class="row g-2 product-container">
@@ -411,7 +414,7 @@
                         <button class="view-more-btn">View more ▼</button>
                     </div>
 
-                </div>
+                </div> {% endcomment %}
             </div>
             <div class="col-md-3">
                 <!-- RIGHT SECTION -->
@@ -421,7 +424,7 @@
                         <hr>
                         <div class="summary-row">
                             <span>Item total:</span>
-                            <span id="itemTotal">Rs.{{ subtotal }}</span>
+                            <span id="itemTotal">Rs.{{ total_price_without_discount }}</span>
                         </div>
 
                         <div class="summary-row">
@@ -436,7 +439,7 @@
 
                         <div class="summary-row">
                             <span>Discount:</span>
-                            <span id="itemDiscount">Rs.{{ additional_total }}</span>
+                            <span id="itemDiscount">Rs.{{ total_off_price }}</span>
                         </div>
 
                         <div class="summary-row fw-bold">
@@ -448,7 +451,7 @@
 
 
 
-                        <a href="./CheckOut.html" class="checkout-btn">Checkout (1)</a>
+                        <a href="./CheckOut.html" class="checkout-btn">Checkout</a>
                         <div class="safe-payment mt-3">
                                 <i class="fa-solid fa-circle-info text-success"></i>
                                 Delivary: till {{ estimated_date|date:"d M Y" }}
@@ -565,6 +568,8 @@
             let subtotal = 0;
             let shipping = 0;
             let additional = 0;
+            let offprice = 0;
+            let pricewithoutdiscount = 0;
 
             document.querySelectorAll(".cart-item").forEach(item => {
 
@@ -573,31 +578,36 @@
                 if(!checked) return;
 
                 const price = parseFloat(item.dataset.price);
+                const offprc = parseFloat(item.dataset.offprice);
                 const ship = parseFloat(item.dataset.shipping);
+                const pricewithoutdis = parseFloat(item.dataset.pricewithoutdiscount);
                 const add = parseFloat(item.dataset.additional);
                 const qty = parseInt(item.querySelector(".qty-select").value);
 
                 subtotal += price * qty;
+                offprice += offprc * qty;
+                pricewithoutdiscount += pricewithoutdis * qty;
                 shipping += ship;
                 additional += add;
             });
 
             const total = subtotal + shipping + additional;
 
-            document.getElementById("itemTotal").innerText = "Rs." + subtotal.toFixed(2);
+            document.getElementById("itemTotal").innerText = "Rs." + pricewithoutdiscount.toFixed(2);
+            document.getElementById("itemDiscount").innerText = "Rs." + offprice.toFixed(2);
             document.getElementById("itemShippingCharges").innerText = "Rs." + shipping.toFixed(2);
             document.getElementById("itemAdditionalCharges").innerText = "Rs." + additional.toFixed(2);
             document.getElementById("finalTotal").innerText = "Rs." + total.toFixed(2);
         }
 
-        document.addEventListener("change", function(e){
+        {% comment %} document.addEventListener("change", function(e){
 
             if(e.target.classList.contains("qty-select") ||
             e.target.classList.contains("cart-check")){
                 calculateCart();
             }
 
-        });
+        }); {% endcomment %}
 
         calculateCart();
 
@@ -653,6 +663,9 @@
         function updateTotals() {
             let total = 0;
             let discount = 0;
+            let offprice = 0;
+            let pricewithoutdiscount = 0;
+
 
             document.querySelectorAll(".cart-item").forEach(item => {
                 const checkbox = item.querySelector(".item-check");
@@ -660,27 +673,33 @@
 
                 const qty = parseInt(item.querySelector(".qty-select").value) || 1;
                 const price = parseFloat(item.dataset.price);
+                const offprc = parseFloat(item.dataset.offprice);
+                const pricewithoutdis = parseFloat(item.dataset.pricewithoutdiscount);
+                pricewithoutdiscount += pricewithoutdis * qty;
 
                 total += price * qty;
+                offprice += offprc * qty;
             });
 
-            document.getElementById("finalTotal").innerText = "Rs." + total.toFixed(0);
-            document.getElementById("itemTotal").innerText = "Rs." + total.toFixed(0);
-            document.getElementById("itemDiscount").innerText = "-Rs."+discount;
+            document.getElementById("finalTotal").innerText = "Rs." + total.toFixed(2);
+            //document.getElementById("itemTotal").innerText = "Rs." + total.toFixed(0);
+            document.getElementById("itemDiscount").innerText = "-Rs."+offprice.toFixed(2);
+            document.getElementById("itemTotal").innerText = "Rs." + pricewithoutdiscount.toFixed(2);
+
         }
 
         // Qty change
         document.querySelectorAll(".qty-select").forEach(input => {
-            input.addEventListener("input", updateTotals);
+            input.addEventListener("input", calculateCart);
         });
 
         // Checkbox change
         document.querySelectorAll(".item-check").forEach(check => {
-            check.addEventListener("change", updateTotals);
+            check.addEventListener("change", calculateCart);
         });
 
         // Initial calculation
-        updateTotals();
+        calculateCart();
 
         document.querySelectorAll(".remove-item").forEach(btn => {
             btn.addEventListener("click", function () {
@@ -705,7 +724,7 @@
             });
         });
 
-        document.querySelector(".qty-select").addEventListener("input", updateTotals());
+        document.querySelector(".qty-select").addEventListener("input", calculateCart());
 
     </script>
 {% endblock %}

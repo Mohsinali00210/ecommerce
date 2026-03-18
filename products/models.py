@@ -630,6 +630,18 @@ class Promotion(BaseAuditModel):
     def __str__(self):
         return self.name
 
+
+    def get_off_price(self, price):
+        now = timezone.now()
+
+        if self.end_date < now:
+            return price
+
+        if self.discount_type == 'percentage' and self.discount_value:
+            return (price * self.discount_value / 100)
+
+        if self.discount_type == 'fixed' and self.discount_value:
+            return  self.discounted_price
     def get_discounted_price(self, price):
         now = timezone.now()
 
@@ -697,3 +709,28 @@ class Wishlist(BaseAuditModel):
     def __str__(self):
         return f"{self.user.username} - {self.product.name}"
 
+
+
+
+from django.db import models
+
+
+class Picture(BaseAuditModel):
+    PICTURE_TYPES = [
+        ('banner', 'Banner'),
+        ('slider', 'Slider'),
+        ('thumbnail', 'Thumbnail'),
+        ('gallery', 'Gallery'),
+    ]
+    picture_type = models.CharField(max_length=20,choices=PICTURE_TYPES,default='banner')
+    picture = models.ImageField(upload_to='pictures/', verbose_name="Image")
+    alt = models.CharField(max_length=255,blank=True,null=True,verbose_name="Alt Text")
+    is_active = models.BooleanField(default=True,verbose_name="Is Active")
+    title = models.CharField(max_length=200,blank=True,null=True,verbose_name="Title")
+    description = models.TextField(blank=True,null=True,verbose_name="Description")
+    class Meta:
+        verbose_name = "Picture"
+        verbose_name_plural = "Pictures"
+        ordering = ['-created_at']
+    def __str__(self):
+        return f"{self.picture_type} - {self.title or 'No Title'}"

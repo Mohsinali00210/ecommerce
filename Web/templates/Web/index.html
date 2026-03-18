@@ -525,17 +525,14 @@
             <div id="sliderProducts" class="carousel slide mb-4" data-bs-ride="carousel">
                 <div class="carousel-inner">
 
-                    <div class="carousel-item active">
-                        <div class="d-flex overflow-auto">
-                            <img class="mx-2" src="../images/slider img2.jpg" />
+                    {% for img in sliderPictures %}
+                        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                            <div class="d-flex overflow-auto">
+                                <img class="mx-2" src="{{ img.picture.url }}" alt="{{ img.alt }}">
+                            </div>
                         </div>
-                    </div>
+                    {% endfor %}
 
-                    <div class="carousel-item">
-                        <div class="d-flex overflow-auto">
-                            <img class="mx-2" src="../images/slider img3.jpg" />
-                        </div>
-                    </div>
 
                 </div>
 
@@ -630,7 +627,7 @@
                         <i class="fa fa-chevron-left"></i>
                     </button>
 
-                    <div class="product-slider">
+                    <div class="product-slider justify-content-center">
 
                         {% for product in freeshipping %}
                         <div class="product-item">
@@ -694,7 +691,7 @@
             <i class="fa fa-chevron-left"></i>
             </button>
 
-            <div class="product-slider">
+            <div class="product-slider justify-content-center">
 
             {% for promotion in promotions %}
             {% for product in promotion.products.all %}

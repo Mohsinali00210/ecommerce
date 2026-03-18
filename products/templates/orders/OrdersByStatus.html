@@ -22,7 +22,7 @@
             </div>
 
             <!-- Filters Row -->
-            <div class="card-body border-bottom">
+            <div class="card-body border-bottom d-none">
                 <div class="row g-2 align-items-end">
 
                     <!-- Order Status -->
@@ -471,14 +471,8 @@
                     const url = "{% url 'GetOrders' %}"; // Your orders API endpoint
 
                 const params = new URLSearchParams({
-                        status: document.getElementById("filterStatus").value,
-                        payment: document.getElementById("filterPayment").value,
-                        from: document.getElementById("filterFrom").value,
-                        to: document.getElementById("filterTo").value,
-                        search: document.getElementById("filterSearch").value,
+                        status: "{{status}}",
                     });
-                    console.log("params "+document.getElementById("filterStatus").value);
-                    console.log("params "+params);
                     fetch(`${url}?${params.toString()}`, {
                         method: "GET",
                         headers: {

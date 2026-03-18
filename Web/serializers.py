@@ -173,13 +173,11 @@ class PlaceOrderSerializer(serializers.Serializer):
     def create(self, validated_data):
         request = self.context["request"]
         user = request.user
-        checkout_items = validated_data.get("checkout_items") or request.session.get("checkout_items", [])
+        checkout_items = request.session.get("checkout_items", [])
 
         if not checkout_items:
             raise serializers.ValidationError("No checkout items found.")
-
         address = Address.objects.get(id=validated_data["address_id"], user=user)
-
         product_ids = [int(i["product_id"]) for i in checkout_items]
         variant_ids = [int(i["variant_id"]) for i in checkout_items if i.get("variant_id")]
 
@@ -190,14 +188,14 @@ class PlaceOrderSerializer(serializers.Serializer):
         variant_map = {v.id: v for v in variants}
 
         now = timezone.now()
-        shipping_charge = 280 if address.city.lower() != "karachi" else 0
-
+        shipping_charges = [p.shipping_charges for p in products]
+        max_shipping_charge = max(shipping_charges) if shipping_charges else 0
         order = Order.objects.create(
             user=user,
             shipping_address=address,
             billing_address=address,
             payment_method="COD",
-            shipping_charges=shipping_charge,
+            shipping_charges=max_shipping_charge,
             status="pending",
         )
 
@@ -206,7 +204,7 @@ class PlaceOrderSerializer(serializers.Serializer):
         for item in checkout_items:
             product = product_map.get(int(item["product_id"]))
             variant = variant_map.get(int(item["variant_id"])) if item.get("variant_id") else None
-            qty = int(item.get("qty", 1))
+            qty = int(item.get("quantity", 1))
 
             if not product:
                 continue
@@ -234,7 +232,7 @@ class PlaceOrderSerializer(serializers.Serializer):
             subtotal += final_price * qty
 
         order.subtotal = subtotal
-        order.total_amount = subtotal + shipping_charge
+        order.total_amount = subtotal + max_shipping_charge
         order.save()
 
         # clear session

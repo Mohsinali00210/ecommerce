@@ -42,6 +42,7 @@ class Order(BaseAuditModel):
     ]
     ORDER_STATUS = [
         ('pending', 'Pending'),
+        ('submited', 'Submited'),
         ('processing', 'Processing'),
         ('shipped', 'Shipped'),
         ('delivered', 'Delivered'),
@@ -68,16 +69,28 @@ class Order(BaseAuditModel):
 
     def generate_order_number(self):
         return f"ORD-{uuid.uuid4().hex[:8].upper()}"
+    
 
     def save(self, *args, **kwargs):
+        if self.pk:
+            old_order = Order.objects.get(pk=self.pk)
+            if old_order.status not in ['cancelled', 'returned'] and self.status in ['cancelled', 'returned']:
+                for item in self.items.all():
+                    if item.variant:
+                        item.variant.stock_quantity += item.quantity
+                        item.variant.save()
+                        item.variant.product.sold -= item.quantity
+                        item.variant.product.save()
         if not self.order_number:
             self.order_number = self.generate_order_number()
+            
         if not self.qr_code:
             qr_data = f"Order No: {self.order_number}\nName: {self.user.full_name}\nshipping Address: {self.shipping_address.street_address},{self.shipping_address.city},{self.shipping_address.state},{self.shipping_address.country}\nBilling Address: {self.billing_address.street_address},{self.billing_address.city},{self.billing_address.state},{self.billing_address.country}\nTotal: {self.total_amount}"
             qr_img = qrcode.make(qr_data)
             blob = BytesIO()
             qr_img.save(blob, 'PNG')
             self.qr_code.save(f"order_{self.order_number}.png", File(blob), save=False)
+
         super().save(*args, **kwargs)
     def __str__(self):
         return f"Order {self.order_number or self.id} - {self.user}"
@@ -100,11 +113,22 @@ class OrderItem(BaseAuditModel):
 
                 self.variant.stock_quantity -= self.quantity
                 self.variant.save()
+                self.variant.product.sold += self.quantity
+                self.variant.product.save()
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.product} x {self.quantity}"
+from accounts.models import User
+class OrderSeenLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    order = models.ForeignKey("Order", on_delete=models.CASCADE, related_name="seen_logs")
+    created_at = models.DateTimeField(auto_now_add=True)
 
+    is_seen_by_admin = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Order #{self.order.id} - {self.user.username}"
 
 class SupportTicket(models.Model):
 

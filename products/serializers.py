@@ -568,6 +568,7 @@ class OrderSerializer(serializers.ModelSerializer):
     customer_name = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
     total = serializers.SerializerMethodField()
+    is_seen = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Order
@@ -580,6 +581,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "total",
             "status",
             "payment_status",
+            "is_seen",
         ]
 
     def get_order_number(self, obj):
@@ -749,4 +751,12 @@ class PromotionsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Promotion
+        fields = "__all__"
+
+
+from .models import Picture
+class PictureSerializer(serializers.ModelSerializer):
+    picture = serializers.ImageField(required=False)
+    class Meta:
+        model = Picture
         fields = "__all__"

@@ -578,7 +578,7 @@
         reader.readAsDataURL(file);
     }
 });
-   function saveProductPreview(e) {
+   {% comment %} function saveProductPreview(e) {
         if (e) e.preventDefault();
 
         // ===== BUILD PRODUCT OBJECT =====
@@ -632,6 +632,86 @@
         sessionStorage.setItem('productPreview', JSON.stringify(productPreview));
 
         // REDIRECT TO PREVIEW PAGE
+        window.open("{% url 'ProductPreview' %}", "_blank");
+    } {% endcomment %}
+    function saveProductPreview(e) {
+        if (e) e.preventDefault();
+
+        // ===== BUILD PRODUCT OBJECT =====
+        let productPreview = {
+            id: $('#id').val() || null,
+            name: $('#name').val(),
+            sku: $('#sku').val(),
+            qoute: $('#qoute').val(),
+            price: parseFloat($('#price').val()) || 0,
+            old_price: parseFloat($('#old_price').val()) || 0,
+            original_price: parseFloat($('#original_price').val()) || 0,
+            other_product_cost: parseFloat($('#other_product_cost').val()) || 0,
+            description: (typeof quill !== "undefined") ? quill.root.innerHTML : '',
+            brief_description: $('#briefDescription').val(),
+            status: $('#status').val(),
+            promotion: [],
+            images: [],
+            options: [],
+            variants: []
+        };
+
+        // ===== PROMOTION =====
+        if ($("#discountedType").val()) {
+            productPreview.promotion.push({
+                name: $('#discountedName').val(),
+                description: $('#promotionDescription').val(),
+                promo_code: $('#discountedPromoCode').val() || null,
+                discount_type: $('#discountedType').val(),
+                discounted_price: parseFloat($('#discountedPrice').val()) || 0,
+                compare_at_price: parseFloat($('#compareAtPrice').val()) || 0,
+                compare_at: parseFloat($('#compareAt').val()) || 0,
+                discount_value: parseFloat($('#discount2').val()) || 0,
+                start_date: $('#promotionSDate').val(),
+                end_date: $('#promotionEDate').val()
+            });
+        }
+
+        // ===== OPTIONS =====
+        $('#variantsInputs .variant-row').each(function () {
+            const name = $(this).find('.variant-name').val().trim();
+            const values = $(this)
+                .find('.variant-options')
+                .val()
+                .split(',')
+                .map(o => o.trim())
+                .filter(o => o);
+
+            if (name && values.length > 0) {
+                productPreview.options.push({
+                    option_name: name,
+                    option: values
+                });
+            }
+        });
+
+        // ===== IMAGES =====
+        const files = $('#productImagesInput')[0].files;
+        if (files.length > 0) {
+            for (let i = 0; i < files.length; i++) {
+                productPreview.images.push(URL.createObjectURL(files[i]));
+            }
+        }
+
+        // ===== VARIANTS =====
+        $('#variantsTableBody tr').each(function () {
+            productPreview.variants.push({
+                name: $(this).find('.variant-name-input').val(),
+                sku: $(this).find('.variant-sku').val(),
+                price: parseFloat($(this).find('.variant-price').val()) || 0,
+                stock: parseInt($(this).find('.variant-stock').val()) || 0
+            });
+        });
+
+        // ===== SAVE TO SESSION =====
+        sessionStorage.setItem('productPreview', JSON.stringify(productPreview));
+
+        // ===== REDIRECT =====
         window.open("{% url 'ProductPreview' %}", "_blank");
     }
 

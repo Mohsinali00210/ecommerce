@@ -19,7 +19,7 @@ from django.views.decorators.http import require_POST
 
 from accounts.models import Address
 
-
+from products.models import Picture
 def Index(request):
     Products = Product.objects.filter()
     freeshipping = Product.objects.filter(
@@ -31,7 +31,9 @@ def Index(request):
         for product in promo.products.all():
             product.final_price = promo.get_discounted_price(product.price)
             product.has_discount = product.final_price != product.price
-    context = { 'Products': Products, "freeshipping":freeshipping,"promotions":promotions }
+    picture = Picture.objects.filter(is_active=True,picture_type="slider").order_by('-created_at')
+    print("pictures ",picture)
+    context = { 'Products': Products, "freeshipping":freeshipping,"promotions":promotions,"sliderPictures":picture }
     return render(request, "Web/index.html",context)
 
 def ProductDetails(request, id):
@@ -49,10 +51,11 @@ def ProductDetails(request, id):
     if promotions.exists():
         promo = promotions.first()
         product.final_price = promo.get_discounted_price(product.price)
-        promo.discounted_price = promo.get_discounted_price(product.price)
+        promo.discounted_price = promo.get_discounted_price(product.price) 
+        promo.off_price = promo.get_off_price(product.price) 
     else:
         product.final_price = product.price
-
+        product.off_price = 0.00
     # Related products
     related_products = (
         Product.objects.filter(category__in=product.category.all(), brand=product.brand)
@@ -64,9 +67,11 @@ def ProductDetails(request, id):
         if promo:
             prd.final_price = promo.get_discounted_price(prd.price)
             prd.discounted_price = promo.get_discounted_price(prd.price)
+            prd.off_price = promo.get_off_price(prd.price)
         else:
             prd.final_price = prd.price
             prd.discounted_price = prd.price
+            prd.off_price = 0.00
     Reviews = product.reviews.filter(
         is_active=True,
         is_deleted=False,
@@ -74,10 +79,23 @@ def ProductDetails(request, id):
     ).select_related('user').order_by('-created_at')
     
     variants = product.variants.select_related("image")
-    variants_json = json.dumps(
-        list(variants.values("name", "price","product","id","stock_quantity")),
-        cls=DjangoJSONEncoder
-    )
+    variant_data = []
+    for v in variants:
+        promotions = Promotion.objects.filter(products=product,start_date__lte=now,end_date__gte=now)
+
+        if promotions.exists():
+            promo = promotions.first()
+            final_price = promo.get_discounted_price(v.price)
+            off_price = promo.get_off_price(v.price)
+        else:
+            final_price = v.price
+            off_price = 0.00
+
+        variant_data.append({ "id": v.id, "name": v.name, "price": float(v.price), "final_price": float(final_price), "off_price": float(off_price),
+            "stock": v.stock_quantity
+        })
+
+    variants_json = json.dumps(variant_data, cls=DjangoJSONEncoder)
     can_review = OrderItem.objects.filter(
         order__user=request.user,
         order__status="delivered",
@@ -189,6 +207,89 @@ def MyCart(request):
     shipping_total = Decimal(0)
     additional_total = Decimal(0)
     subtotal = Decimal(0)
+    total_price_without_discount = Decimal(0)
+    total_off_price = Decimal(0)
+    handling_days = []
+    if cart:
+        current_date = timezone.now()
+
+        for cartitem in cart.items.all():
+            product = cartitem.product
+            product.total_price_without_discount = cartitem.variant.price
+
+            promo = (
+                product.promotions
+                .filter(start_date__lte=current_date, end_date__gte=current_date)
+                .first()
+            )
+            if promo:
+                final_price = promo.get_discounted_price(cartitem.variant.price)
+
+                product.final_price = final_price
+                product.off_price = promo.get_off_price(cartitem.variant.price) 
+
+                product.discounted_price = final_price
+                product.discount_type = promo.discount_type
+                product.discount_value = promo.discount_value
+                product.has_discount = final_price < cartitem.variant.price
+            else:
+                product.final_price = cartitem.variant.price
+                product.off_price = 0 
+                product.discounted_price = cartitem.variant.price
+                product.discount_type = None
+                product.discount_value = None
+                product.has_discount = False
+            
+            total_price_without_discount += cartitem.variant.price * cartitem.quantity
+            handling_days.append(product.handling_time)
+            subtotal += product.final_price * cartitem.quantity
+            shipping_total += product.shipping_charges
+            additional_total += product.additional_shipping_charges
+            total_off_price += product.off_price
+
+            print("shipping_charges ",product.shipping_charges)
+            print("additional_shipping_charges ",product.additional_shipping_charges)
+
+    max_handling_days = max(handling_days) if handling_days else 0
+    estimated_date = timezone.now() + timedelta(days=max_handling_days)
+    context = {
+        "cart": cart,
+        "subtotal": subtotal,
+        "shipping_total": shipping_total,
+        "additional_total": additional_total,
+        "final_total": subtotal + shipping_total + additional_total,
+        "estimated_date":estimated_date,
+        "total_price_without_discount":total_price_without_discount,
+        "total_off_price":total_off_price,
+    }
+    return render(request, "Web/cart.html", context)
+
+def cart_drawer(request):
+
+    if request.user.is_authenticated:
+        cart = Cart.objects.filter(
+            user=request.user,
+            is_active=True
+        ).prefetch_related(
+            "items",
+            "items__product",
+            "items__variant",
+            "items__product__images"
+        ).first()
+
+    else:
+        cart = Cart.objects.filter(
+            session_key=request.session.session_key,
+            is_active=True
+        ).prefetch_related(
+            "items",
+            "items__product",
+            "items__variant",
+            "items__product__images"
+        ).first()
+    shipping_total = Decimal(0)
+    additional_total = Decimal(0)
+    subtotal = Decimal(0)
     handling_days = []
     if cart:
         current_date = timezone.now()
@@ -202,38 +303,23 @@ def MyCart(request):
                 .first()
             )
             if promo:
-                final_price = promo.get_discounted_price(product.price)
+                final_price = promo.get_discounted_price(cartitem.variant.price)
 
                 product.final_price = final_price
                 product.discounted_price = final_price
                 product.discount_type = promo.discount_type
                 product.discount_value = promo.discount_value
-                product.has_discount = final_price < product.price
+                product.has_discount = final_price < cartitem.variant.price
+                product.off_price = promo.get_off_price(cartitem.variant.price) 
+
             else:
-                product.final_price = product.price
-                product.discounted_price = product.price
+                product.final_price = cartitem.variant.price
+                product.discounted_price = cartitem.variant.price
                 product.discount_type = None
                 product.discount_value = None
                 product.has_discount = False
-            handling_days.append(product.handling_time)
-            subtotal += product.final_price * cartitem.quantity
-            shipping_total += product.shipping_charges
-            additional_total += product.additional_shipping_charges
-            print("shipping_charges ",product.shipping_charges)
-            print("additional_shipping_charges ",product.additional_shipping_charges)
-
-    max_handling_days = max(handling_days) if handling_days else 0
-    estimated_date = timezone.now() + timedelta(days=max_handling_days)
-    context = {
-        "cart": cart,
-        "subtotal": subtotal,
-        "shipping_total": shipping_total,
-        "additional_total": additional_total,
-        "final_total": subtotal + shipping_total + additional_total,
-        "estimated_date":estimated_date
-
-    }
-    return render(request, "Web/cart.html", context)
+                product.off_price = 0
+    return render(request,"Web/cart_drawer.html",{"cart":cart})
 
 from decimal import Decimal
 from django.utils import timezone
@@ -244,10 +330,10 @@ def CheckoutPage(request):
     addresses = Address.objects.filter(user=request.user)
 
     checkout_items = request.session.get("checkout_items", [])
-
+    print("checkout_items ",checkout_items)
     # create lookup dict
     checkout_lookup = {str(i["cart_item_id"]): i for i in checkout_items}
-
+    print("checkout_lookup ",checkout_lookup)
     if request.user.is_authenticated:
         cart = (
             Cart.objects
@@ -276,6 +362,8 @@ def CheckoutPage(request):
     shipping_total = Decimal(0)
     additional_total = Decimal(0)
     subtotal = Decimal(0)
+    total_off_price = Decimal(0)
+    total_price_without_discount = Decimal(0)
     handling_days = []
 
     filtered_items = []
@@ -294,6 +382,7 @@ def CheckoutPage(request):
 
             product = cartitem.product
 
+            product.total_price_without_discount = cartitem.variant.price
             promo = (
                 product.promotions
                 .filter(start_date__lte=current_date, end_date__gte=current_date)
@@ -301,22 +390,27 @@ def CheckoutPage(request):
             )
 
             if promo:
-                final_price = promo.get_discounted_price(product.price)
+                final_price = promo.get_discounted_price(cartitem.variant.price)
 
                 product.final_price = final_price
                 product.discounted_price = final_price
                 product.discount_type = promo.discount_type
                 product.discount_value = promo.discount_value
-                product.has_discount = final_price < product.price
+                product.has_discount = final_price < cartitem.variant.price
+                product.off_price = promo.get_off_price(cartitem.variant.price) 
+
             else:
-                product.final_price = product.price
-                product.discounted_price = product.price
+                product.final_price = cartitem.variant.price
+                product.discounted_price = cartitem.variant.price
                 product.discount_type = None
                 product.discount_value = None
                 product.has_discount = False
+                product.off_price = 0
             handling_days.append(product.handling_time)
             subtotal += product.final_price * quantity
+            total_price_without_discount += cartitem.variant.price * quantity
             shipping_total += product.shipping_charges
+            total_off_price += product.off_price
             additional_total += product.additional_shipping_charges
 
             cartitem.quantity = quantity
@@ -327,9 +421,11 @@ def CheckoutPage(request):
         "cart_items": filtered_items,
         "subtotal": subtotal,
         "shipping_total": shipping_total,
+        "total_off_price": total_off_price,
         "additional_total": additional_total,
         "final_total": subtotal + shipping_total + additional_total,
-        "estimated_date":estimated_date
+        "estimated_date":estimated_date,
+        "total_price_without_discount":total_price_without_discount
     }
 
     return render(
@@ -935,8 +1031,6 @@ class UserCartCountAPIView(APIView):
                 subtotal += product.final_price * cartitem.quantity
                 shipping_total += product.shipping_charges
                 additional_total += product.additional_shipping_charges
-                print("shipping_charges ",product.shipping_charges)
-                print("additional_shipping_charges ",product.additional_shipping_charges)
 
             cart_items_count = cart.items.aggregate(total=Sum("quantity"))["total"] or 0
             cart_products_count = cart.items.count()

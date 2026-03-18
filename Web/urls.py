@@ -1,12 +1,13 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
-from .views import get_token_for_logged_in_user,UserCartCountAPIView,product_list,UserNotificationAPIView,toggle_wishlist,ProductReviewCreateAPIView,OrderRequestAPIView,OrderDetailAPIView,Contact,MyOrders,PlaceOrderAPIView,AddressAPIView,SaveCheckoutSession,OrderSuccess,CheckoutPage,MyCart,Index,ProductDetails,AddToCartAPIView,CartDetailAPIView,RemoveCartItemAPIView,SaveCheckoutSession,CheckoutPage
+from .views import cart_drawer,get_token_for_logged_in_user,UserCartCountAPIView,product_list,UserNotificationAPIView,toggle_wishlist,ProductReviewCreateAPIView,OrderRequestAPIView,OrderDetailAPIView,Contact,MyOrders,PlaceOrderAPIView,AddressAPIView,SaveCheckoutSession,OrderSuccess,CheckoutPage,MyCart,Index,ProductDetails,AddToCartAPIView,CartDetailAPIView,RemoveCartItemAPIView,SaveCheckoutSession,CheckoutPage
 from accounts.views import profile_view,update_profile_ajax
 urlpatterns = [
     path("", Index, name="Home"),
     path("Product/<int:id>/", ProductDetails, name="ProductDetails"),
     path("AddToCart/", AddToCartAPIView.as_view(), name="AddToCart"),
+    path("cart_drawer/", cart_drawer, name="cart_drawer"),
     path("CartDetail/", CartDetailAPIView.as_view(), name="CartDetail"),
     path("RemoveCartItem/", RemoveCartItemAPIView.as_view(), name="RemoveCartItem"),
     path("Cart/", MyCart, name="Cart"),

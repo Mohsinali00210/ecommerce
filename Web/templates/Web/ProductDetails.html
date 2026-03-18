@@ -411,15 +411,29 @@
         }
 
         /* CART BUTTON */
-        .cart-btn {
-            width: 100%;
-            background: red;
-            color: #fff;
-            padding: 3px;
-            font-size: 14px;
-            border-radius: 40px;
-            border: none;
-            margin-top: 18px;
+        .btn-group-cart{
+            display:flex;
+            gap:10px;
+            margin-top:18px;
+        }
+
+        .buynow-btn,
+        .cart-btn{
+            flex:1;
+            padding:10px;
+            font-size:14px;
+            border-radius:40px;
+            border:none;
+        }
+
+        .buynow-btn{
+            background:#28a745;
+            color:#fff;
+        }
+
+        .cart-btn{
+            background:red;
+            color:#fff;
         }
 
         /* SECOND HALF - DETAILS */
@@ -952,6 +966,9 @@
             color:#555;
         }
     </style>
+    <script>
+        var product_id=0;
+    </script>
 {% endblock %}
 
 {% block content %}
@@ -1128,8 +1145,8 @@
                     {# Take first active promotion for display #}
                     {% with promo=promotions.0 %}
                         <div class="price-section">
-                            <div class="price-now">{{ promo.discounted_price }}</div>
-                            <div class="price-old">{{ product.price }}</div>
+                            <div class="price-now" id="price-now" data-pricenow="{{ promo.discounted_price }}">{{ promo.discounted_price }}</div>
+                            <div class="price-old" data-oldprice="{{ product.price }}">{{ product.price }}</div>
 
                             {% if promo.discount_type == "percentage" %}
                                 <div class="discount">{{ promo.discount_value }}%</div>
@@ -1145,6 +1162,9 @@
                             {% endif %}
                             <!-- Countdown -->
                         </div>
+                        <div class="product-stock"><i class="fa fa-box"></i><span>discount:</span><strong id="off-price-discount" data-offprice="{{promo.off_price}}">RS.{{promo.off_price}} off</strong> </div>                          
+                        {% if promo.off_price > 0 %}
+                        {% endif %}
                        
                         <div class="clearance-box">
                             {{promo.name}} — Ends in <span id="countdown">{{promo.end_date}}</span>
@@ -1152,12 +1172,16 @@
                     {% endwith %}
                 {% else %}
                     <div class="price-section">
-                        <div class="price-now">{{ product.price }}</div>
+                        <div class="price-now" data-pricenow="{{ product.price }}">{{ product.price }}</div>
                         {% if product.customer_can_see_stock %}
                             <div class="product-stock"><i class="fa fa-box"></i><span>Available:</span><strong id="stock-available"></strong> </div>                          
                         {% endif %}
+                        {% if product.off_price > 0 %}
+                            <div class="product-stock"><i class="fa fa-box"></i><span>discount:</span><strong id="off-price-discount" data-offprice="{{product.off_price}}">RS.{{product.off_price}} off</strong> </div>                          
+                        {% endif %}
                     </div>
                 {% endif %}
+                <script>product_id={{product.id}}</script>
 
 
 
@@ -1194,7 +1218,11 @@
                         {% endwith %}
                     {% endfor %}
                 </div>
-                <button class="cart-btn" id="addToCartBtn">Add to cart {% if promotions %} {% with promo=promotions.0 %}<br>{{promo.discount_value}}% OFF {% endwith %}{% endif %}</button>
+                <div class="btn-group-cart">
+                    
+                    <button class="buynow-btn" id="buynow-btn">Buy Now</button>
+                    <button class="cart-btn" id="addToCartBtn">Add to cart </button>
+                </div>
                 
 
         
@@ -1382,7 +1410,7 @@
 
                                 <div class="price mt-1">
                                     {{product.final_price}}
-                                    <span class="old-price">{{product.price}}</span>
+                                    <span class="old-price" data-oldprice="{{product.price}}">{{product.price}}</span>
                                     <div class="sold-text">{{product.sold}}+ sold</div>
                                 </div>
 
@@ -1765,7 +1793,82 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-zoom/1.7.21/jquery.zoom.min.js"></script>
 
     <script>
-    
+        function openCart(){
+            document.getElementById("cartDrawer").classList.add("open");
+
+            fetch("{% url 'cart_drawer' %}")
+            .then(res => res.text())
+            .then(html=>{
+                document.getElementById("cartContent").innerHTML = html;
+            });
+        }
+
+        function closeCart(){
+            document.getElementById("cartDrawer").classList.remove("open");
+        }
+
+
+            document.querySelector(".buynow-btn").addEventListener("click", function (e) {
+                e.preventDefault();
+                const selectedItems = [];
+
+                fetch("{% url 'AddToCart' %}", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}",/*"Authorization": `Bearer ${localStorage.getItem("access_token")}`*/ }, 
+                    body: JSON.stringify({product_id: product_id,variant_id: cartVariant,quantity: $("#quantity").val()})})
+                .then(res => {
+                    if (res.ok) { return res.json().then(data => ({ status: 'success', data })); }
+                    else if (res.status === 400) { return res.json().then(data => ({ status: 'validation_error', data })); } 
+                    else if (res.status === 401) { return { status: 'auth_error' }; } 
+                    else {return { status: 'server_error' };}
+                })
+                .then(result => {
+                    if (result.status === 'success') {
+                        selectedItems.push({
+                            cart_item_id:  result.data.item_id,
+                            product_id: product_id || null,
+                            variant_id: cartVariant || null,
+                            quantity: parseInt($("#quantity").val()),
+                            price: parseFloat(0)
+                        });
+                        fetch("{% url 'SaveCheckoutSession' %}", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRFToken": "{{ csrf_token }}"
+                            },
+                            body: JSON.stringify({
+                                items: selectedItems
+                            })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                window.location.href = "{% url 'CheckoutPage' %}";
+                            } else {
+                                showAlert("Unable to proceed to checkout", "danger");
+                            }
+                        }); 
+                    } 
+                    //else if (result.status === 'validation_error') {
+                    //    let errorMsg = result.data.name ? `Name: ${result.data.name[0]}` : "Validation failed.";
+                    //    showAlert(errorMsg, "warning");
+                    //} 
+                    //else if (result.status === 'auth_error') { showAlert("Session expired. Please login again.", "danger"); }
+                    //else { showAlert("Server error. Logged in database.", "danger"); }
+                })
+                
+            });
+            $(document).on("input change", "#quantity", function () {
+                var qty = parseInt($(this).val()) || 1;
+                var price = parseFloat($("#price-now").data("pricenow"));
+                var oldprice = parseFloat($(".old-price").data("oldprice"));
+                var discount = parseFloat($("#off-price-discount").data("offprice"));
+                var totalPrice = price * qty;
+                var totalDiscount = discount * qty;
+                var totaloldprice = oldprice * qty;
+                $("#price-now").text(totalPrice.toFixed(2));
+                $(".old-price").text(totaloldprice.toFixed(2));
+                $("#off-price-discount").text("RS." + totalDiscount.toFixed(2) + " off");
+            });
 
             document.querySelectorAll(".wishlist-btn").forEach(button => {
 
@@ -1851,7 +1954,8 @@
         }
         $("#addToCartBtn").on("click",function(){
         var url="http://127.0.0.1:8000/AddToCart/";
-        fetch("{% url 'AddToCart' %}", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}",/*"Authorization": `Bearer ${localStorage.getItem("access_token")}`*/ }, body: JSON.stringify({product_id: cartProduct,variant_id: cartVariant,quantity: $("#quantity").val()})})
+        fetch("{% url 'AddToCart' %}", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}",/*"Authorization": `Bearer ${localStorage.getItem("access_token")}`*/ }, 
+                    body: JSON.stringify({product_id: product_id,variant_id: cartVariant,quantity: $("#quantity").val()})})
             .then(res => {
                 if (res.ok) { return res.json().then(data => ({ status: 'success', data })); }
                 else if (res.status === 400) { return res.json().then(data => ({ status: 'validation_error', data })); } 
@@ -1861,6 +1965,7 @@
             .then(result => {
                 if (result.status === 'success') {
                     showAlert(result.message, "success");
+                    openCart();
                 } 
                 //else if (result.status === 'validation_error') {
                 //    let errorMsg = result.data.name ? `Name: ${result.data.name[0]}` : "Validation failed.";
@@ -1873,22 +1978,13 @@
                 showAlert("Connection failed!", "danger");
                 console.error("Fetch Error:", err);
             });
-productData.variants.forEach((v, i) => {
-    console.log(`Variant :`, v.id);
-    console.log("product:", v.product);
-    console.log("Name:", v.name);
-    console.log("Price:", v.price);
-    console.log("SKU:", v.sku);
-});
-            console.log("cartProduct "+cartProduct);
-            console.log("cartVariant "+cartVariant);
-            console.log("cartPrice "+cartPrice);
-            console.log("qty "+$("#quantity").val());
+           
         });
         const productData = {
                 variants: {{ variants_json|safe }},
                 options: [...document.querySelectorAll(".option-group")]
         };
+
         const selectedOptions = {};
         function renderOptions(productData) {
             const container = document.getElementById("productOptions");
@@ -1936,7 +2032,7 @@ productData.variants.forEach((v, i) => {
             const variantName = Object.values(selectedOptions).join(" / ");
             const variant = productData.variants.find( v => v.name.toLowerCase() === variantName.toLowerCase() );
             
-            if (variant) { document.querySelector(".price-now").innerText = variant.price; updateStock(variant.stock_quantity); cartPrice=variant.price; cartVariant=variant.id; cartProduct=variant.product; }
+            if (variant) { $(".price-now").text(variant.final_price);$(".old-price").text(variant.price); $(".old-price").data("oldprice", variant.price);$("#off-price-discount").text("RS."+variant.off_price+" Off"); $("#off-price-discount").data("offprice", variant.off_price);$(".price-now").data("pricenow", variant.final_price); updateStock(variant.stock_quantity); cartPrice=variant.price; cartVariant=variant.id; cartProduct=variant.product; }
         }
         function updateStock(stock){
             const stockEl = document.getElementById("stock-available");

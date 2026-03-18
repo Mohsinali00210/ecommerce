@@ -435,12 +435,67 @@
             .badge-limited { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; }
             .discount-badge { border: 1px solid #ff4d4f; color: #ff4d4f; font-size: 0.75rem; padding: 0 4px; border-radius: 4px; }
 
-    </style>
+</style>
+<style>
+    .cart-drawer{
+        position:fixed;
+        top:0;
+        right:-400px;
+            width: 250px;
 
+        height:100%;
+        background:white;
+        box-shadow:-2px 0 10px rgba(0,0,0,0.2);
+        transition:right .3s ease;
+        z-index:9999;
+        overflow-y:auto;
+    }
+
+    .cart-drawer.open{
+        right:0;
+    }
+
+    .cart-header{
+        padding:15px;
+        border-bottom:1px solid #eee;
+        display:flex;
+        justify-content:space-between;
+    }
+    .cart-body{
+        display:flex;
+        flex-direction:column;
+        height:100%;
+    }
+
+    .cart-items{
+        flex:1;
+        overflow-y:auto;
+        padding:15px;
+    }
+
+    .cart-footer{
+        padding:15px;
+        border-top:1px solid #eee;
+        background:white;
+    }
+
+    .checkout-btn{
+        display:block;
+        width:100%;
+        text-align:center;
+        background:#ff6a00;
+        color:white;
+        padding:12px;
+        border-radius:6px;
+        font-weight:600;
+        text-decoration:none;
+    }
+</style>
     {% block extra_css %}{% endblock %}
 
 
-<script>
+
+    <script>
      {% comment %} fetch('{% url 'token_obtain_pair' %}', {
             method: "POST",
             headers: {
@@ -791,6 +846,18 @@
 <!-- Background overlay -->
 
 <div>
+            <!-- Cart Drawer -->
+        <div id="cartDrawer" class="cart-drawer">
+            <div class="cart-header">
+                <h5>Your Cart</h5>
+                <button onclick="closeCart()">✕</button>
+            </div>
+
+            <div id="cartContent">
+                <!-- cart items will load here -->
+            </div>
+        </div>
+
         <div id="alert-container">
             {% if messages %}
                 {% for message in messages %}
