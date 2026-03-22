@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Inventory Report{% endblock %}
+
+{% block content %}
+
+<style>
+.card {
+    border-radius: 10px;
+}
+.card-header {
+    font-size: 14px;
+}
+canvas {
+    max-height: 250px;
+}
+</style>
+
+<div class="card">
+    
+    <!-- Header -->
+    <div class="card-header d-flex justify-content-between">
+        <div><i class="bi bi-box-seam"></i> Inventory Report</div>
+
+        <div class="d-flex align-items-end gap-2">
+            <div>
+                <input type="number" class="form-control form-control-sm" id="threshold" placeholder="Low Stock (e.g 10)">
+            </div>
+
+            <div>
+                <button class="btn btn-dark btn-sm" onclick="loadInventory()">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Body -->
+    <div class="card-body">
+
+        <!-- Charts -->
+        <div class="row g-4">
+
+            <!-- Low Stock Chart -->
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light">
+                        <strong>⚠️ Low Stock Products</strong>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="lowStockChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Out of Stock Chart -->
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light">
+                        <strong>❌ Out of Stock</strong>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="outStockChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Table -->
+        <div class="card mt-4 border-0 shadow-sm">
+            <div class="card-header bg-light">
+                <strong>📦 Inventory Details</strong>
+            </div>
+
+            <div class="card-body p-0">
+                <table class="table table-sm table-bordered mb-0 text-center">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Type</th>
+                            <th>Product</th>
+                            <th>SKU</th>
+                            <th>Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTable">
+                        <tr>
+                            <td colspan="4">No data available</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const API_URL = "{% url 'get_inventory_report' %}";
+
+function loadInventory() {
+
+    let threshold = $("#threshold").val() || 10;
+
+    fetch(`${API_URL}?threshold=${threshold}`, {
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        renderTable(data);
+        renderCharts(data);
+    });
+}
+
+function renderTable(data) {
+
+    let html = "";
+
+    data.low_stock.forEach(p => {
+        html += `<tr>
+                    <td><span class="badge bg-warning">Low</span></td>
+                    <td>${p.name}</td>
+                    <td>${p.sku}</td>
+                    <td>${p.stock_quantity}</td>
+                 </tr>`;
+    });
+
+    data.out_of_stock.forEach(p => {
+        html += `<tr>
+                    <td><span class="badge bg-danger">Out</span></td>
+                    <td>${p.name}</td>
+                    <td>${p.sku}</td>
+                    <td>${p.stock_quantity}</td>
+                 </tr>`;
+    });
+
+    $("#inventoryTable").html(html);
+}
+
+function renderCharts(data) {
+
+    // Low Stock Chart
+    new Chart(document.getElementById("lowStockChart"), {
+        type: 'bar',
+        data: {
+            labels: data.low_stock.map(x => wrapLabel(x.name, 12)),
+            datasets: [{
+                label: 'Stock',
+                data: data.low_stock.map(x => x.stock_quantity)
+            }]
+        }
+    });
+
+    // Out of Stock Chart
+    new Chart(document.getElementById("outStockChart"), {
+        type: 'doughnut',
+        data: {
+            labels: ['Out of Stock'],
+            datasets: [{
+                data: [data.out_of_stock.length]
+            }]
+        }
+    });
+}
+
+function wrapLabel(str, maxWidth = 10) {
+    if (!str) return '';
+    let words = str.split(' ');
+    let lines = [];
+    let currentLine = '';
+
+    words.forEach(word => {
+        if ((currentLine + word).length > maxWidth) {
+            lines.push(currentLine.trim());
+            currentLine = word + ' ';
+        } else {
+            currentLine += word + ' ';
+        }
+    });
+
+    lines.push(currentLine.trim());
+    return lines;
+}
+
+loadInventory();
+</script>
+
+{% endblock %}

@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}Revenue & Profit{% endblock %}
+
+{% block content %}
+
+<style>
+.card { border-radius: 10px; }
+.card-header { font-size: 14px; }
+.kpi { font-size: 18px; font-weight: bold; }
+</style>
+
+<div class="card">
+
+    <!-- Header -->
+    <div class="card-header d-flex justify-content-between">
+        <div><i class="bi bi-currency-dollar"></i> Revenue & Profit Analysis</div>
+
+        <div class="d-flex align-items-end gap-2">
+            <input type="date" class="form-control form-control-sm" id="startDate">
+            <input type="date" class="form-control form-control-sm" id="endDate">
+            <button class="btn btn-dark btn-sm" onclick="loadReport()">
+                <i class="bi bi-funnel"></i> Filter
+            </button>
+        </div>
+    </div>
+
+    <!-- Body -->
+    <div class="card-body">
+
+        <!-- KPI Cards -->
+        <div class="row text-center mb-4">
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div>Total Revenue</div>
+                        <div class="kpi text-success" id="totalRevenue">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div>Total Cost</div>
+                        <div class="kpi text-warning" id="totalCost">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div>Total Profit</div>
+                        <div class="kpi text-primary" id="totalProfit">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row g-4">
+
+            <!-- Product Profit -->
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <strong>📦 Profit by Product</strong>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="productProfitChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue vs Profit -->
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <strong>💰 Revenue vs Profit</strong>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="compareChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trend -->
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <strong>📅 Daily Trend</strong>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Table -->
+        <div class="card mt-4 shadow-sm">
+            <div class="card-header bg-light">
+                <strong>📊 Details</strong>
+            </div>
+
+            <div class="card-body p-0">
+                <table class="table table-sm table-bordered text-center mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Product</th>
+                            <th>Revenue</th>
+                            <th>Cost</th>
+                            <th>Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const API_URL = "{% url 'get_revenue_profit' %}";
+
+function loadReport() {
+
+    let start = $("#startDate").val();
+    let end = $("#endDate").val();
+
+    fetch(`${API_URL}?start_date=${start}&end_date=${end}`, {
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        renderSummary(data.summary);
+        renderTable(data.product_data);
+        renderCharts(data);
+    });
+}
+
+function renderSummary(summary) {
+    $("#totalRevenue").text(summary.revenue);
+    $("#totalCost").text(summary.cost);
+    $("#totalProfit").text(summary.profit);
+}
+
+function renderTable(data) {
+    let html = "";
+
+    data.forEach(p => {
+        html += `<tr>
+                    <td>${p.product__name}</td>
+                    <td>${p.revenue}</td>
+                    <td>${p.cost}</td>
+                    <td>${p.profit}</td>
+                 </tr>`;
+    });
+
+    $("#reportTable").html(html);
+}
+
+function renderCharts(data) {
+
+    // Product Profit Chart
+    new Chart(document.getElementById("productProfitChart"), {
+        type: 'bar',
+        data: {
+            labels: data.product_data.map(x => wrapLabel(x.product__name, 10)),
+            datasets: [{
+                label: 'Profit',
+                data: data.product_data.map(x => x.profit)
+            }]
+        }
+    });
+
+    // Revenue vs Profit
+    new Chart(document.getElementById("compareChart"), {
+        type: 'bar',
+        data: {
+            labels: data.product_data.map(x => wrapLabel(x.product__name, 10)),
+            datasets: [
+                {
+                    label: 'Revenue',
+                    data: data.product_data.map(x => x.revenue)
+                },
+                {
+                    label: 'Profit',
+                    data: data.product_data.map(x => x.profit)
+                }
+            ]
+        }
+    });
+
+    // Trend Chart
+    new Chart(document.getElementById("trendChart"), {
+        type: 'line',
+        data: {
+            labels: data.date_data.map(x => x.date),
+            datasets: [
+                {
+                    label: 'Revenue',
+                    data: data.date_data.map(x => x.revenue)
+                },
+                {
+                    label: 'Profit',
+                    data: data.date_data.map(x => x.profit)
+                }
+            ]
+        }
+    });
+}
+
+function wrapLabel(str, maxWidth = 10) {
+    if (!str) return '';
+    let words = str.split(' ');
+    let lines = [];
+    let currentLine = '';
+
+    words.forEach(word => {
+        if ((currentLine + word).length > maxWidth) {
+            lines.push(currentLine.trim());
+            currentLine = word + ' ';
+        } else {
+            currentLine += word + ' ';
+        }
+    });
+
+    lines.push(currentLine.trim());
+    return lines.slice(0, 3);
+}
+
+loadReport();
+</script>
+
+{% endblock %}

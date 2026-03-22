@@ -260,11 +260,18 @@
 <div class="sidebar collapsed" id="sidebar">
     <div class="logo">ADMIN</div>
     <!-- Dashboard -->
-    <a href="#" class="active">
+    <a href="#reportsSubmenu"  data-bs-toggle="collapse" class="active collapsed">
         <i class="bi bi-speedometer2"></i>
         <span class="menu-text">Dashboard</span>
+        <i class="bi bi-chevron-down caret-icon"></i>
     </a>
-
+     <div class="collapse" id="reportsSubmenu">
+        <a href="{% url 'sales_report' %}" class="submenu-link">Sales Reports</a>
+        <a href="{% url 'inventory_report' %}" class="submenu-link">Inventory Reports</a>
+        <a href="{% url 'customer_analytics' %}" class="submenu-link">Customer Analytics</a>
+        <a href="{% url 'revenue_profit' %}" class="submenu-link">Revenue Profit</a>
+        <a href="{% url 'order_stats' %}" class="submenu-link">Order Stats</a>
+    </div>
     <!-- Products Section -->
     <a href="#productsSubmenu" data-bs-toggle="collapse" class="collapsed">
         <i class="bi bi-box-seam"></i>

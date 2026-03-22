@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Order Statistics{% endblock %}
+
+{% block content %}
+
+<style>
+    .card {
+    border-radius: 10px;
+}
+.card-header {
+    font-size: 14px;
+}
+canvas {
+    max-height: 250px;
+}
+.kpi { font-size: 18px; font-weight: bold; }
+</style>
+
+<div class="card">
+
+    <!-- Header -->
+    <div class="card-header d-flex justify-content-between">
+        <div><i class="bi bi-bag-check"></i> Order Statistics</div>
+
+        <div class="d-flex align-items-end gap-2">
+            <div>
+                <input type="date" class="form-control form-control-sm" id="startDate">
+            </div>
+            <div>
+                <input type="date" class="form-control form-control-sm" id="endDate">
+            </div>
+            <div>
+                <button class="btn btn-dark btn-sm" onclick="loadStats()"> <i class="bi bi-funnel"></i> Filter </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Body -->
+    <div class="card-body">
+
+        <!-- KPI Cards -->
+        <div class="row text-center mb-4">
+
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div>Completed</div>
+                        <div class="kpi text-success" id="completedCount">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div>Pending</div>
+                        <div class="kpi text-warning" id="pendingCount">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div>Canceled</div>
+                        <div class="kpi text-danger" id="canceledCount">0</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Charts -->
+        <div class="row g-4">
+
+            <!-- Status Pie -->
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <strong>📊 Order Status Distribution</strong>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Trend -->
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <strong>📅 Daily Orders</strong>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="dailyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Table -->
+        <div class="card mt-4 shadow-sm">
+            <div class="card-header bg-light">
+                <strong>📋 Order Details</strong>
+            </div>
+
+            <div class="card-body p-0">
+                <table class="table table-sm table-bordered text-center mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orderTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const API_URL = "{% url 'get_order_stats' %}";
+
+function loadStats() {
+
+    let start = $("#startDate").val();
+    let end = $("#endDate").val();
+
+    fetch(`${API_URL}?start_date=${start}&end_date=${end}`, {
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        renderSummary(data.status_counts);
+        renderTable(data.daily_stats);
+        renderCharts(data);
+    });
+}
+
+function renderSummary(status_counts) {
+
+    let completed = 0, pending = 0, canceled = 0;
+
+    status_counts.forEach(s => {
+        if (s.status === 'completed') completed = s.count;
+        if (s.status === 'pending') pending = s.count;
+        if (s.status === 'canceled') canceled = s.count;
+    });
+
+    $("#completedCount").text(completed);
+    $("#pendingCount").text(pending);
+    $("#canceledCount").text(canceled);
+}
+
+function renderTable(data) {
+
+    let html = "";
+
+    data.forEach(d => {
+        html += `<tr>
+                    <td>${d.date}</td>
+                    <td>${d.status}</td>
+                    <td>${d.count}</td>
+                 </tr>`;
+    });
+
+    $("#orderTable").html(html);
+}
+
+function renderCharts(data) {
+
+    // Pie Chart
+    new Chart(document.getElementById("statusChart"), {
+        type: 'pie',
+        data: {
+            labels: data.status_counts.map(x => x.status),
+            datasets: [{
+                data: data.status_counts.map(x => x.count)
+            }]
+        }
+    });
+
+    // Daily Chart
+    new Chart(document.getElementById("dailyChart"), {
+        type: 'line',
+        data: {
+            labels: [...new Set(data.daily_stats.map(x => x.date))],
+            datasets: [{
+                label: 'Orders',
+                data: data.daily_stats.map(x => x.count)
+            }]
+        }
+    });
+}
+
+loadStats();
+</script>
+
+{% endblock %}

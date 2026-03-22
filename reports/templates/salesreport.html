@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}Sales Report{% endblock %}
+
+{% block content %}
+<style>
+.card {
+    border-radius: 10px;
+}
+.card-header {
+    font-size: 14px;
+}
+canvas {
+    max-height: 250px;
+}
+</style>
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <div><i class="bi bi-graph-up"></i> Sales Report</div>
+       <div class="d-flex align-items-end gap-2">
+            <div>
+                <input type="date" class="form-control form-control-sm" id="startDate">
+            </div>
+
+            <div>
+                <input type="date" class="form-control form-control-sm" id="endDate">
+            </div>
+            <div>
+                <button class="btn btn-dark btn-sm"> <i class="bi bi-funnel"></i> Filter </button>
+            </div>
+
+        </div>
+    </div>
+
+    
+    <!-- Body -->
+    <div class="card-body">
+
+        <!-- Charts Section -->
+        <div class="row g-4">
+
+            <!-- Product Chart -->
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light">
+                        <strong>📦 Sales by Product</strong>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="productChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Chart -->
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light">
+                        <strong>📂 Sales by Category</strong>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="categoryChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date Chart -->
+            <div class="col-md-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light">
+                        <strong>📅 Daily Sales Trend</strong>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="dateChart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Table Section -->
+        <div class="card mt-4 border-0 shadow-sm">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <strong>📊 Sales Details</strong>
+            </div>
+
+            <div class="card-body p-0">
+                <table class="table table-sm table-bordered mb-0 align-middle text-center">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width:120px;">Type</th>
+                            <th>Name</th>
+                            <th style="width:120px;">Quantity</th>
+                            <th style="width:150px;">Total Sales</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTable">
+                        <tr>
+                            <td colspan="4" class="text-muted text-center">No data available</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const API_URL = "{% url 'get_sales_report' %}";
+
+function loadReport() {
+
+    let start = $("#startDate").val();
+    let end = $("#endDate").val();
+
+    fetch(`${API_URL}?start_date=${start}&end_date=${end}`, {
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        renderTable(data);
+        renderCharts(data);
+
+    });
+}
+
+function renderTable(data) {
+
+    let html = "";
+
+    data.product_sales.forEach(p => {
+        html += `<tr>
+                    <td>Product</td>
+                    <td>${p.product__name}</td>
+                    <td>${p.total_qty}</td>
+                    <td>${p.total_sales}</td>
+                 </tr>`;
+    });
+
+    data.category_sales.forEach(c => {
+        html += `<tr>
+                    <td>Category</td>
+                    <td>${c.product__category__name}</td>
+                    <td>${c.total_qty}</td>
+                    <td>${c.total_sales}</td>
+                 </tr>`;
+    });
+
+    $("#reportTable").html(html);
+}
+
+function renderCharts(data) {
+
+    // Product Chart
+    new Chart(document.getElementById("productChart"), {
+        type: 'bar',
+        data: {
+            labels: data.product_sales.map(x => wrapLabel(x.product__name, 12)),
+            datasets: [{
+                label: 'Sales',
+                data: data.product_sales.map(x => x.total_sales)
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        autoSkip: false, // prevent skipping
+                        maxRotation: 0,
+                        minRotation: 0
+                    }
+                }
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    title: function(context) {
+                        return context[0].label.join(' ');
+                    }
+                }
+            }
+        }
+    });
+
+    // Category Chart
+    new Chart(document.getElementById("categoryChart"), {
+        type: 'pie',
+        data: {
+            labels: data.category_sales.map(x => x.product__category__name),
+            datasets: [{
+                data: data.category_sales.map(x => x.total_sales)
+            }]
+        }
+    });
+
+    // Date Chart
+    new Chart(document.getElementById("dateChart"), {
+        type: 'line',
+        data: {
+            labels: data.date_sales.map(x => x.date),
+            datasets: [{
+                label: 'Daily Sales',
+                data: data.date_sales.map(x => x.total_sales)
+            }]
+        }
+    });
+}
+
+loadReport();
+
+
+function wrapLabel(str, maxWidth = 10) {
+    if (!str) return '';
+
+    let words = str.split(' ');
+    let lines = [];
+    let currentLine = '';
+
+    words.forEach(word => {
+        if ((currentLine + word).length > maxWidth) {
+            lines.push(currentLine.trim());
+            currentLine = word + ' ';
+        } else {
+            currentLine += word + ' ';
+        }
+    });
+
+    lines.push(currentLine.trim());
+    return lines.slice(0, 3); 
+}
+</script>
+
+{% endblock %}
