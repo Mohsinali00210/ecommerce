@@ -621,7 +621,7 @@
 <nav  class="navbar navbar-light navbar-expand-lg px-4 topnav-main d-none d-lg-flex justify-content-between">
     <div>
         <span class="menu-toggle " id="openSidebar">&#9776;</span>
-        <a class="navbar-brand ms-2" href="#" style="font-size: 15px;">
+        <a class="navbar-brand ms-2" href="{% url 'Home' %}" style="font-size: 15px;">
             <img src="{% static 'images/logo.png' %}" width="50" alt="Logo">
         </a>
     </div>
@@ -645,9 +645,8 @@
 
     <ul class="navbar-nav ms-auto d-none d-lg-flex">
         {% if request.user.is_authenticated %}
-            <li class="nav-item"><a href="{% url 'logout' %}" class="nav-link "><i class="fa-solid fa-right-to-bracket"></i></a></li>
-            <li class="nav-item"><a href="{% url 'profile' %}" class="nav-link "><i class="fa-solid fa-person"></i></a></li>
-            <li class="nav-item"><a href="{% url 'MyOrders' %}" class="nav-link ">Orders / Returns</a></li>
+        <li class="nav-item"><a href="{% url 'profile' %}" class="nav-link "><i class="fa-solid fa-person"></i></a></li>
+        <li class="nav-item"><a href="{% url 'MyOrders' %}" class="nav-link ">Orders / Returns</a></li>
         {% else %}
             <li class="nav-item"><a href="{% url 'login' %}" class="nav-link "><i class="fa-solid fa-user"></i></a></li>
         {% endif %}
@@ -681,6 +680,8 @@
                     </ul>
                 </div>
             </li>
+        <li class="nav-item"><a href="{% url 'logout' %}" class="nav-link "><i class="fa-solid fa-right-to-bracket"></i></a></li>
+
         {% endif %}
     </ul>
 </nav>
