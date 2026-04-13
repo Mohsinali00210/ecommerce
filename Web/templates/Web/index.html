@@ -678,7 +678,7 @@
 
 
             <!-- ================= PROMOTIONS ================= -->
-
+            {% if promotions %}
             <div class="promo-section mt-4">
 
             <h4 class="fw-bold text-danger mb-3 free-ship-heading">
@@ -773,8 +773,9 @@
 
             {% endfor %}
             {% endfor %}
-
+            
             </div>
+            {% endif %}
 
             <button class="scroll-right btn btn-light shadow-sm rounded-circle">
             <i class="fa fa-chevron-right"></i>
@@ -786,7 +787,7 @@
 
 
         </div>
-        
+{% comment %}         
         <div class="container my-5">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="fw-bold">Your Product History</h5>
@@ -924,11 +925,11 @@
                 </button>
             </div>
 
-        </div>
+        </div> {% endcomment %}
         <div class="container">
 
             <!-- ================== FIRST ROW BOXES ================== -->
-            <div class="row g-1 mb-4">
+            {% comment %} <div class="row g-1 mb-4">
                 <div class="col-md-3">
                     <div class="product-box">
                         <div class="section-title">Shop gifts by price</div>
@@ -1029,7 +1030,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> {% endcomment %}
 
             <!-- ================== CAROUSEL ================== -->
             <!-- <div id="sliderProducts" class="carousel slide mb-4" data-bs-ride="carousel">

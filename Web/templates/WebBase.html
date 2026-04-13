@@ -621,16 +621,27 @@
 <nav  class="navbar navbar-light navbar-expand-lg px-4 topnav-main d-none d-lg-flex justify-content-between">
     <div>
         <span class="menu-toggle " id="openSidebar">&#9776;</span>
-        <a class="navbar-brand ms-2" href="#" style="font-size: 15px;"><img src="../images/logo.png" width="50px" alt=""></a>
-
+        <a class="navbar-brand ms-2" href="#" style="font-size: 15px;">
+            <img src="{% static 'images/logo.png' %}" width="50" alt="Logo">
+        </a>
     </div>
+        <form class="d-none d-lg-flex w-50 mx-auto"
+            id="search-form"
+            method="GET"
+            action="{% url 'product_list' %}">
 
-    <form class="d-none d-lg-flex w-50 mx-auto">
-        <div class="input-group">
-            <input class="form-control" type="search" placeholder="Search products...">
-            <button class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></button>
-        </div>
-    </form>
+            <div class="input-group">
+                <input class="form-control"
+                    type="search"
+                    name="searchInput"
+                    placeholder="Search products...">
+
+                <button class="input-group-text" type="submit">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+            </div>
+
+        </form>
 
     <ul class="navbar-nav ms-auto d-none d-lg-flex">
         {% if request.user.is_authenticated %}

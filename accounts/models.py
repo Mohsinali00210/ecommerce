@@ -37,7 +37,7 @@ class Role(models.Model):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    full_name = models.CharField(max_length=255)
+    full_name = models.CharField(max_length=255, null=True, blank=True)
     email = models.EmailField(unique=True, null=True, blank=True)
     mobile = models.CharField(max_length=15, unique=True, null=True, blank=True)
     dob = models.DateField(null=True, blank=True)
@@ -52,7 +52,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     referral_code = models.CharField(max_length=20, null=True, blank=True)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['full_name']
+    REQUIRED_FIELDS = []
 
     objects = UserManager()
 
