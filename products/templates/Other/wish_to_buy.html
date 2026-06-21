@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Wish To Buy{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="bi bi-heart"></i> Wish To Buy Requests
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <table class="table table-sm table-bordered mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>User</th>
+                    <th>Product</th>
+                    <th>Variant</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody id="wishBody">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+var links = $(".sidebar a");
+links.each(function() {
+    $(this).removeClass('active');
+});
+$("#WishToBuyLink").addClass('active');
+
+
+function getWishList() {
+    fetch("{% url 'wish_to_buy_list' %}", {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        let innerHtml = "";
+
+        data.forEach(function(item) {
+            innerHtml += `
+                <tr>
+                    <td>${item.user}</td>
+                    <td>${item.product}</td>
+                    <td>${item.variant}</td>
+                    <td>${item.date}</td>
+                </tr>
+            `;
+        });
+
+        if (data.length === 0) {
+            innerHtml = `<tr><td colspan="4" class="text-center text-muted">No requests found.</td></tr>`;
+        }
+
+        $("#wishBody").html(innerHtml);
+    })
+    .catch(err => {
+        showAlert("Failed to load data", "danger");
+        console.error(err);
+    });
+}
+
+getWishList();
+</script>
+
+{% endblock %}

@@ -297,3 +297,39 @@ class NotificationRecipient(models.Model):
         unique_together = ('notification', 'user')
     def __str__(self):
         return f"{self.user} - {self.notification.title}"
+
+
+
+
+
+class ChatThread(BaseAuditModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    product_id = models.IntegerField(null=True, blank=True)
+    variant_id = models.IntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Thread {self.id} - User {self.user_id}"
+
+
+class ChatMessage(BaseAuditModel):
+    SENDER_TYPE = (
+        ('user', 'User'),
+        ('admin', 'Admin'),
+    )
+
+    thread = models.ForeignKey(ChatThread, on_delete=models.CASCADE, related_name="messages")
+    sender_type = models.CharField(max_length=10, choices=SENDER_TYPE)
+    message = models.TextField()
+
+    def __str__(self):
+        return f"{self.sender_type}: {self.message[:20]}"
+
+
+class WishToBuy(BaseAuditModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    product = models.ForeignKey("products.Product", on_delete=models.CASCADE)
+    variant = models.ForeignKey("products.ProductVariant", on_delete=models.CASCADE)
+
+
+    def __str__(self):
+        return f"{self.user} wants {self.product}"

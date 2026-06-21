@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
-from .views import cart_drawer,get_token_for_logged_in_user,UserCartCountAPIView,product_list,UserNotificationAPIView,toggle_wishlist,ProductReviewCreateAPIView,OrderRequestAPIView,OrderDetailAPIView,Contact,MyOrders,PlaceOrderAPIView,AddressAPIView,SaveCheckoutSession,OrderSuccess,CheckoutPage,MyCart,Index,ProductDetails,AddToCartAPIView,CartDetailAPIView,RemoveCartItemAPIView,SaveCheckoutSession,CheckoutPage
+from .views import PromotionDetail,wish_to_buy,get_cat,get_messages,send_message,cart_drawer,get_token_for_logged_in_user,UserCartCountAPIView,product_list,UserNotificationAPIView,toggle_wishlist,ProductReviewCreateAPIView,OrderRequestAPIView,OrderDetailAPIView,Contact,MyOrders,PlaceOrderAPIView,AddressAPIView,SaveCheckoutSession,OrderSuccess,CheckoutPage,MyCart,Index,ProductDetails,AddToCartAPIView,CartDetailAPIView,RemoveCartItemAPIView,SaveCheckoutSession,CheckoutPage
 from accounts.views import profile_view,update_profile_ajax
 urlpatterns = [
     path("", Index, name="Home"),
@@ -29,6 +29,12 @@ urlpatterns = [
         path('product_list/', product_list, name='product_list'),
         path('User_Cart_Count/', UserCartCountAPIView.as_view(), name='User_Cart_Count'),
     path('get-my-token/', get_token_for_logged_in_user, name='get_my_token'),
+    path("send/", send_message, name="send_message"),
+    path("messages/<int:product_id>/", get_messages, name="get_messages"),
+    path("get_cat/", get_cat, name="get_cat"),
+        path("wish-to-buy/", wish_to_buy, name="wish_to_buy"),
+        path("promo/<int:id>/", PromotionDetail, name="promo"),
+
 ]
 
 if settings.DEBUG:

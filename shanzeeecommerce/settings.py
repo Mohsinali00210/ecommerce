@@ -54,6 +54,8 @@ INSTALLED_APPS = [
      'products',
      'Web',
      'reports',
+     "channels",
+        "chat",
      
 ]
 
@@ -87,6 +89,20 @@ TEMPLATES = [
     },
 ]
 
+ASGI_APPLICATION = "shanzeeecommerce.asgi.application"
+
+# Redis (for production / real-time)
+CHANNEL_LAYERS = {
+    # "default": {
+    #     "BACKEND": "channels_redis.core.RedisChannelLayer",
+    #     "CONFIG": {
+    #         "hosts": [("127.0.0.1", 6379)],
+    #     },
+    # },
+     "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 WSGI_APPLICATION = 'shanzeeecommerce.wsgi.application'
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (

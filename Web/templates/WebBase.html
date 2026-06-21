@@ -434,7 +434,11 @@
             .card-img-container { position: relative; background: #f7f7f7; border-radius: 8px; overflow: hidden; }
             .badge-limited { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; }
             .discount-badge { border: 1px solid #ff4d4f; color: #ff4d4f; font-size: 0.75rem; padding: 0 4px; border-radius: 4px; }
-
+.cartcountInside {
+    font-size: 10px;
+    pointer-events: none; /* click cart still works */
+    top: 15px !important;
+}
 </style>
 <style>
     .cart-drawer{
@@ -490,6 +494,50 @@
         font-weight:600;
         text-decoration:none;
     }
+       .help-float {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 55px;
+            height: 55px;
+            background-color: #0d6efd; /* Bootstrap primary */
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            z-index: 999;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .help-float:hover {
+            background-color: #0b5ed7;
+            transform: scale(1.1);
+        }
+        .help-float.up {
+            bottom: 80px;
+        }
+
+        .promo-banner {
+            width: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .promo-img {
+            width: 100%;
+            height: 50px; /* navbar size */
+            object-fit: cover;
+        }
+
+        @media (max-width: 768px) {
+            .promo-img {
+                height: 60px;
+            }
+        }
 </style>
     {% block extra_css %}{% endblock %}
 
@@ -514,31 +562,32 @@
             })
             .catch(err => console.error(err)); {% endcomment %}
 
-            function syncSessionWithToken() {
-                fetch(`{% url 'get_my_token' %}`)
-                .then(res => {
+        async function syncSessionWithToken() {
+                try {
+                    const res = await fetch(`{% url 'get_my_token' %}`);
+
                     if (res.status === 403) {
                         console.error("User is not logged into Django session.");
                         return;
                     }
-                    return res.json();
-                })
-                .then(data => {
-                    if (data && data.access) {
+
+                    const data = await res.json();
+
+                    if (data.access) {
                         localStorage.setItem("access_token", data.access);
                         localStorage.setItem("refresh_token", data.refresh);
-                        loadUserCartItemsCount();
-                        loadNotifications();
                     }
-                })
-                .catch(err => console.error("Sync error:", err));
+                } catch (err) {
+                    console.error("Sync error:", err);
+                }
             }
-            $(document).ready(function() {
-                syncSessionWithToken().then(() => {
-                    setInterval(refreshToken, 50 * 60 * 1000);
-                    loadUserCartItemsCount();
-                    loadNotifications();
-                });
+
+            $(document).ready(async function() {
+                await syncSessionWithToken();
+
+                setInterval(refreshToken, 50 * 60 * 1000);
+                loadUserCartItemsCount();
+                loadNotifications();
             });
             window.onfocus = function() {
                 refreshToken();
@@ -612,11 +661,27 @@
 
 <body>
 
+
+
    <button id="backToTop" class="btn-temu-orange shadow-lg rounded-circle position-fixed bottom-0 end-0 m-4 d-none" 
             style="width: 50px; height: 50px; z-index: 2000;" onclick="scrollToTop()">
             <i class="fa-solid fa-arrow-up fs-4"></i>
     </button>
- 
+    <div id="promo-navbar-banner" class="promo-banner">
+        
+        {% for promo in img_promotions %}
+            <a href="/promo/{{ promo.id }}/" class="promo-slide {% if not forloop.first %}d-none{% endif %}">
+                
+                {% if promo.web_image %}
+                    <img src="{{ promo.web_image.url }}" class="promo-img desktop-img">
+                {% elif promo.mobile_image %}
+                    <img src="{{ promo.mobile_image.url }}" class="promo-img desktop-img">
+                {% endif %}
+
+            </a>
+        {% endfor %}
+
+    </div>
 <!-- ================== TOP NAV ================== -->
 <nav  class="navbar navbar-light navbar-expand-lg px-4 topnav-main d-none d-lg-flex justify-content-between">
     <div>
@@ -645,23 +710,30 @@
 
     <ul class="navbar-nav ms-auto d-none d-lg-flex">
         {% if request.user.is_authenticated %}
-        <li class="nav-item"><a href="{% url 'profile' %}" class="nav-link "><i class="fa-solid fa-person"></i></a></li>
-        <li class="nav-item"><a href="{% url 'MyOrders' %}" class="nav-link ">Orders / Returns</a></li>
-        {% else %}
-            <li class="nav-item"><a href="{% url 'login' %}" class="nav-link "><i class="fa-solid fa-user"></i></a></li>
-        {% endif %}
-        <li class="nav-item p-1">
+       <li class="nav-item p-1">
+            <a href="{% url 'Cart' %}" class="nav-link position-relative d-inline-block">
+                <i class="fa-solid fa-cart-shopping fs-4"></i>
+                <span class="cartcountInside position-absolute top-50 start-50 translate-middle text-white fw-bold">
+                    0
+                </span>
+            </a>
+        </li>
+         {% comment %} <li class="nav-item p-1">
             <a href="{% url 'Cart' %}" class="nav-link position-relative d-inline-block">
                 <i class="fa-solid fa-cart-shopping"></i>
                 <span class="cartcountBadge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                     0
                 </span>
             </a>
-        </li>
+        </li> {% endcomment %}
+        <li class="nav-item"><a href="{% url 'MyOrders' %}" class="nav-link ">Orders / Returns</a></li>
+        {% else %}
+            <li class="nav-item"><a href="{% url 'login' %}" class="nav-link "><i class="fa-solid fa-user"></i></a></li>
+        {% endif %}
         {% if request.user.is_authenticated %}
             <li class="nav-item p-1">
                 <div class="dropdown">
-                    <button class="btn position-relative" data-bs-toggle="dropdown" onclick="loadNotifications()">
+                    <button class="btn position-relative" data-bs-toggle="dropdown" style="margin-right: 6px;" onclick="loadNotifications()">
                         <i class="fa-solid fa-bell"></i>
                         <span id="notificationBadge"
                             class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
@@ -680,8 +752,32 @@
                     </ul>
                 </div>
             </li>
-        <li class="nav-item"><a href="{% url 'logout' %}" class="nav-link "><i class="fa-solid fa-right-to-bracket"></i></a></li>
+        <li class="nav-item">
+            <div class="dropdown">
+                <button class="btn btn-light border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
 
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a href="{% url 'profile' %}" class="dropdown-item">
+                            <i class="fa-solid fa-user me-2"></i> Profile
+                        </a>
+                    </li>
+                    {% comment %} <li>
+                        <a href="{% url 'logout' %}" class="dropdown-item">
+                            <i class="fa-solid fa-right-to-bracket me-2"></i> Logout
+                        </a>
+                    </li> {% endcomment %}
+                    <li>
+                        <a href="#" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#logoutModal">
+                            <i class="fa-solid fa-right-to-bracket me-2"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+        
         {% endif %}
     </ul>
 </nav>
@@ -694,7 +790,7 @@
             <i class="fa fa-chevron-left "></i>
         </button>
         
-        <a class="navbar-brand ms-2" href="#" style="font-size: 15px;"><img src="../images/logo.png" width="50px" alt=""></a>
+        <a class="navbar-brand ms-2" href="{% url 'Home' %}" style="font-size: 15px;"><img src="{% static 'images/logo.png' %}" width="50px" alt=""></a>
         <form class=" d-flex w-30 mx-auto" style="font-size: 12px;">
             <div class="input-group">
                 <input class="form-control form-control-sm" style="padding: 0px;height: 28px;" type="search" placeholder="Search products...">
@@ -703,21 +799,55 @@
         </form>
         <span class="menu-toggle " id="openSidebar">&#9776;</span>
         <ul class="navbar-nav ms-auto  d-flex flex-row " style="font-size: 12px;">
-            {% if request.user.is_authenticated %}
-                <li class="nav-item p-1"><a href="{% url 'logout' %}" class="nav-link "><i class="fa-solid fa-right-to-bracket"></i></a></li>
-                <li class="nav-item p-1"><a href="{% url 'profile' %}" class="nav-link "><i class="fa-solid fa-person"></i></a></li>
-                <li class="nav-item p-1"><a href="{% url 'MyOrders' %}" class="nav-link "><i class="fa-solid fa-arrow-down-short-wide"></i></a></li>
-            {% else %}
-                <li class="nav-item p-1"><a href="{% url 'login' %}" class="nav-link "><i class="fa-solid fa-user"></i></a></li>
-            {% endif %}
-            <li class="nav-item p-1">
+            {% comment %} <li class="nav-item p-1">
                 <a href="{% url 'Cart' %}" class="nav-link position-relative d-inline-block">
                     <i class="fa-solid fa-cart-shopping"></i>
                     <span class="cartcountBadge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                         0
                     </span>
                 </a>
+            </li> {% endcomment %}
+            <li class="nav-item p-1">
+                <a href="{% url 'Cart' %}" class="nav-link position-relative d-inline-block">
+                    <i class="fa-solid fa-cart-shopping fs-4"></i>
+                    <span class="cartcountInside position-absolute top-50 start-50 translate-middle text-white fw-bold">
+                        0
+                    </span>
+                </a>
             </li>
+            {% if request.user.is_authenticated %}
+                {% comment %} <li class="nav-item p-1"><a href="{% url 'logout' %}" class="nav-link "><i class="fa-solid fa-right-to-bracket"></i></a></li> {% endcomment %}
+                {% comment %} <li class="nav-item p-1"><a href="{% url 'profile' %}" class="nav-link "><i class="fa-solid fa-person"></i></a></li> {% endcomment %}
+                <li class="nav-item p-1"><a href="{% url 'MyOrders' %}" class="nav-link "><i class="fa-solid fa-arrow-down-short-wide"></i></a></li>
+                <li class="nav-item p-1">
+                    <div class="dropdown">
+                        <button class="btn btn-light border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </button>
+
+                        <ul class="dropdown-menu dropdown-menu-end position-absolute" style="">
+                            <li>
+                                <a href="{% url 'profile' %}" class="dropdown-item">
+                                    <i class="fa-solid fa-user me-2"></i> Profile
+                                </a>
+                            </li>
+                            {% comment %} <li>
+                                <a href="{% url 'logout' %}" class="dropdown-item">
+                                    <i class="fa-solid fa-right-to-bracket me-2"></i> Logout
+                                </a>
+                            </li> {% endcomment %}
+                            <li>
+                                <a href="#" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#logoutModal">
+                                    <i class="fa-solid fa-right-to-bracket me-2"></i> Logout
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+            {% else %}
+                <li class="nav-item p-1"><a href="{% url 'login' %}" class="nav-link "><i class="fa-solid fa-user"></i></a></li>
+            {% endif %}
+            
             
         </ul>
     </div>
@@ -730,16 +860,7 @@
 <div class="sub-navbar d-flex overflow-auto flex-nowrap ">
       <a href="./index.html" class="active">All</a>
     <a href="./TodayDeal.html">Today's Deals</a>
-    <a href="#">Gift Cards</a>
-    <a href="./Contact.html">Contact</a>
-    <a href="#">Electronics</a>
-    <a href="#">Computers</a>
-    <a href="#">Home & Kitchen</a>
-    <a href="#">Beauty & Care</a>
-    <a href="#">Fashion</a>
-    <a href="#">Sports</a>
-    <a href="#">Grocery</a>
-    <a href="#">Books</a>
+    <a href="{% url 'Contact' %}">Contact</a>
 </div>
 
 
@@ -920,9 +1041,45 @@
 
     <!-- Bootstrap JS -->
 
+<!-- Modal -->
+<div class="modal fade" id="logoutModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Logout</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        Do you want to logout?
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <a href="{% url 'logout' %}" class="btn btn-danger">Logout</a>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 <!-- ========== SIDEBAR TOGGLE JS ========== -->
  <script>
+
+    let currentPromo = 0;
+    const promos = document.querySelectorAll(".promo-slide");
+
+    if (promos.length > 1) {
+        setInterval(() => {
+            promos[currentPromo].classList.add("d-none");
+
+            currentPromo = (currentPromo + 1) % promos.length;
+
+            promos[currentPromo].classList.remove("d-none");
+        }, 3000); // change every 3 seconds
+    }
+
     document.getElementById('toggleNotifications')
         .addEventListener('click', function () {
         document
@@ -1161,15 +1318,22 @@ window.addEventListener("scroll", function() {
     lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
 });
 const backToTopBtn = document.getElementById("backToTop");
+const helpFloat = document.querySelector(".help-float");
 
 window.addEventListener("scroll", function() {
     // Show button after scrolling down 300px
     if (window.pageYOffset > 300) {
         backToTopBtn.classList.remove("d-none");
         backToTopBtn.classList.add("show");
+        if (helpFloat) 
+            helpFloat.classList.add("up");
+
     } else {
         backToTopBtn.classList.add("d-none");
         backToTopBtn.classList.remove("show");
+        if (helpFloat) 
+            helpFloat.classList.remove("up");
+
     }
 });
 
@@ -1202,6 +1366,20 @@ function scrollToTop() {
             title: message
         });
     }
+loadcat();
+     function loadcat() {
+            fetch(`{% url 'get_cat' %}`)
+            .then(res => res.json())
+            .then(data => {
+                var cat= "";
+
+                data.categories.forEach(m => {
+                    cat=`<a href="/product_list/?category=${m.id}">${m.name}</a>`;
+                });
+                $(".sub-navbar").append(cat);
+            });
+    }
+
 </script>
 {% block extra_js %}{% endblock %}
 

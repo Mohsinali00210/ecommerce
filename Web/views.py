@@ -32,9 +32,23 @@ def Index(request):
             product.final_price = promo.get_discounted_price(product.price)
             product.has_discount = product.final_price != product.price
     picture = Picture.objects.filter(is_active=True,picture_type="slider").order_by('-created_at')
-    print("pictures ",picture)
-    context = { 'Products': Products, "freeshipping":freeshipping,"promotions":promotions,"sliderPictures":picture }
+
+
+    img_promotions = Promotion.objects.filter( is_active=True, show_on_home=True, start_date__lte=current_date, end_date__gte=current_date,
+    ).only("id", "name", "web_image", "mobile_image", "promo_code")
+    context = { 'Products': Products, "freeshipping":freeshipping,"promotions":promotions,"sliderPictures":picture,"img_promotions":img_promotions }
     return render(request, "Web/index.html",context)
+
+def PromotionDetail(request, id):
+    now = timezone.now()
+    promo = get_object_or_404(  Promotion, id=id, is_active=True, show_on_home=True, start_date__lte=now, end_date__gte=now )
+    products = promo.products.all().prefetch_related("images")
+    for product in products:
+        product.final_price = promo.get_discounted_price(product.price)
+        product.has_discount = product.final_price != product.price
+    context = { "promo": promo, "products": products, }
+    return render(request, "Web/promotion_detail.html", context)
+
 
 def ProductDetails(request, id):
     product = get_object_or_404(
@@ -55,7 +69,7 @@ def ProductDetails(request, id):
         promo.off_price = promo.get_off_price(product.price) 
     else:
         product.final_price = product.price
-        product.off_price = 0.00
+        product.off_price = product.old_price-product.final_price
     # Related products
     related_products = (
         Product.objects.filter(category__in=product.category.all(), brand=product.brand)
@@ -71,7 +85,8 @@ def ProductDetails(request, id):
         else:
             prd.final_price = prd.price
             prd.discounted_price = prd.price
-            prd.off_price = 0.00
+            prd.off_price = prd.old_price-prd.final_price
+
     Reviews = product.reviews.filter(
         is_active=True,
         is_deleted=False,
@@ -89,7 +104,7 @@ def ProductDetails(request, id):
             off_price = promo.get_off_price(v.price)
         else:
             final_price = v.price
-            off_price = 0.00
+            off_price = product.old_price-final_price
 
         variant_data.append({ "id": v.id, "name": v.name, "price": float(v.price), "final_price": float(final_price), "off_price": float(off_price),
             "stock": v.stock_quantity
@@ -142,7 +157,7 @@ class AddToCartAPIView(APIView):
             variant = get_object_or_404(ProductVariant, id=data["variant_id"])
 
         quantity = int(data.get("quantity", 1))
-
+        
         if request.user.is_authenticated:
             cart, _ = Cart.objects.get_or_create( user=request.user, is_active=True )
         else:
@@ -1060,3 +1075,130 @@ def get_token_for_logged_in_user(request):
         'access': str(refresh.access_token),
         'refresh': str(refresh),
     })
+
+import json
+
+from .models import ChatThread, ChatMessage
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+import json
+from .models import ChatThread, ChatMessage
+
+
+@csrf_exempt
+def send_message(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+
+        user = request.user
+        message = data.get("message")
+        product_id = data.get("product_id")
+        variant_id = data.get("variant_id")
+        thread = ChatThread.objects.get(product_id=product_id, user=user)
+        if thread:
+            pass
+        else:
+            thread, created = ChatThread.objects.get_or_create(
+                user=user,
+                product_id=product_id,
+                variant_id=variant_id
+            )
+
+        # ✅ Save message
+        msg = ChatMessage.objects.create(
+            thread=thread,
+            sender_type="user",
+            message=message
+        )
+
+        return JsonResponse({
+            "success": True,
+            "thread_id": thread.id,
+            "message": msg.message
+        })
+
+def get_messages(request, product_id):
+    user = request.user
+
+    try:
+        thread = ChatThread.objects.get(user=user,product_id=product_id)
+    except ChatThread.DoesNotExist:
+        return JsonResponse({"messages": []})
+
+    messages = thread.messages.all().order_by("created_at")
+
+    data = [
+        {
+            "sender": m.sender_type,
+            "message": m.message,
+            "time": m.created_at.strftime("%H:%M")
+        }
+        for m in messages
+    ]
+
+    return JsonResponse({
+        "thread_id": thread.id,
+        "messages": data
+    })
+
+def get_cat(request):
+    categories = Category.objects.annotate(
+        product_count=Count(
+            'products',
+            filter=Q(products__status='active', products__visible_individually=True)
+        )
+    ).filter(product_count__gt=0)
+
+    data = []
+    for c in categories:
+        data.append({
+            "id": c.id,
+            "name": c.name,
+            "product_count": c.product_count
+        })
+
+    return JsonResponse({"categories": data})
+
+from .models import WishToBuy
+@login_required
+def wish_to_buy(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+
+            product_id = data.get("product_id")
+            variant_id = data.get("variant_id")
+
+            if not product_id:
+                return JsonResponse({
+                    "status": "error",
+                    "message": "Product ID missing"
+                }, status=400)
+
+            product = Product.objects.get(id=product_id)
+            variant = ProductVariant.objects.filter(id=variant_id).first()
+
+            obj, created = WishToBuy.objects.get_or_create(
+                user=request.user,
+                product=product,
+                variant=variant
+            )
+
+            return JsonResponse({
+                "status": "success",
+                "created": created,
+                "message": "Saved Successfully" if created else "Already requested"
+            })
+
+        except Product.DoesNotExist:
+            return JsonResponse({
+                "status": "error",
+                "message": "Product not found"
+            }, status=404)
+
+        except Exception as e:
+            return JsonResponse({
+                "status": "error",
+                "message": str(e)
+            }, status=500)

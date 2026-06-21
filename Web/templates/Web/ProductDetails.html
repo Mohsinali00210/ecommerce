@@ -381,13 +381,13 @@
             gap: 10px;
         }
 
-        .price-now {
+        .price-sign,.price-now {
             color: red;
             font-size: 20px;
             font-weight: bold;
         }
 
-        .price-old {
+        .old-price-sign,.price-old {
             text-decoration: line-through;
             color: gray;
         }
@@ -417,7 +417,7 @@
             margin-top:18px;
         }
 
-        .buynow-btn,
+        .buynow-btn,.wish-btn,
         .cart-btn{
             flex:1;
             padding:10px;
@@ -428,6 +428,11 @@
 
         .buynow-btn{
             background:#28a745;
+            color:#fff;
+        }
+
+        .wish-btn{
+            background:#29b399;
             color:#fff;
         }
 
@@ -903,7 +908,76 @@
         .extra-review.show {
             opacity: 1;
         }
+        .chat-box {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 300px;
+            height: 400px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            z-index: 555000;
+            overflow: hidden;
+        }
 
+        /* Header */
+        .chat-header {
+            background: #0d6efd;
+            color: #fff;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Body */
+        .chat-body {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        /* Messages */
+        .msg {
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+
+        .msg.bot {
+            background: #e9ecef;
+            align-self: flex-start;
+        }
+
+        .msg.user {
+            background: #0d6efd;
+            color: #fff;
+            align-self: flex-end;
+        }
+
+        /* Footer */
+        .chat-footer {
+            display: flex;
+            border-top: 1px solid #ddd;
+        }
+
+        .chat-footer input {
+            flex: 1;
+            border: none;
+            padding: 10px;
+        }
+
+        .chat-footer button {
+            background: #0d6efd;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+        }
     </style>
     <style>
         .star-rating {
@@ -965,6 +1039,10 @@
         .product-stock i{
             color:#555;
         }
+        .selected-swatch{
+            border:3px solid #000 !important;
+            transform:scale(1.1);
+        }
     </style>
     <script>
         var product_id=0;
@@ -972,7 +1050,30 @@
 {% endblock %}
 
 {% block content %}
+    <!-- Help Button -->
+<!-- Floating Button -->
+<a href="#" class="help-float" id="chatToggle">
+    <i class="fa-solid fa-comments"></i>
+</a>
 
+<!-- Chat Box -->
+<div class="chat-box d-none" id="chatBox">
+    
+    <div class="chat-header">
+        <span>Support Chat</span>
+        <button id="closeChat">&times;</button>
+    </div>
+
+    <div class="chat-body" id="chatBody">
+        <div class="msg bot">Hi 👋 How can I help you?</div>
+    </div>
+
+    <div class="chat-footer">
+        <input type="text" id="chatInput" placeholder="Type message...">
+        <button id="sendMsg">Send</button>
+    </div>
+
+</div>
     <div class="mycontainer container my-5 product-page">
 
         <div class="row">
@@ -1107,13 +1208,15 @@
                     </div> {% endcomment %}
 
                     <!-- PRODUCT DETAILS -->
-                    <h3 class="section-title mt-4">Product Details</h3>
                     <div class="product-description">
                         {% if product.description %}
-                            {{ product.description|safe }}
-                        {% else %}
-                            <p>No description available.</p>
-                        {% endif %}
+                            {% if product.description|striptags|length > 0 %}
+                                <h3 class="section-title mt-4">Product Details</h3>
+                                {{ product.description|safe }}
+                            {% endif %}
+                        {% comment %}{% else %}
+                             <p>No description available.</p>{% endcomment %}
+                        {% endif %} 
                     </div>
 
                     <!-- REPORT + SAVE -->
@@ -1145,8 +1248,9 @@
                     {# Take first active promotion for display #}
                     {% with promo=promotions.0 %}
                         <div class="price-section">
-                            <div class="price-now" id="price-now" data-pricenow="{{ promo.discounted_price }}">{{ promo.discounted_price }}</div>
-                            <div class="price-old" data-oldprice="{{ product.price }}">{{ product.price }}</div>
+                            <div class="price-sign">RS <span class="price-now" id="price-now" data-pricenow="{{ promo.discounted_price }}">{{ promo.discounted_price }}</span></div>
+                            <div class="old-price-sign">RS <span class="price-old" data-oldprice="{{ product.price }}">{{ product.price }}</span></div>
+                            
 
                             {% if promo.discount_type == "percentage" %}
                                 <div class="discount">{{ promo.discount_value }}%</div>
@@ -1154,16 +1258,21 @@
                                 <div class="discount">${{ promo.discount_value }}</div>
                             {% elif promo.discount_type == "buy_x_get_y" %}
                                 <div class="discount">Buy X Get Y</div>
-                            {% elif promo.discount_type == "free_delivery" %}
-                                <div class="discount">Free Delivery</div>
                             {% endif %}
+                            
                             {% if product.customer_can_see_stock %}
-                                <div class="product-stock"><i class="fa fa-box"></i><span>Available:</span><strong id="stock-available"></strong> </div>                          
+                            <div class="product-stock"><i class="fa fa-box"></i><span>Available:</span><strong id="stock-available"></strong> </div>                          
                             {% endif %}
                             <!-- Countdown -->
                         </div>
-                        <div class="product-stock"><i class="fa fa-box"></i><span>discount:</span><strong id="off-price-discount" data-offprice="{{promo.off_price}}">RS.{{promo.off_price}} off</strong> </div>                          
                         {% if promo.off_price > 0 %}
+                        <div class="product-stock"><i class="fa fa-box"></i><span>discount:</span><strong id="off-price-discount" data-offprice="{{promo.off_price}}">RS.{{promo.off_price}} off</strong> </div>                          
+                        {% endif %}
+                        
+                        {% if promo.discount_type == "free_delivery" or product.free_shipping %}
+                            <div class="shipping-fee text-decoration-line-through text-muted">
+                                Shipping Charges: Rs. {{product.shipping_charges}}
+                            </div>                            
                         {% endif %}
                        
                         <div class="clearance-box">
@@ -1172,21 +1281,25 @@
                     {% endwith %}
                 {% else %}
                     <div class="price-section">
-                        <div class="price-now" data-pricenow="{{ product.price }}">{{ product.price }}</div>
+                        <div class="price-sign">RS <span class="price-now" data-pricenow="{{ product.price }}">{{ product.price }}</span></div>
                         {% if product.customer_can_see_stock %}
-                            <div class="product-stock"><i class="fa fa-box"></i><span>Available:</span><strong id="stock-available"></strong> </div>                          
-                        {% endif %}
-                        {% if product.off_price > 0 %}
-                            <div class="product-stock"><i class="fa fa-box"></i><span>discount:</span><strong id="off-price-discount" data-offprice="{{product.off_price}}">RS.{{product.off_price}} off</strong> </div>                          
+                        <div class="product-stock"><i class="fa fa-box"></i><span>Available:</span><strong id="stock-available"></strong> </div>                          
                         {% endif %}
                     </div>
+                    {% if product.off_price > 0 %}
+                    <div class="product-stock text-decoration-underline text-muted"><strong id="off-price-discount" data-offprice="{{product.off_price}}">RS.{{product.off_price}}</strong> </div>                          
+                    {% endif %}
+                    {% if product.free_shipping %}
+                        <div class="shipping-fee text-decoration-line-through text-muted">
+                            Shipping: Rs. {{product.shipping_charges}}
+                        </div>                            
+                    {% endif %}
                 {% endif %}
                 <script>product_id={{product.id}}</script>
 
 
 
                 
-                <input type="number" class="form-control qty-select mt-2" id="quantity" min="1" value="1" style="width:120px;">
                  {% regroup options by option_name as grouped_options %}
 
                 <div id="productOptions">
@@ -1200,7 +1313,90 @@
 
                             <div class="d-flex flex-wrap gap-2" id="{{ group_id }}-group">
                                 {% for item in group.list %}
-                                    <button
+
+                                    {% comment %} {% if group.grouper|lower == "color" %}
+
+                                        <!-- 🎨 COLOR SWATCH -->
+                                        <button
+                                            type="button"
+                                            class="color-swatch-btn border-0 rounded-circle {% if forloop.first %}default-option{% endif %}"
+                                            data-option-name="{{ group.grouper }}"
+                                            data-option-value="{{ item.option }}"
+                                            data-option-colvalue="{{ item.value }}"
+                                            style="
+                                                width:28px;
+                                                height:28px;
+                                                background:{{ item.value }};
+                                                border:2px solid #ddd;
+                                                cursor:pointer;
+                                            "
+                                            onclick="selectOption(
+                                                '{{ group.grouper|escapejs }}',
+                                                '{{ item.option|escapejs }}',
+                                                this
+                                            )"
+                                            title="{{ item.option }}">
+                                        </button>
+
+                                    {% else %}
+
+                                        <!-- 🔘 NORMAL OPTION -->
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-secondary btn-sm {% if forloop.first %}default-option{% endif %}"
+                                            data-option-name="{{ group.grouper }}"
+                                            data-option-value="{{ item.option }}"
+                                            onclick="selectOption(
+                                                '{{ group.grouper|escapejs }}',
+                                                '{{ item.option|escapejs }}',
+                                                this
+                                            )">
+                                            {{ item.option|upper }}
+                                        </button>
+
+                                    {% endif %} {% endcomment %}
+                                     <button
+                                            type="button"
+                                            class="btn btn-outline-secondary btn-sm {% if forloop.first %}default-option{% endif %}"
+                                            data-option-name="{{ group.grouper }}"
+                                            data-option-value="{{ item.option }}" 
+                                            {% if group.grouper|lower == "color" %}style="background:{{ item.value }};"{% endif %}
+                                            onclick="selectOption(
+                                                '{{ group.grouper|escapejs }}',
+                                                '{{ item.option|escapejs }}',
+                                                this
+                                            )">
+                                            {{ item.option|upper }}
+                                        </button>
+                                    {% comment %} {% if group.grouper|lower == "color" %}
+
+                                        <!-- 🎨 COLOR SWATCH -->
+                                        <button
+                                            type="button" class="color-swatch-btn border-0 rounded-circle {% if forloop.first %}default-option{% endif %}" data-option-name="{{ group.grouper }}"
+                                            data-option-value="{{ item.option }}" 
+                                            data-option-colvalue="{{ item.value }}" 
+                                            style="
+                                                width:28px;
+                                                height:28px;
+                                                background:{{ item.value }};
+                                                border:2px solid #ddd;
+                                                cursor:pointer;
+                                            " onclick="selectOption( '{{ group.grouper|escapejs }}',
+                                                '{{ item.option|escapejs }}',
+                                                this )" title="{{ item.option }}"> </button>
+
+                                    {% else %}
+
+                                        <!-- 🔘 NORMAL OPTION -->
+                                        <button
+                                            type="button" class="color-swatch-btn btn btn-outline-secondary btn-sm {% if forloop.first %}default-option{% endif %}"
+                                            data-option-name="{{ group.grouper }}"
+                                            data-option-value="{{ item.option }}" onclick="selectOption( '{{ group.grouper|escapejs }}',
+                                                '{{ item.option|escapejs }}',
+                                                this )"> {{ item.option|upper }} </button>
+
+                                    {% endif %} {% endcomment %}
+                                    {% comment %} <button
                                         type="button"
                                         class="btn btn-outline-secondary btn-sm {% if forloop.first %}default-option{% endif %}"
                                         data-option-name="{{ group.grouper }}"
@@ -1211,14 +1407,16 @@
                                             this
                                         )">
                                         {{ item.option|upper }}
-                                    </button>
+                                    </button> {% endcomment %}
                                 {% endfor %}
                             </div>
                         </div>
                         {% endwith %}
                     {% endfor %}
                 </div>
-                <div class="btn-group-cart">
+                <input type="number" class="form-control qty-select mt-2" id="quantity" min="1" value="1" style="width:120px;">
+
+                <div class="btn-group-cart" id="btn-group-cart">
                     
                     <button class="buynow-btn" id="buynow-btn">Buy Now</button>
                     <button class="cart-btn" id="addToCartBtn">Add to cart </button>
@@ -1697,11 +1895,11 @@
                         <!-- Thumbnails -->
                         <div class="col-2  d-md-block">
                             <div class="modal-thumbs d-flex justify-content-between">
-                                <img src="../images/watch pic1.jpg"  onclick="goToSlide1(0)">
+                                {% comment %} <img src="../images/watch pic1.jpg"  onclick="goToSlide1(0)">
                                 <img src="../images/watch pic2.jpg"  onclick="goToSlide1(1)">
                                 <img src="../images/watch pic3.jpg"  onclick="goToSlide1(2)">
                                 <img src="../images/watch pic4.jpg"  onclick="goToSlide1(3)">
-                                <img src="../images/watch pic5.jpg"  onclick="goToSlide1(4)">
+                                <img src="../images/watch pic5.jpg"  onclick="goToSlide1(4)"> {% endcomment %}
                             </div>
                         </div>
 
@@ -1709,7 +1907,7 @@
                         <div class="col-md-10 text-center">
                             <div id="imageCarousel" class="carousel slide">
                                 <div class="carousel-inner">
-                                    <div class="carousel-item active">
+                                    {% comment %} <div class="carousel-item active">
                                         <img src="../images/watch pic1.jpg" class="zoom-img" onmousemove="moveZoom(event)" onclick="zoomIn(event)">
                                     </div>
                                     <div class="carousel-item">
@@ -1723,7 +1921,7 @@
                                     </div>
                                     <div class="carousel-item">
                                         <img src="../images/watch pic5.jpg" class="zoom-img" onmousemove="moveZoom(event)" onclick="zoomIn(event)">
-                                    </div>
+                                    </div> {% endcomment %}
                                 </div>
 
                                 <button class="carousel-control-prev" type="button" data-bs-target="#imageCarousel" data-bs-slide="prev">
@@ -1793,6 +1991,108 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-zoom/1.7.21/jquery.zoom.min.js"></script>
 
     <script>
+      var CURRENT_THREAD_ID = null;
+        let chatSocket = null;
+
+        const chatToggle = document.getElementById("chatToggle");
+        const chatBox = document.getElementById("chatBox");
+        const closeChat = document.getElementById("closeChat");
+        const sendBtn = document.getElementById("sendMsg");
+        const chatInput = document.getElementById("chatInput");
+        const chatBody = document.getElementById("chatBody");
+
+
+        // 🔹 CONNECT SOCKET
+        function connectSocket(threadId) {
+            // if (!threadId) return;
+            if (threadId==undefined) threadId=0;
+
+            // close old socket if exists
+            if (chatSocket) {
+                chatSocket.close();
+            }
+
+            chatSocket = new WebSocket(
+                "ws://" + window.location.host + "/ws/chat/" + threadId + "/" + product_id + "/"
+            );
+
+            chatSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+
+                const msg = document.createElement("div");
+                msg.classList.add("msg", data.sender === "user" ? "user" : "admin");
+                msg.textContent = data.message;
+
+                chatBody.appendChild(msg);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            };
+
+            chatSocket.onclose = function() {
+                console.log("Socket closed");
+            };
+        }
+
+
+        // 🔹 INITIAL LOAD (GET THREAD + MESSAGES)
+        function loadMessages() {
+            fetch(`/messages/${product_id}/`)
+            .then(res => res.json())
+            .then(data => {
+                chatBody.innerHTML = "";
+
+                CURRENT_THREAD_ID = data.thread_id;
+
+                // connect socket AFTER getting thread id
+                connectSocket(CURRENT_THREAD_ID);
+
+                data.messages.forEach(m => {
+                    const div = document.createElement("div");
+                    div.classList.add("msg", m.sender === "user" ? "user" : "bot");
+                    div.textContent = m.message;
+                    chatBody.appendChild(div);
+                });
+
+                chatBody.scrollTop = chatBody.scrollHeight;
+            });
+        }
+
+
+        // 🔹 SEND MESSAGE (SOCKET ONLY)
+        function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text || !chatSocket) return;
+
+            // show instantly (user side)
+            const userMsg = document.createElement("div");
+            userMsg.classList.add("msg", "user");
+            userMsg.textContent = text;
+            //chatBody.appendChild(userMsg);
+
+            chatSocket.send(JSON.stringify({
+                message: text
+            }));
+
+            chatInput.value = "";
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+
+        // 🔹 EVENTS
+        sendBtn.addEventListener("click", sendMessage);
+
+        chatToggle.addEventListener("click", function(e) {
+            e.preventDefault();
+            chatBox.classList.remove("d-none");
+
+            // load when opened
+            loadMessages();
+        });
+
+        closeChat.addEventListener("click", function() {
+            chatBox.classList.add("d-none");
+        });
+
+       
         function openCart(){
             document.getElementById("cartDrawer").classList.add("open");
 
@@ -1808,11 +2108,12 @@
         }
 
 
-            document.querySelector(".buynow-btn").addEventListener("click", function (e) {
+            // Use event delegation so the listener works even after btn-group-cart HTML is replaced by updateVariantPrice()
+            $(document).on("click", ".buynow-btn", function (e) {
                 e.preventDefault();
                 const selectedItems = [];
 
-                fetch("{% url 'AddToCart' %}", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}",/*"Authorization": `Bearer ${localStorage.getItem("access_token")}`*/ }, 
+                fetch("{% url 'AddToCart' %}", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" }, 
                     body: JSON.stringify({product_id: product_id,variant_id: cartVariant,quantity: $("#quantity").val()})})
                 .then(res => {
                     if (res.ok) { return res.json().then(data => ({ status: 'success', data })); }
@@ -1848,12 +2149,6 @@
                             }
                         }); 
                     } 
-                    //else if (result.status === 'validation_error') {
-                    //    let errorMsg = result.data.name ? `Name: ${result.data.name[0]}` : "Validation failed.";
-                    //    showAlert(errorMsg, "warning");
-                    //} 
-                    //else if (result.status === 'auth_error') { showAlert("Session expired. Please login again.", "danger"); }
-                    //else { showAlert("Server error. Logged in database.", "danger"); }
                 })
                 
             });
@@ -1952,9 +2247,9 @@
                 showAlert("Something went wrong", "danger");
             });
         }
-        $("#addToCartBtn").on("click",function(){
-        var url="http://127.0.0.1:8000/AddToCart/";
-        fetch("{% url 'AddToCart' %}", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}",/*"Authorization": `Bearer ${localStorage.getItem("access_token")}`*/ }, 
+        // Use event delegation so the listener works even after btn-group-cart HTML is replaced by updateVariantPrice()
+        $(document).on("click", "#addToCartBtn", function(){
+        fetch("{% url 'AddToCart' %}", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" }, 
                     body: JSON.stringify({product_id: product_id,variant_id: cartVariant,quantity: $("#quantity").val()})})
             .then(res => {
                 if (res.ok) { return res.json().then(data => ({ status: 'success', data })); }
@@ -1967,12 +2262,6 @@
                     showAlert(result.message, "success");
                     openCart();
                 } 
-                //else if (result.status === 'validation_error') {
-                //    let errorMsg = result.data.name ? `Name: ${result.data.name[0]}` : "Validation failed.";
-                //    showAlert(errorMsg, "warning");
-                //} 
-                //else if (result.status === 'auth_error') { showAlert("Session expired. Please login again.", "danger"); }
-                //else { showAlert("Server error. Logged in database.", "danger"); }
             })
             .catch(err => {
                 showAlert("Connection failed!", "danger");
@@ -2018,6 +2307,87 @@
         }
 
         // HANDLE SELECTION
+{% comment %} 
+        function selectOption(type, value, btn) {
+            selectedOptions[type.toLowerCase()] = value.toLowerCase();
+            btn.parentElement
+                .querySelectorAll("button")
+                .forEach(b => {
+                    b.classList.remove("active", "btn-dark", "selected-swatch");
+                });
+            btn.classList.add("active");
+            if (btn.classList.contains("color-swatch-btn")) {
+                btn.classList.add("selected-swatch");
+            } else {
+                btn.classList.add("btn-dark");
+            }
+            updateVariantPrice();
+        }
+
+        var cartPrice = 0;
+        var cartVariant = 0;
+        var cartProduct = 0;
+        function updateVariantPrice() {
+
+            if (Object.keys(selectedOptions).length !== productData.options.length)
+                return;
+console.log("productData", JSON.stringify(productData.options));
+            const variantName = productData.options.map(opt => {
+                let optionName = "";
+                if (typeof opt === "string") {
+                    optionName = opt;
+                }
+                else if (opt.option_name) {
+                    optionName = opt.option_name;
+                }
+                else if (opt.name) {
+                    optionName = opt.name;
+                }
+                console.log("optionName ", optionName);
+                optionName = String(optionName).toLowerCase();
+                return selectedOptions[optionName];
+            }).join(" / ");
+
+            const variant = productData.variants.find(v =>
+                v.name.toLowerCase() === variantName.toLowerCase()
+            );
+
+            if (!variant)
+                return;
+
+            if (variant.stock_quantity <= 0) {
+
+                $("#btn-group-cart").html(`
+                    <button class="wish-btn" id="wishBtn">
+                        Wish to Buy
+                    </button>
+                `);
+
+                updateStock(0);
+
+            } else {
+
+                $("#btn-group-cart").html(`
+                    <button class="buynow-btn" id="buynow-btn">
+                        Buy Now
+                    </button>
+
+                    <button class="cart-btn" id="addToCartBtn">
+                        Add to Cart
+                    </button>
+                `);
+
+                updateStock(variant.stock_quantity);
+            }
+
+            $(".price-now").text(variant.final_price);
+            $(".old-price").text(variant.price);
+            $("#off-price-discount").text("RS. " + variant.off_price + " Off");
+
+            cartPrice = variant.price;
+            cartVariant = variant.id;
+            cartProduct = variant.product;
+        } {% endcomment %}
         function selectOption(type, value, btn) {
             selectedOptions[type] = value;
             btn.parentElement.querySelectorAll("button").forEach(b => b.classList.remove("active", "btn-dark"));
@@ -2032,8 +2402,45 @@
             const variantName = Object.values(selectedOptions).join(" / ");
             const variant = productData.variants.find( v => v.name.toLowerCase() === variantName.toLowerCase() );
             
-            if (variant) { $(".price-now").text(variant.final_price);$(".old-price").text(variant.price); $(".old-price").data("oldprice", variant.price);$("#off-price-discount").text("RS."+variant.off_price+" Off"); $("#off-price-discount").data("offprice", variant.off_price);$(".price-now").data("pricenow", variant.final_price); updateStock(variant.stock_quantity); cartPrice=variant.price; cartVariant=variant.id; cartProduct=variant.product; }
-        }
+            if (variant) { 
+                if (variant.stock == 0) {$("#btn-group-cart").html(`<button class="wish-btn" id="wishBtn">Wish to Buy</button>`);updateStock(0);}
+                else{$("#btn-group-cart").html(`<button class="buynow-btn" id="buynow-btn">Buy Now</button><button class="cart-btn" id="addToCartBtn">Add to cart </button>`);}
+                $(".price-now").text(variant.final_price);$(".old-price").text(variant.price); $(".old-price").data("oldprice", variant.price);$("#off-price-discount").text("RS."+variant.off_price+" Off"); $("#off-price-discount").data("offprice", variant.off_price);$(".price-now").data("pricenow", variant.final_price); updateStock(variant.stock_quantity); cartPrice=variant.price; cartVariant=variant.id; cartProduct=variant.product; }
+        } 
+        $(document).on("click", "#wishBtn", function () {
+            fetch("/wish-to-buy/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCookie("csrftoken")
+                },
+                body: JSON.stringify({
+                    product_id: product_id,
+                    variant_id: cartVariant || null
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+
+                if (data.status === "success") {
+
+                    if (data.created) {
+                        showAlert("Saved Successfully", "success");
+                        $("#wishBtn").text("Requested ✅").prop("disabled", true);
+                    } else {
+                        showAlert("You already requested this item", "info");
+                    }
+
+                } else {
+                    showAlert(data.message || "Something went wrong", "error");
+                }
+
+            })
+            .catch(err => {
+                console.error(err);
+                showAlert("Server error. Try again!", "error");
+            });
+        });
         function updateStock(stock){
             const stockEl = document.getElementById("stock-available");
 

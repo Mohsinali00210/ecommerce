@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Messages{% endblock %}
+
+{% block content %}
+    <style>
+        .msg {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+
+        .msg.admin {
+            background: #0d6efd;
+            color: white;
+            margin-left: auto;
+        }
+
+        .msg.user {
+            background: #e9ecef;
+        }
+
+        .thread-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .thread-item:hover {
+            background: #f1f1f1;
+        }
+    </style>
+
+
+
+        <div class="card-body p-0">
+            <div class="row g-0" style="height: 75vh;">
+
+                <!-- LEFT: THREAD LIST -->
+                <div class="col-4 border-end">
+                    <div class="p-2 fw-bold border-bottom">Conversations</div>
+                    <div id="threadList" style="overflow-y:auto; height: 100%;"></div>
+                </div>
+
+                <!-- RIGHT: CHAT AREA -->
+                <div class="col-8 d-flex flex-column">
+                    
+                    <!-- Header -->
+                    <div class="p-2 border-bottom fw-bold" id="chatHeader">
+                        Select a conversation
+                    </div>
+
+                    <!-- Messages -->
+                    <div id="chatBody" class="flex-grow-1 p-3" style="overflow-y:auto; background:#f8f9fa;"></div>
+
+                    <!-- Input -->
+                    <div class="p-2 border-top d-flex">
+                        <input type="text" id="chatInput" class="form-control me-2" placeholder="Type message...">
+                        <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+
+
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+
+<script>
+    
+   var links = $(".sidebar a");
+    links.each(function() {
+        $(this).removeClass('active');
+    });
+    $("#BrandLink").addClass('active');
+    
+let CURRENT_THREAD_ID = null;
+let chatSocket = null;
+
+// Load all chat threads
+function loadThreads() {
+    fetch("{% url 'admin_threads' %}")
+    .then(res => res.json())
+    .then(data => {
+        let html = "";
+
+        data.forEach(t => {
+            html += `
+                <div class="thread-item" onclick="openChat(${t.id})">
+                    <div><b>User:</b> ${t.user}</div>
+                    <div><small>Product: ${t.product_name}</small></div>
+                </div>
+            `;
+        });
+
+        document.getElementById("threadList").innerHTML = html;
+    });
+}
+
+loadThreads();
+
+{% comment %} let CURRENT_THREAD_ID = null;
+let chatSocket = null; {% endcomment %}
+
+function openChat(threadId) {
+    CURRENT_THREAD_ID = threadId;
+
+    const chatBody = document.getElementById("chatBody");
+    chatBody.innerHTML = "";
+    document.getElementById("chatHeader").innerText = "Thread #" + threadId;
+
+    // Close old socket
+    if (chatSocket) {
+        chatSocket.close();
+    }
+
+    // ✅ STEP 1: Load old messages FIRST
+    fetch(`/chat/admin/threads/${threadId}/`)
+    .then(res => res.json())
+    .then(data => {
+        data.messages.forEach(m => {
+            appendMessage(m.message, m.sender);
+        });
+
+        scrollToBottom();
+
+        // ✅ STEP 2: THEN connect WebSocket
+        connectSocket(threadId);
+    });
+}
+function connectSocket(threadId) {
+
+    const protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+
+    chatSocket = new WebSocket(
+        protocol + window.location.host + "/ws/chat/" + threadId + "/" + 0 + "/"
+    );
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        appendMessage(data.message, data.sender);
+        scrollToBottom();
+    };
+}
+function scrollToBottom() {
+    const chatBody = document.getElementById("chatBody");
+    chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+
+ function sendMessage() {
+    const input = document.getElementById("chatInput");
+    const msg = input.value.trim();
+
+    if (!msg || !chatSocket) return;
+
+    chatSocket.send(JSON.stringify({
+        message: msg,
+        sender: "admin"
+    }));
+
+    input.value = "";
+}
+function appendMessage(message, sender) {
+    const div = document.createElement("div");
+    div.classList.add("msg", sender === "admin" ? "admin" : "user");
+    div.textContent = message;
+
+    const chatBody = document.getElementById("chatBody");
+    chatBody.appendChild(div);
+
+    chatBody.scrollTop = chatBody.scrollHeight;
+}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+
+
+{% endblock %}

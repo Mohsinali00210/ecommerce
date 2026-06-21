@@ -833,3 +833,27 @@ def picture_page(request):
 
 
 
+# views.py
+
+def wish_to_buy_admin(request):
+    return render(request, "Other/wish_to_buy.html")
+
+# views.py
+from django.http import JsonResponse
+from Web.models import WishToBuy
+
+def wish_to_buy_list(request):
+    data = []
+
+    queryset = WishToBuy.objects.select_related("user", "product", "variant").order_by("-created_at")
+
+    for obj in queryset:
+        data.append({
+            "id": obj.id,
+            "user": obj.user.full_name,
+            "product": obj.product.name if obj.product else "",
+            "variant": str(obj.variant.name) if obj.variant else "-",
+            "date": obj.created_at.strftime("%Y-%m-%d %H:%M"),
+        })
+
+    return JsonResponse(data, safe=False)

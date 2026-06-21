@@ -148,12 +148,31 @@
                                     class="form-select form-select-sm"
                                     multiple></select>
                         </div>
-
+                        <div class="col-md-12 mt-2">
+                            <label class="form-check-label">Web Image</label>
+                            <input type="file" id="WebImage" class="form-control" >
+                            <img id="WebPreview" style="max-width:120px; display:none;" />
+                        </div>
+                        <div class="col-md-12 mt-2">
+                            <label class="form-check-label">Mobile Image</label>
+                            <input type="file" id="MobileImage" class="form-control" >
+                            <img id="MobilePreview" style="max-width:120px; display:none;" />
+                        </div>
+                        <div class="col-md-12 mt-2">
+                            <label class="form-check-label">Banner Image</label>
+                            <input type="file" id="BannerImage" class="form-control" >
+                            <img id="BannerPreview" style="max-width:120px; display:none;" />
+                        </div>
                         <!-- Active -->
                         <div class="col-md-12 mt-2">
                             <input type="checkbox" id="PromoActive"
                                 class="form-check-input" checked>
                             <label class="form-check-label">Active</label>
+                        </div>
+                        <div class="col-md-12 mt-2">
+                            <input type="checkbox" id="ShowHome"
+                                class="form-check-input" checked>
+                            <label class="form-check-label">Show On Home</label>
                         </div>
 
                     </div>
@@ -189,6 +208,29 @@
                 $('#compareAt').prop('disabled', false).prop('required', true);
                 break;
         }
+    });
+
+    function previewImage(input, previewId) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            $(previewId).attr("src", e.target.result).show();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Bind change events
+    $("#MobileImage").on("change", function () {
+        previewImage(this, "#MobilePreview");
+    });
+    
+    $("#WebImage").on("change", function () {
+        previewImage(this, "#WebPreview");
+    });
+    $("#BannerImage").on("change", function () {
+        previewImage(this, "#BannerPreview");
     });
           {% comment %} $(document).ready(function () {
             $('#PromoProducts').select2({
@@ -318,6 +360,22 @@
                 $("#discountedPrice").val(item.discount_value);
             }
 
+              // Image previews (existing images)
+            if (item.mobile_image) {
+                $("#MobilePreview").attr("src", item.mobile_image).show();
+            } else {
+                $("#MobilePreview").hide();
+            }
+
+            if (item.banner_image) {
+                $("#BannerPreview").attr("src", item.banner_image).show();
+            } 
+
+            if (item.web_image) {
+                $("#WebPreview").attr("src", item.web_image).show();
+            } else {
+                $("#WebPreview").hide();
+            }
             // Dates (convert ISO → datetime-local format)
             $("#StartDate").val(formatDateTimeLocal(item.start_date));
             $("#EndDate").val(formatDateTimeLocal(item.end_date));
@@ -369,26 +427,66 @@
 
             $('#PromoProducts').val(null).trigger('change');
             $('#PromoCategories').val(null).trigger('change');
+
+
+            $("#MobileImage").val("");
+            $("#BannerImage").val("");
+            $("#WebImage").val("");
+            $("#MobilePreview").hide();
+            $("#WebPreview").hide();
+            $("#BannerPreview").hide();
         }
 
         function savePromotion() {
 
             let id = $("#PromoId").val();
 
-            let data = {
-                name: $("#PromoName").val(),
-                description: $("#promotionDescription").val(),
-                promo_code: $("#discountedPromoCode").val(),
-                discount_type: $("#discountedType").val(),
-                discount_value: $("#discountedType").val() === "percentage"
-                                ? $("#discount2").val()
-                                : $("#discountedPrice").val(),
-                start_date: $("#StartDate").val(),
-                end_date: $("#EndDate").val(),
-                is_active: $("#PromoActive").is(":checked"),
-                products: $("#PromoProducts").val(),
-                categories: $("#PromoCategories").val()
-            };
+            //let data = {
+            //    name: $("#PromoName").val(),
+            //    description: $("#promotionDescription").val(),
+            //    promo_code: $("#discountedPromoCode").val(),
+            //    discount_type: $("#discountedType").val(),
+            //    discount_value: $("#discountedType").val() === "percentage"
+            //                    ? $("#discount2").val()
+            //                    : $("#discountedPrice").val(),
+            //    start_date: $("#StartDate").val(),
+            //    end_date: $("#EndDate").val(),
+            //    is_active: $("#PromoActive").is(":checked"),
+            //    products: $("#PromoProducts").val(),
+            //    show_on_home:$("#PromoActive").is(":checked");
+            //    categories: $("#PromoCategories").val()
+            //};
+
+            let formData = new FormData();
+
+            formData.append("name", $("#PromoName").val());
+            formData.append("description", $("#promotionDescription").val());
+            formData.append("promo_code", $("#discountedPromoCode").val());
+            formData.append("discount_type", $("#discountedType").val());
+
+            formData.append(
+                "discount_value",
+                $("#discountedType").val() === "percentage"
+                    ? $("#discount2").val()
+                    : $("#discountedPrice").val()
+            );
+
+            formData.append("start_date", $("#StartDate").val());
+            formData.append("end_date", $("#EndDate").val());
+            formData.append("is_active", $("#PromoActive").is(":checked"));
+
+            // Arrays
+            ($("#PromoProducts").val() || []).forEach(p => formData.append("products", p));
+            ($("#PromoCategories").val() || []).forEach(c => formData.append("categories", c));
+
+            // Images (only append if selected)
+            let mobileFile = $("#MobileImage")[0].files[0];
+            let webFile = $("#WebImage")[0].files[0];
+            let BannerImageFile = $("#BannerImage")[0].files[0];
+
+            if (mobileFile) formData.append("mobile_image", mobileFile);
+            if (webFile) formData.append("web_image", webFile);
+            if (BannerImageFile) formData.append("banner_image", BannerImageFile);
 
             let method = id ? "PATCH" : "POST";
             let url = id ? `${PROMO_API}${id}/` : PROMO_API;
@@ -397,9 +495,9 @@
                 method: method,
                 headers: {
                     "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
-                    "Content-Type": "application/json"
                 },
-                body: JSON.stringify(data)
+                body: formData
+                //body: JSON.stringify(data)
             })
             .then(res => res.json())
             .then(() => {

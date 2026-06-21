@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Attributes{% endblock %}
+{% block title %}Add Product{% endblock %}
 
 {% block content %}
 <style>
@@ -220,10 +220,11 @@
                                 <label class="form-label">Variant Name</label>
                                 <input type="text" id="variantName" class="form-control form-control-sm variant-name" placeholder="e.g., Color">
                             </div>
-                            <div class="col-md-7">
+                            <div class="col-md-5">
                                 <label class="form-label">Options (comma separated)</label>
                                 <input type="text" id="variantOption" class="form-control form-control-sm variant-options" placeholder="Red, Blue, Green">
                             </div>
+                            
                             <div class="col-md-2 d-grid align-items-end">
                                 <button type="button"  class="btn btn-dark btn-sm mt-2 add-variant-btn">Add Variant</button>
                             </div>
@@ -231,6 +232,20 @@
                     </div>
 
                     <!-- Variants Table -->
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="" id="IsCustomUI" >
+                        <label class="form-check-label" for="IsCustomUI">
+                            Custom UI For Option
+                        </label>
+                    </div>
+                    <div class=" col-md-2 custom-ui-wrapper">
+                        <label class="form-label">Pick Colors</label>
+                        <div class="d-flex gap-2 align-items-center">
+                            <input type="color" class="form-control form-control-color" id="colorPicker" value="#ff0000">
+                            <button type="button" class="btn btn-sm btn-primary" id="addColorBtn">Add</button>
+                        </div>
+                        <div id="colorList" class="mt-2 d-flex flex-wrap gap-2"></div>
+                    </div>
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" value="" id="autoFillToggle" checked>
                         <label class="form-check-label" for="autoFillToggle">
@@ -492,6 +507,24 @@
 </div>
 <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 <script>
+
+    $(document).on("click", "#addColorBtn", function () {
+        const color = $("#colorPicker").val();
+
+        const colorBox = `
+            <div class="color-box" data-value="${color}" style="
+                width:25px;
+                height:25px;
+                background:${color};
+                border:1px solid #ccc;
+                border-radius:4px;
+                cursor:pointer;
+            " title="${color}">
+            </div>
+        `;
+
+        $("#colorList").append(colorBox);
+    });
 
     $('#tax_exempt').on('change',function(){
         $('#tax_category')
@@ -887,8 +920,12 @@ function saveProduct(e) {
     let options = []; 
     $('#variantsInputs .variant-row').each(function() {
         const name = $(this).find('.variant-name').val().trim();
+        const is_custom_ui = $('#IsCustomUI').is(':checked');
         const values = $(this).find('.variant-options').val().split(',').map(o => o.trim()).filter(o => o);
-        if (name && values.length > 0) { options.push({ option_name: name, option: values }); }
+        let colors = [];
+        if (name.toLowerCase() == "color") 
+            colors = $('#colorList .color-box').map(function () { return $(this).data('value');}).get();
+        if (name && values.length > 0) { options.push({ option_name: name, option: values, is_custom_ui:is_custom_ui,value: colors.length ? colors : null }); }
     });
     formData.append('options', JSON.stringify(options));
 
@@ -934,11 +971,18 @@ function saveProduct(e) {
 
     // Collect variant TEXT data only
     $('#variantsTable tbody tr').each(function () {
+        //const colors = $(this)
+        //    .find('[data-color]')
+        //    .map(function () {
+        //        return $(this).data('color');
+        //    })
+        //    .get();
         variants.push({
             name: $(this).find('.variantName').val(),
             sku: $(this).find('.variantSku').val(),
             price: $(this).find('.variantPrice').val(),
-            stock_quantity: $(this).find('.stockQuantity').val()
+            stock_quantity: $(this).find('.stockQuantity').val(),
+            //value: colors.length ? colors : null
         });
     });
 
@@ -1131,16 +1175,31 @@ document.addEventListener('click', function(e) {
         let flag=true;
         rows.each(function() {
             const name = $(this).find('.variant-name').val().trim();
+            const optionInput = $(this).find('.variant-options');
             const options = $(this).find('.variant-options').val()
                 .split(',')
                 .map(o => o.trim())
                 .filter(o => o);
+            const colorValues = $('#colorList .color-box').map(function () { return $(this).data('value'); }).get();
+            const isCustom = $("#IsCustomUI").is(":checked");
             if (!name || options.length === 0) {
                 alert('Enter variant name and options');
                 flag=false;
                 return false; // In jQuery .each(), 'return false' breaks the loop
             }
-            variants.push({ name, options });
+            if (isCustom && name.includes("color")) {
+                console.log(options.length);
+                console.log(colorValues.length);
+                if (options.length !== colorValues.length) {
+                    optionInput.addClass("is-invalid");
+                    showAlert("Color names and selected colors must match!","danger");
+                    flag = false;
+                    return false;
+                } else {
+                    optionInput.removeClass("is-invalid");
+                }
+            }
+            variants.push({ name, options,colors: colorValues });
         });
         if (flag){
             if (variants.length < 4) {
@@ -1200,30 +1259,78 @@ function generateCombinations() {
     tableBody.innerHTML = '';
 
     const allOptions = variants.map(v => v.options);
-
     if (allOptions.length === 0) return;
 
     const combinations = cartesian(allOptions);
 
-    combinations.forEach(combo => {
+    combinations.forEach((combo) => {
+
         const variantName = combo.join(' / ');
-        const prodName = $("#name").val().replace(" ","");
-        const sku = 'SKU-' +prodName.substring(0, 5)+'-'+ combo.join('-').toUpperCase();
+
+        const prodName = ($("#name").val() || "").replace(/\s+/g, "");
+
+        const sku = 'SKU-' + prodName.substring(0, 5).toUpperCase() + '-' + combo.join('-').toUpperCase();
+        let colorBoxHtml = '';
+        // 🎨 Build color boxes
+        variants.forEach((v, i) => {
+            if (v.name.toLowerCase().includes("color") && v.colors && v.colors.length > 0) {
+
+                const selectedOption = combo[i];
+                const optionIndex = v.options.indexOf(selectedOption);
+
+                if (optionIndex !== -1) {
+                    const color = v.colors[optionIndex];
+
+                    if (color) {
+                        colorBoxHtml += `
+                            <span title="${selectedOption}" 
+                                data-color="${color}" 
+                                style="
+                                    display:inline-block;
+                                    width:18px;
+                                    height:18px;
+                                    background:${color};
+                                    border:1px solid #ccc;
+                                    border-radius:3px;
+                                    margin-right:4px;
+                                ">
+                            </span>
+                        `;
+                    }
+                }
+            }
+        });
 
         const tr = document.createElement('tr');
 
         tr.innerHTML = `
-            <td><input type="hidden" class="form-control form-control-sm variantName" value="${variantName}">${variantName}</td>
-            <td><input type="text" class="form-control form-control-sm variantSku" value="${sku}"></td>
-            <td><input type="number" class="form-control form-control-sm variantPrice" required placeholder="Price"></td>
-            <td><input type="number" class="form-control form-control-sm stockQuantity variantStockQTY" required placeholder="Stock"></td>
+            <td>
+                ${colorBoxHtml}
+                <input type="hidden" class="variantName" value="${variantName}">
+                ${variantName}
+            </td>
+
+            <td>
+                <input type="text" class="form-control form-control-sm variantSku" value="${sku}">
+            </td>
+
+            <td>
+                <input type="number" class="form-control form-control-sm variantPrice" required placeholder="Price">
+            </td>
+
+            <td>
+                <input type="number" class="form-control form-control-sm stockQuantity variantStockQTY" required placeholder="Stock">
+            </td>
+
             <td>
                 <input type="file" class="variant-images" multiple accept="image/*">
                 <div class="image-preview d-flex flex-wrap gap-1 mt-1"></div>
             </td>
         `;
+
         tableBody.appendChild(tr);
     });
+
 
         const inputs = document.querySelectorAll(".variantStockQTY");
         const totalDisplay = document.getElementById("stockQuantity");

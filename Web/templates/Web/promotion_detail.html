@@ -1,0 +1,121 @@
+{% extends "WebBase.html" %}
+{% block content %}
+   <style>
+       .product-card {
+        transition: transform 0.2s;
+        }
+        .product-card:hover {
+        transform: translateY(-5px);
+        }
+        .product-card .hover-overlay {
+        transition: opacity 0.2s;
+        }
+        .product-card:hover .hover-overlay {
+        opacity: 1;
+        }
+        .card-img-top {
+        object-fit: cover;
+        height: 180px;
+        }
+    .promo-banner-img {
+        height: 250px;
+        object-fit: cover;
+    }
+
+    .promo-header {
+        position: relative;
+    }
+
+    .promo-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+    } 
+    </style>
+
+
+<div class="promo-header mb-4">
+    
+    {% if promo.banner_image %}
+        <img src="{{ promo.banner_image.url }}" class="w-100 promo-banner-img">
+    {% elif promo.mobile_image %}
+        <img src="{{ promo.mobile_image.url }}" class="w-100 promo-banner-img">
+    {% endif %}
+
+    <div class="promo-overlay text-center">
+        <h2 class="fw-bold">{{ promo.name }}</h2>
+        <p>{{ promo.description }}</p>
+
+    </div>
+</div>
+
+<div class="container">
+
+    <h4 class="mb-3">{{ products|length }} Products in this Promotion</h4>
+
+    <div class="row g-3">
+        {% for product in products %}
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="card product-card h-100 shadow-sm">
+
+                <a href="{% url 'ProductDetails' product.id %}">
+                    {% if product.images.all %}
+                    <img src="{{ product.images.all.0.image.url }}" class="card-img-top">
+                    {% endif %}
+                </a>
+
+                <div class="card-body p-2">
+
+                    <h6 class="text-truncate">{{ product.name }}</h6>
+
+                    <!-- ✅ Discounted Price -->
+                    <div>
+                        <span class="fw-bold text-danger">
+                            ${{ product.final_price }}
+                        </span>
+
+                        {% if product.has_discount %}
+                        <span class="text-muted text-decoration-line-through small">
+                            ${{ product.price }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center text-muted">No products in this promotion</div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<script>
+document.getElementById('applyFilters').addEventListener('click', function() {
+    const params = new URLSearchParams(window.location.search);
+
+    const category = params.get('category');
+    const brand = document.getElementById('brandFilter').value;
+    const priceMin = document.getElementById('priceMin').value;
+    const priceMax = document.getElementById('priceMax').value;
+    const availability = document.getElementById('availabilityFilter').value;
+    const rating = document.getElementById('ratingFilter').value;
+    const sort = document.getElementById('sortFilter').value;
+    const search = document.getElementById('searchInput').value;
+
+    if(brand) params.set('brand', brand); else params.delete('brand');
+    if(priceMin) params.set('price_min', priceMin); else params.delete('price_min');
+    if(priceMax) params.set('price_max', priceMax); else params.delete('price_max');
+    if(availability) params.set('availability', availability); else params.delete('availability');
+    if(rating) params.set('rating', rating); else params.delete('rating');
+    if(sort) params.set('sort', sort); else params.delete('sort');
+    if(search) params.set('search', search); else params.delete('search');
+
+    window.location.search = params.toString();
+});
+</script>
+
+{% endblock %}

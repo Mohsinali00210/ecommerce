@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/v1/', include('accounts.urls')),
     path('Adminpanel/Products/', include('products.urls')),
     path('Adminpanel/Reports/', include('reports.urls')),
+    path('chat/', include('chat.urls')),
     path('', include('Web.urls')),
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),

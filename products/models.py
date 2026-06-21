@@ -531,11 +531,14 @@ class ProductVariant(BaseAuditModel):
     # Variant can have a specific image assigned
     image = models.ForeignKey('ProductImage',related_name="variant_image", on_delete=models.CASCADE, null=True, blank=True)
 
+
 class ProductVariantOption(BaseAuditModel):
     product = models.ForeignKey( Product, on_delete=models.CASCADE, related_name="variant_options")
     option_name = models.CharField( max_length=100, help_text="e.g. Color, Size" )
     option = models.CharField( max_length=100, help_text="Comma separated values e.g. Red,Blue,Green" )
+    is_custom_ui = models.BooleanField(default=False)
 
+    value = models.CharField(max_length=255, null=True, blank=True)
     def get_options_list(self):
         return [opt.strip() for opt in self.option.split(",") if opt.strip()]
 
@@ -591,7 +594,13 @@ class Promotion(BaseAuditModel):
     name = models.CharField(max_length=255, help_text="e.g. Summer Sale 2026")
     description = models.TextField(blank=True, null=True)
     promo_code = models.CharField(max_length=50, unique=True, blank=True, null=True)
+
+    mobile_image = models.ImageField(upload_to='promotions/mobile/', null=True, blank=True)
+    web_image = models.ImageField(upload_to='promotions/web/', null=True, blank=True)
+    banner_image = models.ImageField(upload_to='promotions/banner/', null=True, blank=True)
+    show_on_home = models.BooleanField(default=True)
     
+
     # Discount Logic
     discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPES, default='percentage')
     discount_value = models.DecimalField(blank=True,null=True,max_digits=10, decimal_places=2, help_text="Enter percentage or flat amount")

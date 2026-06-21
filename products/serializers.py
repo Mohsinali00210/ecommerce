@@ -102,7 +102,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
 class ProductVariantOptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductVariantOption
-        fields = ['id', 'product', 'option_name', 'option']
+        fields = ['id', 'product', 'option_name', 'option','is_custom_ui','value']
 
 class ProductVariantSerializer(serializers.ModelSerializer):
     class Meta:
@@ -148,7 +148,7 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'name', 'sku', 'category','brand', 'category_name', 'description', 'brief_description',
-            'price','compare_at', 'compare_at_price', 'discount_percentage', 'bulk_discount_rules',
+            'price','compare_at',  'bulk_discount_rules',
             'weight', 'length', 'width', 'height', 'shipping_class', 
             'free_shipping', 'handling_time', 'meta_title', 'meta_description', 
             'slug', 'focus_keywords', 'tags', 'stock_status','stock_quantity','status', 'variants', 
@@ -157,7 +157,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'mark_as_new','available_for_preorder','admin_comment','disable_buy_button',
             'disable_wishlist_button','tax_category','tax_exempt','old_price','original_price',
             'other_product_cost','shipping_enabled','ship_separately','shipping_charges',
-            'additional_shipping_charges','qoute'
+            'additional_shipping_charges','qoute' #,'is_custom_ui','value','discount_percentage',, 'compare_at_price'
 
         ]
         read_only_fields = [ 'created_at', 'modified_at']
@@ -247,12 +247,24 @@ class ProductSerializer(serializers.ModelSerializer):
                 option_name = item.get("option_name")
                 option_values = item.get("option", [])
 
-                for value in option_values:
+                color_values = item.get("value", [])
+                for index, value in enumerate(option_values):
+                    color_code = None
+                    if option_name.lower() == "color" and index < len(color_values):
+                        color_code = color_values[index]
                     ProductVariantOption.objects.create(
                         product=product,
                         option_name=option_name,
-                        option=value
+                        option=value,
+                        value=color_code
                     )
+                # for value in option_values:
+                #     ProductVariantOption.objects.create(
+                #         product=product,
+                #         option_name=option_name,
+                #         option=value,
+                #         value=
+                #     )
 
         # ----------------------------
         # Handle Promotion
