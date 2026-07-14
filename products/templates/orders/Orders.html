@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
 {% block title %}Orders{% endblock %}
-
 {% block content %}
+{% load static %}
     <style>
         .unseen-order {
             font-weight: bold;
@@ -35,6 +35,8 @@
                             <option value="shipped">Shipped</option>
                             <option value="delivered">Delivered</option>
                             <option value="cancelled">Cancelled</option>
+                            <option value="success">Success</option>
+                            <option value="dispatch">Dispatch</option>
                         </select>
                     </div>
 
@@ -118,6 +120,15 @@
 
                         <input type="hidden" id="OrderId">
 
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <button class="btn btn-primary btn-sm" onclick="printCourierSlip()">
+                                <i class="bi bi-printer"></i> Print Full Slip
+                            </button>
+
+                            <button class="btn btn-success btn-sm" onclick="printCourierSlip(0)">
+                                <i class="bi bi-printer"></i> Print Courier Slip
+                            </button>
+                        </div>
                         <!-- ================= ORDER INFO ================= -->
                         <div class="card mb-3">
                             <div class="card-header fw-bold">Order Information</div>
@@ -216,6 +227,8 @@
                                         <option value="delivered">Delivered</option>
                                         <option value="returned">Returned</option>
                                         <option value="cancelled">Cancelled</option>
+                                        <option value="success">Success</option>
+                                        <option value="dispatch">Dispatch</option>
                                     </select>
                                 </div>
                             </div>
@@ -298,6 +311,361 @@
         </div>
 <!-- Bootstrap JS -->
   <script>
+
+    function printCourierSlip(IsFullSlip=1) {
+
+    const orderNo = document.getElementById("OrderNumber").value;
+    const orderDate = document.getElementById("OrderDate").value;
+    const customer = document.getElementById("CustomerName").value;
+    const email = document.getElementById("CustomerEmail").value;
+    const phone = document.getElementById("CustomerPhone").value;
+    const address = document.getElementById("ShippingAddress").value;
+
+    const paymentMethod = document.getElementById("PaymentMethod").value;
+    const paymentStatus = document.getElementById("PaymentStatus").value;
+    const orderStatus = document.getElementById("OrderStatus").value;
+    const total = document.getElementById("OrderTotal").value;
+
+    // Absolute QR URL
+    const qr = new URL(
+        document.getElementById("modalOrderQRCode").getAttribute("src"),
+        window.location.origin
+    ).href;
+
+    let items = "";
+
+    document.querySelectorAll("#OrderItemsTable tr").forEach(row => {
+
+        const cols = row.querySelectorAll("td");
+
+        items += `
+            <tr>
+                <td>${cols[0].innerHTML}</td>
+                <td align="center">${cols[1].innerText}</td>
+                <td align="center">${cols[2].innerText}</td>
+                <td align="right">${cols[3].innerText}</td>
+            </tr>
+        `;
+    });
+    let prodtssection=IsFullSlip==1? `<h3>Products</h3>
+    <table>
+    <thead>
+    <tr>
+    <th>Product</th>
+    <th width="100">Price</th>
+    <th width="70">Qty</th>
+    <th width="110">Total</th>
+    </tr>
+    </thead>
+    <tbody>
+    ${items}
+    </tbody>
+    </table>`:``;
+    const printWindow = window.open("", "_blank", "width=900,height=800");
+
+    printWindow.document.open();
+
+    printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+
+    <title>Courier Slip</title>
+
+    <style>
+
+    *{
+        box-sizing:border-box;
+    }
+
+    body{
+        font-family:Arial,Helvetica,sans-serif;
+        margin:20px;
+        color:#000;
+        font-size:14px;
+    }
+
+    .header{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        border-bottom:2px solid #000;
+        padding-bottom:15px;
+        margin-bottom:20px;
+    }
+
+    .logo{
+        width:90px;
+    }
+
+    .company{
+        font-size:26px;
+        font-weight:bold;
+    }
+
+    .subtitle{
+        font-size:14px;
+        color:#555;
+    }
+
+    .section{
+        margin-top:20px;
+    }
+
+    .section h3{
+        margin:0;
+        margin-bottom:10px;
+        background:#f2f2f2;
+        padding:8px;
+        border:1px solid #ccc;
+    }
+
+    table{
+        width:100%;
+        border-collapse:collapse;
+    }
+
+    th{
+        background:#efefef;
+    }
+
+    th,td{
+        border:1px solid #999;
+        padding:8px;
+    }
+
+    .info td{
+        border:none;
+        padding:5px;
+    }
+
+    .total{
+        margin-top:15px;
+        text-align:right;
+        font-size:18px;
+        font-weight:bold;
+    }
+
+    .footer{
+        margin-top:35px;
+    }
+
+    .signatures{
+        margin-top:70px;
+        display:flex;
+        justify-content:space-between;
+    }
+
+    .signature{
+        width:220px;
+        text-align:center;
+        border-top:1px solid #000;
+        padding-top:8px;
+    }
+
+    .notes{
+        margin-top:15px;
+        font-size:13px;
+    }
+
+    .notes ul{
+        margin-top:5px;
+    }
+
+    @media print{
+
+    body{
+        margin:10mm;
+    }
+
+    }
+
+    </style>
+
+    </head>
+
+    <body>
+
+    <div class="header">
+
+    <div style="display:flex;align-items:center;gap:15px;">
+
+    <img class="logo"
+    src="{% static 'images/logo.png' %}">
+
+    <div>
+
+    <div class="company">
+    Shan zee
+    </div>
+
+    <div class="subtitle">
+    Courier / Packing Slip
+    </div>
+
+    </div>
+
+    </div>
+
+    <div>
+
+    <img src="${qr}" width="130">
+
+    </div>
+
+    </div>
+
+
+    <div class="section">
+
+    <h3>Order Information</h3>
+
+    <table class="info">
+
+    <tr>
+    <td width="170"><b>Order Number</b></td>
+    <td>${orderNo}</td>
+
+    <td width="170"><b>Order Date</b></td>
+    <td>${orderDate}</td>
+    </tr>
+
+    <tr>
+    <td><b>Order Status</b></td>
+    <td>${orderStatus}</td>
+
+    <td><b>Payment Status</b></td>
+    <td>${paymentStatus}</td>
+    </tr>
+
+    <tr>
+    <td><b>Payment Method</b></td>
+    <td>${paymentMethod}</td>
+
+    <td><b>Total Amount</b></td>
+    <td><strong>${total}</strong></td>
+    </tr>
+
+    </table>
+
+    </div>
+
+
+    <div class="section">
+
+    <h3>Receiver Information</h3>
+
+    <table class="info">
+
+    <tr>
+    <td width="170"><b>Customer</b></td>
+    <td>${customer}</td>
+    </tr>
+
+    <tr>
+    <td><b>Phone</b></td>
+    <td>${phone}</td>
+    </tr>
+
+    <tr>
+    <td><b>Email</b></td>
+    <td>${email}</td>
+    </tr>
+
+    <tr>
+    <td><b>Shipping Address</b></td>
+    <td>${address}</td>
+    </tr>
+
+    </table>
+
+    </div>
+
+
+    <div class="section">
+
+    ${prodtssection}
+
+    <div class="total">
+
+    Grand Total : ${total}
+
+    </div>
+
+    </div>
+
+
+    <div class="footer">
+
+    <h3>Courier Notes</h3>
+
+    <div class="notes">
+
+    <ul>
+    <li>Verify customer phone number before delivery.</li>
+    <li>Handle the parcel carefully.</li>
+    <li>Collect COD amount if applicable.</li>
+    <li>Do not bend or damage the package.</li>
+    </ul>
+
+    </div>
+
+    <div class="signatures">
+
+    <div class="signature">
+    Courier Signature
+    </div>
+
+    <div class="signature">
+    Receiver Signature
+    </div>
+
+    </div>
+
+    </div>
+
+    </body>
+
+    </html>
+    `);
+
+    printWindow.document.close();
+
+    // Wait for images to load before printing
+    printWindow.onload = function () {
+
+        const images = printWindow.document.images;
+        let loaded = 0;
+
+        if (images.length === 0) {
+            printWindow.print();
+            printWindow.close();
+            return;
+        }
+
+        function checkLoaded() {
+            loaded++;
+            if (loaded === images.length) {
+                setTimeout(function () {
+                    printWindow.focus();
+                    printWindow.print();
+                    printWindow.close();
+                }, 300);
+            }
+        }
+
+        for (let i = 0; i < images.length; i++) {
+            if (images[i].complete) {
+                checkLoaded();
+            } else {
+                images[i].onload = checkLoaded;
+                images[i].onerror = checkLoaded;
+            }
+        }
+    };
+
+}
             function updateOrderStatus() {
 
                 const orderId = document.getElementById("OrderId").value;
@@ -411,6 +779,7 @@
                         loadOrders();
                     });
             }
+           
             {% comment %} fetch('{% url 'token_obtain_pair' %}', {
                 method: "POST",
                 headers: {

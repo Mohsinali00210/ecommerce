@@ -8,6 +8,10 @@ from .serializers import EmailRegisterSerializer
 from .models import User
 from django.contrib.auth.decorators import login_required
 
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.utils.decorators import method_decorator
+
 class EmailRegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -96,7 +100,25 @@ def login_view(request):
             error = "Invalid username or password"
 
     return render(request, "Login.html", {"error": error})
+@require_POST
+def login_api(request):
+    username = request.POST.get("username")
+    password = request.POST.get("password")
 
+    user = authenticate(request, email=username, password=password)
+
+    if user is not None:
+        login(request, user)
+
+        return JsonResponse({
+            "success": True,
+            "redirect": "/addProduct/" if user.is_superuser else "/"
+        })
+
+    return JsonResponse({
+        "success": False,
+        "message": "Invalid username or password"
+    }, status=400)
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password
 
@@ -145,7 +167,54 @@ def register_view(request):
             return redirect("login")
 
     return render(request, "register.html", {"error": error, "data": initial_data})
+from django.http import JsonResponse
+from django.contrib.auth.hashers import make_password
+from django.views.decorators.http import require_POST
 
+@require_POST
+def register_api(request):
+
+    full_name = request.POST.get("full_name")
+    email = request.POST.get("email")
+    mobile = request.POST.get("mobile")
+    password1 = request.POST.get("password1")
+    password2 = request.POST.get("password2")
+
+    if not full_name or not email or not password1:
+        return JsonResponse({
+            "success": False,
+            "message": "Full name, email and password are required."
+        })
+
+    if password1 != password2:
+        return JsonResponse({
+            "success": False,
+            "message": "Passwords do not match."
+        })
+
+    if User.objects.filter(email=email).exists():
+        return JsonResponse({
+            "success": False,
+            "message": "Email is already registered."
+        })
+
+    if mobile and User.objects.filter(mobile=mobile).exists():
+        return JsonResponse({
+            "success": False,
+            "message": "Mobile number is already registered."
+        })
+
+    User.objects.create(
+        full_name=full_name,
+        email=email,
+        mobile=mobile,
+        password=make_password(password1)
+    )
+
+    return JsonResponse({
+        "success": True,
+        "message": "Account created successfully."
+    })
 from django.contrib.auth import logout
 
 def logout_view(request):
@@ -233,10 +302,6 @@ def profile_view(request):
         'transactions': transactions,
     }
     return render(request, 'Profile.html', context)
-
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
-from django.utils.decorators import method_decorator
 
 @login_required
 @require_POST
