@@ -27,7 +27,7 @@
                         <div class="col-md-4">
                             <label class="form-label">Product Name</label>
                             <input type="text" id="name" class="form-control form-control-sm" placeholder="Enter product name" required>
-                            <input type="hidden" id="id"  >
+                            <input type="hidden" id="id" value="112" >
                         </div>
 
                         <div class="col-md-4">
@@ -140,7 +140,7 @@
                     </h6>
 
                         <!-- Standard Price -->
-                        <div class="mb-2 row g-2">
+                        <div class="mb-2 row g-2" id="promotionSection">
                             <div class="col-md-4">
                                 <label class="form-label">Name</label>
                                 <input type="text" id="discountedName" class="form-control form-control-sm" placeholder="Enter name">
@@ -399,7 +399,7 @@
                         
                     
                     <!-- ================= Product Reviews Management ================= -->
-                    <h6 class="border-bottom pb-1 mt-3 mb-2">
+                    {% comment %} <h6 class="border-bottom pb-1 mt-3 mb-2">
                         <i class="bi bi-chat-left-text"></i> Product Reviews
                     </h6>
 
@@ -431,7 +431,7 @@
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
+                    </div> {% endcomment %}
 
                     <!-- ================= Save Button ================= -->
                     <div class="mt-3">
@@ -507,7 +507,12 @@
 </div>
 <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 <script>
+    const pathParts = window.location.pathname.split('/');
+    const productId = pathParts[pathParts.length - 2];
 
+    if (productId && !isNaN(productId)) {
+        loadProduct(productId);
+    }
     $(document).on("click", "#addColorBtn", function () {
         const color = $("#colorPicker").val();
 
@@ -755,23 +760,16 @@
     $('#addProductForm').on('submit', function(e) { saveProduct(e); });
     $('#ProductPreview').on('click', function(e) { saveProductPreview(e); });
 
-    {% if product_id %}
-        function getProductIdFromUrl() {
-            const parts = window.location.pathname.split('/').filter(Boolean);
-            return parts[parts.length - 1]; // last segment = 57
-        }
-        const productId = getProductIdFromUrl();
-        if (productId) { loadProduct(productId); }
-    {% endif %}
+  
 
 
 });
-    const API_BASE_URL = "http://127.0.0.1:8000/Adminpanel/Products/api/v1/brands/";
+    const API_BASE_URL = "{% url 'brand-list'%} ";
     var TOKEN ;
-getDropDown(el = "Brand",url="http://127.0.0.1:8000/Adminpanel/Products/api/v1/brands/");
+getDropDown(el = "Brand",url="{% url 'brand-list'%}");
     
-getDropDown(el = "Category",url="http://127.0.0.1:8000/Adminpanel/Products/api/v1/categories/");
-function getDropDown(el = "Category",url="http://127.0.0.1:8000/Adminpanel/Products/api/v1/categories/") {
+getDropDown(el = "Category",url="{% url 'category-list'%}");
+function getDropDown(el = "Category",url="{% url 'category-list'%}") {
     fetch(url, {
         method: "GET",
         headers: {
@@ -865,6 +863,7 @@ function saveProduct(e) {
     formData.append('name', $('#name').val());
     formData.append('sku', $('#sku').val());
     formData.append('category', $('#Category').val());
+    //formData.append('category', (($('#Category').val()) || []).forEach(cat => formData.append('category', cat)));
     formData.append('brand', $('#Brand').val());
     formData.append('price', $('#price').val());
     formData.append('compare_at_price', $('#compareAtPrice1').val());
@@ -978,6 +977,7 @@ function saveProduct(e) {
         //    })
         //    .get();
         variants.push({
+            id: $(this).find('.variantId').val() || null,
             name: $(this).find('.variantName').val(),
             sku: $(this).find('.variantSku').val(),
             price: $(this).find('.variantPrice').val(),
@@ -1002,10 +1002,15 @@ function saveProduct(e) {
     });
 
  
+    const productId = $('#id').val();
+    const isEdit = !!productId;
+    const productListUrl = "{% url 'product-list' %}";
+    const productDetailUrl = "{% url 'product-detail' 0 %}";
 
+    const url = isEdit ? productDetailUrl.replace("0", productId) : productListUrl;
     // API Call
-    fetch("http://127.0.0.1:8000/Adminpanel/Products/api/v1/products/", {
-        method: "POST",
+    fetch(url, {
+        method: isEdit ? "PATCH" : "POST",
         headers: {
             "Authorization": `Bearer ${localStorage.getItem("access_token")}`
         },
@@ -1019,7 +1024,7 @@ function saveProduct(e) {
     })
     .then(result => {
         if (result.status === 'success') {
-            showAlert("Product Created!", "success");
+            showAlert(isEdit ? "Product Updated!" : "Product Created!", "success");
         } 
         else if (result.status === 'validation_error') {
             let errorMsg = flattenErrors(result.data) || "Validation failed.";
@@ -1041,10 +1046,36 @@ function setSelect2Value(selector, values) {
     $el.val(values).trigger('change');
 }
 
-
+function loadProduct(productId) {
+    $("#id").val(productId);
+    const url = "{% url 'product-detail' 0 %}".replace("0", productId);
+    fetch(url, {
+        headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` }
+    })
+    .then(res => res.json())
+    .then(data => fillProductForm(data))
+    .catch(err => { showAlert("Failed to load product", "danger"); console.error(err); });
+}
 function fillProductForm(product) {
 
     // ================= BASIC INFO =================
+
+    $('#old_price').val(product.old_price || '');
+    $('#original_price').val(product.original_price || '');
+    $('#other_product_cost').val(product.other_product_cost || '');
+    $('#product_type').val(product.product_type).trigger('change');
+    $('#compare_at').val(product.compare_at || 0);
+    $('#qoute').val(product.qoute || '');
+    $('#mark_as_new').prop('checked', product.mark_as_new);
+    $('#available_for_preorder').prop('checked', product.available_for_preorder);
+    $('#tax_exempt').prop('checked', product.tax_exempt);
+    $('#shipping_enabled').prop('checked', product.shipping_enabled);
+    $('#ship_separately').prop('checked', product.ship_separately);
+    $('#shipping_charges').val(product.shipping_charges || '');
+    $('#additional_shipping_charges').val(product.additional_shipping_charges || '');
+    $('#tax_category').val(product.tax_category).trigger('change');
+    $('#stockStatus').val(product.stock_status).trigger('change');
+
     $('#id').val(product.id || '');
     $('#name').val(product.name || '');
     $('#sku').val(product.sku || '');
@@ -1055,6 +1086,14 @@ function fillProductForm(product) {
     quill.root.innerHTML=product.description;
     //$('#description').val(product.description || '');
     $('#briefDescription').val(product.brief_description || '');
+    $('#admin_comment').val(product.admin_comment || '');
+    $('#allow_customer_reviews').prop('checked', product.allow_customer_reviews);
+    $('#customer_can_see_stock').prop('checked', product.customer_can_see_stock);
+    $('#disable_wishlist_button').prop('checked', product.disable_wishlist_button);
+    $('#free_shipping').prop('checked', product.free_shipping);
+    $('#disable_buy_button').prop('checked', product.disable_buy_button);
+    $('#available_start_date').val(product.available_start_date || '');
+    $('#available_end_date').val(product.available_end_date || '');
 
     // ================= CATEGORY & BRAND =================
     if (product.category) {
@@ -1114,6 +1153,7 @@ function fillProductForm(product) {
             tbody.append(`
                 <tr>
                     <td>
+                        <input type="hidden" class="variantId" value="${variant.id || ''}">
                         <input type="hidden" class="variantName" value="${variant.name}">
                         ${variant.name}
                     </td>
@@ -1138,10 +1178,45 @@ function fillProductForm(product) {
             `);
 
         });
+
         
     }
+    // ================= PROMOTION =================
+    if (product.promotions && product.promotions.length > 0) {
+        const promo = product.promotions[0];
+
+        $("#discountedName").val(promo.name || "");
+        $("#promotionDescription").val(promo.description || "");
+        $("#discountedPromoCode").val(promo.promo_code || "");
+        $("#discountedType").val(promo.discount_type).trigger("change");
+        $("#discountedPrice").val(promo.discounted_price || 0);
+        $("#compareAt").val(promo.compare_at || 0);
+        $("#compareAtPrice").val(promo.compare_at_price || 0);
+        $("#discount2").val(promo.discount_value || 0);
+        $("#promotionSDate").val(
+            promo.start_date ? promo.start_date.substring(0, 10) : ""
+        );
+        $("#promotionEDate").val(
+            promo.end_date ? promo.end_date.substring(0, 10) : ""
+        );
+    } else {
+        $("#discountedName").val("");
+        $("#promotionDescription").val("");
+        $("#discountedPromoCode").val("");
+        $("#discountedType").val("").trigger("change");
+        $("#discountedPrice").val("");
+        $("#compareAt").val("");
+        $("#compareAtPrice").val("");
+        $("#discount2").val("");
+        $("#promotionSDate").val("");
+        $("#promotionEDate").val("");
+    }
+    stocktotalsumevent();
+    attachAutoFillVariants();
+    $("#promotionSection").hide();
+    $(".add-variant-btn").prop("disabled",true);
 }
-function loadProduct(productId) {
+{% comment %} function loadProduct(productId) {
     fetch(`/api/v1/products/${productId}/`, {
         headers: {
             "Authorization": `Bearer ${localStorage.getItem("access_token")}`
@@ -1155,7 +1230,7 @@ function loadProduct(productId) {
         showAlert("Failed to load product", "danger");
         console.error(err);
     });
-}
+} {% endcomment %}
 
 
 
@@ -1332,7 +1407,11 @@ function generateCombinations() {
     });
 
 
-        const inputs = document.querySelectorAll(".variantStockQTY");
+       stocktotalsumevent();
+    attachImagePreview();
+}
+function stocktotalsumevent(){
+     const inputs = document.querySelectorAll(".variantStockQTY");
         const totalDisplay = document.getElementById("stockQuantity");
         const updateSum = () => {
             const total = Array.from(inputs).reduce((sum, input) => {
@@ -1343,9 +1422,7 @@ function generateCombinations() {
             console.log(total);
         };
         inputs.forEach(input => {  input.addEventListener("blur", updateSum); });
-    attachImagePreview();
 }
-
 // Cartesian product function
 function cartesian(arr) {
     return arr.reduce((a, b) => a.flatMap(d => b.map(e => [...d, e])), [[]]);

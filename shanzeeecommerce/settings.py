@@ -28,7 +28,13 @@ SECRET_KEY = 'django-insecure-)5@3=w=^e!wsgo(r#q4agz0jwisx=jls-r)739c=)h6c=9_&s5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "200.97.169.190",
+    "127.0.0.1",
+    "localhost",
+    "shanzee.com",
+    "www.shanzee.com"
+]
 
 
 # Application definition
@@ -136,6 +142,11 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 SOCIALACCOUNT_QUERY_EMAIL = True
 SOCIALACCOUNT_EMAIL_REQUIRED = True
 SOCIALACCOUNT_ADAPTER = 'accounts.adapters.MySocialAccountAdapter'
+
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 

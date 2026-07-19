@@ -2253,7 +2253,7 @@
             });
         }
         $("#addToCartBtn").on("click",function(){
-        var url="http://127.0.0.1:8000/AddToCart/";
+        var url="/AddToCart/";
         debugger;
         fetch("{% url 'AddToCart' %}", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}",/*"Authorization": `Bearer ${localStorage.getItem("access_token")}`*/ }, 
                     body: JSON.stringify({product_id: product_id,variant_id: cartVariant,quantity: $("#quantity").val()})})

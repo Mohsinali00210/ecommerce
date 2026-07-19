@@ -138,12 +138,12 @@
         placeholder: "Select Categories",
     });
 });
-    const API_BASE_URL = "http://127.0.0.1:8000/api/v1/attributes/";
+    const API_BASE_URL = "/Adminpanel/Products/api/v1/attributes/";
     var TOKEN ;
     getAttributes();
 getDropDown(el = "AttributeType");
-getDropDown(el = "Category",url="http://127.0.0.1:8000/api/v1/categories/");
-function getDropDown(el = "AttributeType",url="http://127.0.0.1:8000/api/v1/attributetypes/") {
+getDropDown(el = "Category",url="/Adminpanel/Products/api/v1/categories/");
+function getDropDown(el = "AttributeType",url="/Adminpanel/Products/api/v1/attributetypes/") {
     fetch(url, {
         method: "GET",
         headers: {

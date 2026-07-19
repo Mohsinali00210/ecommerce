@@ -83,6 +83,7 @@
                             <th>Price</th>
                             <th>Stock</th>
                             <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="productsBody"></tbody>
@@ -97,7 +98,10 @@
 
 
 <script>
-
+$(document).on('click', '.edit-product-btn', function () {
+    const productId = $(this).data('id');
+    window.location.href = `/Adminpanel/Products/addProduct/?id=${productId}`;
+});
    var links = $(".sidebar a");
     links.each(function() {
         $(this).removeClass('active');
@@ -105,14 +109,14 @@
     $("#ProductLink").addClass('active');
     
     $(document).ready(function() {
-        getDropDown(el = "categoryFilter",url="http://127.0.0.1:8000/api/v1/categories/");
+        getDropDown(el = "categoryFilter",url="{% url 'category-list' %}");
         getProducts();
    
 });
-    const API_BASE_URL = "http://127.0.0.1:8000/api/v1/products/";
+    const API_BASE_URL = "{% url 'product-list' %}";
     var TOKEN ;
 
-function getDropDown(el = "categoryFilter",url="http://127.0.0.1:8000/api/v1/categories/") {
+function getDropDown(el = "categoryFilter",url="{% url 'category-list' %}") {
     fetch(url, {
         method: "GET",
         headers: {
@@ -169,6 +173,11 @@ function getProducts(el = "productsBody", filters = {}) {
                             <span class="badge ${item.status=='active' ? 'bg-success' : 'bg-secondary'}">
                                 ${item.status}
                             </span>
+                        </td>
+                         <td>
+                            <button type="button" class="btn btn-sm btn-outline-primary edit-product-btn" data-id="${item.id}">
+                                <i class="bi bi-pencil-square"></i> Edit
+                            </button>
                         </td>
                     </tr>
                 `;

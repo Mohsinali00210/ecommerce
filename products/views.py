@@ -272,6 +272,15 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Product.objects.filter(is_deleted=False)\
             .prefetch_related('variants', 'images', 'promotions')\
             .order_by('-id')
+            
+    def retrieve(self, request, *args, **kwargs):
+        print("kwargs =", kwargs)
+        print("pk =", kwargs.get("pk"))
+        queryset = self.get_queryset()
+        print("Exists =", queryset.filter(pk=kwargs.get("pk")).exists())
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -381,7 +390,7 @@ def attributes(request):
 def brands(request):
     return render(request, "Other/brands.html")
 
-def addProduct(request):
+def addProduct(request, product_id =None):
     tax_categories = TaxCategory.objects.filter(is_active=True, is_deleted=False)
     context = { 'tax_categories': tax_categories }
     return render(request, "products/addProduct.html",context)

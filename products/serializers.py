@@ -162,6 +162,99 @@ class ProductSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [ 'created_at', 'modified_at']
     @transaction.atomic
+    def update(self, instance, validated_data):
+        request = self.context.get("request")
+        categories = validated_data.pop("category", None)
+
+        instance = super().update(instance, validated_data)
+
+        if categories is not None:
+            instance.category.set(categories)
+
+        # ---- New images (appended, not replacing existing) ----
+        for image in request.FILES.getlist("images"):
+            ProductImage.objects.create(product=instance, image=image)
+
+        # ---- Tags: replace wholesale if submitted ----
+        tags_list = request.data.getlist("tags_list")
+        if tags_list:
+            instance.tags.clear()
+            for tag_name in tags_list:
+                tag_obj, _ = Tag.objects.get_or_create(name=tag_name.strip())
+                instance.tags.add(tag_obj)
+
+        # ---- Variants: update existing, create new, delete removed ----
+        raw_variants = request.data.get("variants")
+        if raw_variants is not None:
+            try:
+                variants_data = json.loads(raw_variants)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError({"variants": "Invalid JSON format."})
+
+            submitted_ids = []
+            for index, variant_data in enumerate(variants_data):
+                variant_id = variant_data.pop("id", None)
+                image_file = request.FILES.get(f"variants[{index}][image]")
+
+                variant = None
+                if variant_id:
+                    variant = ProductVariant.objects.filter(id=variant_id, product=instance).first()
+
+                if variant:
+                    for attr, value in variant_data.items():
+                        setattr(variant, attr, value)
+                else:
+                    variant = ProductVariant.objects.create(product=instance, **variant_data)
+
+                if image_file:
+                    product_image = ProductImage.objects.create(product=instance, image=image_file)
+                    variant.image = product_image
+
+                variant.save()
+                submitted_ids.append(variant.id)
+
+            instance.variants.exclude(id__in=submitted_ids).delete()
+
+        # ---- Options: replace all ----
+        # raw_options = request.data.get("options")
+        # if raw_options is not None:
+        #     try:
+        #         options_data = json.loads(raw_options)
+        #     except json.JSONDecodeError:
+        #         raise serializers.ValidationError({"options": "Invalid JSON format."})
+
+        #     instance.options.all().delete()
+        #     for item in options_data:
+        #         option_name = item.get("option_name")
+        #         option_values = item.get("option", [])
+        #         color_values = item.get("value", [])
+        #         for idx, value in enumerate(option_values):
+        #             color_code = None
+        #             if option_name and option_name.lower() == "color" and idx < len(color_values):
+        #                 color_code = color_values[idx]
+        #             ProductVariantOption.objects.create(
+        #                 product=instance, option_name=option_name, option=value, value=color_code
+        #             )
+
+        # ---- Promotion: update the existing one, or create ----
+        # raw_promotions = request.data.get("promotions")
+        # if raw_promotions is not None:
+        #     try:
+        #         promotion_data = json.loads(raw_promotions)
+        #     except json.JSONDecodeError:
+        #         raise serializers.ValidationError({"promotions": "Invalid JSON format."})
+
+        #     if promotion_data:
+        #         existing_promo = instance.promotions.first()
+        #         promo_serializer = PromotionSerializer(instance=existing_promo, data=promotion_data[0])
+        #         promo_serializer.is_valid(raise_exception=True)
+        #         promo = promo_serializer.save()
+        #         promo.products.set([instance])
+        #         if categories:
+        #             promo.categories.set(categories)
+
+        return instance
+    @transaction.atomic
     def create(self, validated_data):
 
         request = self.context.get("request")
@@ -204,7 +297,7 @@ class ProductSerializer(serializers.ModelSerializer):
         # Handle Variants
         # ----------------------------
         raw_variants = request.data.get("variants")
-        variant_images = request.FILES.getlist("variants[]")
+        #variant_images = request.FILES.getlist("variants[]")
 
         if raw_variants:
             try:
@@ -213,22 +306,29 @@ class ProductSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {"variants": "Invalid JSON format."}
                 )
-
             for index, variant_data in enumerate(variants_data):
+                variant = ProductVariant.objects.create(product=product, **variant_data)
 
-                variant = ProductVariant.objects.create(
-                    product=product,
-                    **variant_data
-                )
-
-                # Attach variant image if available
-                if index < len(variant_images):
-                    product_image = ProductImage.objects.create(
-                        product=product,
-                        image=variant_images[index]
-                    )
+                image_file = request.FILES.get(f"variants[{index}][image]")
+                if image_file:
+                    product_image = ProductImage.objects.create(product=product, image=image_file)
                     variant.image = product_image
                     variant.save()
+            # for index, variant_data in enumerate(variants_data):
+
+            #     variant = ProductVariant.objects.create(
+            #         product=product,
+            #         **variant_data
+            #     )
+
+            #     # Attach variant image if available
+            #     if index < len(variant_images):
+            #         product_image = ProductImage.objects.create(
+            #             product=product,
+            #             image=variant_images[index]
+            #         )
+            #         variant.image = product_image
+            #         variant.save()
 
         # ----------------------------
         # Handle Options
