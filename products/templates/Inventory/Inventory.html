@@ -92,7 +92,7 @@ Save
 
 
 <script>
-    const INVENTORY_API = "/Adminpanel/Products/api/v1/inventory/";
+    const INVENTORY_API = `${window.location.origin}/Adminpanel/Products/api/v1/inventory/`;
 
 getInventory();
 getVariants();
@@ -166,7 +166,7 @@ getInventory();
 }
 function getVariants(){
 
-fetch("/Adminpanel/Products/api/v1/product-variants/",{
+fetch(`${window.location.origin}/Adminpanel/Products/api/v1/product-variants/`,{
 
 headers:{
 "Authorization":`Bearer ${localStorage.getItem("access_token")}`

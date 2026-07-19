@@ -13,7 +13,18 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from Web.models import Order
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
 
+from rest_framework.permissions import BasePermission
+
+class IsSuperUser(BasePermission):
+    def has_permission(self, request, view):
+        return (
+            request.user
+            and request.user.is_authenticated
+            and request.user.is_superuser
+        )
 # Create your views here.
 class IsAdminRole(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -23,7 +34,7 @@ class IsAdminRole(permissions.BasePermission):
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSuperUser]
 
    
     def create(self, request, *args, **kwargs):
@@ -102,7 +113,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 class ProductAttributeViewSet(viewsets.ModelViewSet):
     serializer_class = ProductAttributeSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSuperUser]
 
    
     def create(self, request, *args, **kwargs):
@@ -165,7 +176,7 @@ class ProductAttributeViewSet(viewsets.ModelViewSet):
 
 class BrandViewSet(viewsets.ModelViewSet):
     serializer_class = BrandSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSuperUser]
     # parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
    
     def create(self, request, *args, **kwargs):
@@ -227,7 +238,7 @@ class BrandViewSet(viewsets.ModelViewSet):
 
 class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSuperUser]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['category', 'status','stock_status', 'free_shipping']
     search_fields = ['name', 'sku', 'description']
@@ -272,7 +283,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Product.objects.filter(is_deleted=False)\
             .prefetch_related('variants', 'images', 'promotions')\
             .order_by('-id')
-            
+
     def retrieve(self, request, *args, **kwargs):
         print("kwargs =", kwargs)
         print("pk =", kwargs.get("pk"))
@@ -297,7 +308,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
 class PromotionViewSet(viewsets.ModelViewSet):
     serializer_class = PromotionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSuperUser]
     
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -375,45 +386,70 @@ def log_exception(self, request, exc, status_code):
 
 class AttributeTypesViewSet(viewsets.ModelViewSet):
     serializer_class = AttributeTypesSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSuperUser]
     
     def get_queryset(self):
         return Attribute_Types.objects.filter(is_deleted=False)
-
+@login_required
 def categories(request):
+    if not request.user.is_superuser:
+        return redirect('login') 
     return render(request, "categories/categories.html")
 
-
+@login_required
 def attributes(request):
+    if not request.user.is_superuser:
+        return redirect('login') 
     return render(request, "Other/attributes.html")
-
+@login_required
 def brands(request):
+    if not request.user.is_superuser:
+        return redirect('login') 
     return render(request, "Other/brands.html")
 
+@login_required(login_url='login')
 def addProduct(request, product_id =None):
+    if not request.user.is_superuser:
+        return redirect('login')   
     tax_categories = TaxCategory.objects.filter(is_active=True, is_deleted=False)
     context = { 'tax_categories': tax_categories }
     return render(request, "products/addProduct.html",context)
 
+@login_required(login_url='login')
 def editProduct(request):
+    if not request.user.is_superuser:
+        return redirect('login') 
     return render(request, "products/addProduct.html")
+@login_required(login_url='login')
 def editProduct(request, id=None):
+    if not request.user.is_superuser:
+        return redirect('login') 
     return render(request, "products/addProduct.html", {
         "product_id": id
     })
 
-
+@login_required(login_url='login')
 def products(request):
+    if not request.user.is_superuser:
+        return redirect('login') 
     return render(request, "products/products.html")
 
+@login_required(login_url='login')
 def ProductPreview(request):
+    if not request.user.is_superuser:
+        return redirect('login') 
     return render(request, "products/ProductPreview.html")
 
-
+@login_required(login_url='login')
 def orders(request):
+    if not request.user.is_superuser:
+        return redirect('login') 
     return render(request, "orders/Orders.html")
 
+@login_required(login_url='login')
 def OrdersByStatus(request, status):
+    if not request.user.is_superuser:
+        return redirect('login') 
     return render(request, "orders/OrdersByStatus.html",{"status":status})
 
 
@@ -425,11 +461,11 @@ from .serializers import OrderSerializer
 from Web.models import OrderSeenLog
 from django.db.models import Exists, OuterRef
 
+
 class OrdersListAPIView(generics.ListAPIView):
     serializer_class = OrderSerializer
     authentication_classes = [SessionAuthentication, TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
-
+    permission_classes = [IsSuperUser]
     def get_queryset(self):
         user = self.request.user
         seen_log = OrderSeenLog.objects.filter( order=OuterRef('pk'), user=user )
@@ -507,7 +543,7 @@ class OrderDetailAPIView(RetrieveAPIView):
         "requests",
     )
     serializer_class = OrderDetailSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSuperUser]
 
     def get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
@@ -532,7 +568,7 @@ class OrderDetailAPIView(RetrieveAPIView):
 class OrderUpdateStatusAPIView(UpdateAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderDetailSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSuperUser]
 
     def patch(self, request, *args, **kwargs):
         order = self.get_object()
@@ -562,11 +598,12 @@ class OrderUpdateStatusAPIView(UpdateAPIView):
         return Response({"message": "Order updated successfully"})
 
 # views.py
-from django.contrib.auth.decorators import login_required
 from Web.models import SupportTicket
 
 @login_required
 def support_ticket_list_view(request):
+    if not request.user.is_superuser:
+        return redirect('login') 
     tickets = SupportTicket.objects.all().order_by("-created_at")
     return render(request, "Other/support_ticket_list.html", {"tickets": tickets})
 
@@ -584,7 +621,7 @@ from django.db import transaction
 class AdminOrderRequestUpdateAPIView(UpdateAPIView):
     queryset = OrderRequest.objects.select_related("order", "order__user")
     serializer_class = AdminOrderRequestUpdateSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperUser]
     
     @transaction.atomic
     def perform_update(self, serializer):
@@ -678,21 +715,25 @@ from .serializers import AdminProductReviewSerializer
 class AdminReviewListAPIView(ListAPIView):
     queryset = ProductReview.objects.select_related("product", "user")
     serializer_class = AdminProductReviewSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperUser]
 
 
 class AdminReviewUpdateAPIView(UpdateAPIView):
     queryset = ProductReview.objects.all()
     serializer_class = AdminProductReviewSerializer
-    permission_classes = [IsAdminUser]
-
+    permission_classes = [IsSuperUser]
+@login_required
 def admin_reviews_page(request):
+    if not request.user.is_superuser:
+        return redirect('login') 
     return render(request, "products/admin_reviews.html")
 
 from django.db.models import Count
 
-@login_required
+@login_required(login_url='login')
 def wishlist_page(request):
+    if not request.user.is_superuser:
+        return redirect('login') 
     wishlist_items = (Wishlist.objects
                       .filter(user=request.user)
                       .select_related("product")
@@ -718,18 +759,20 @@ from .serializers import PromotionsSerializer
 class PromotionsViewSet(viewsets.ModelViewSet):
     queryset = Promotion.objects.all()
     serializer_class = PromotionsSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSuperUser]
 
 
 
-@login_required
+@login_required(login_url='login')
 def promotions_page(request):
-    
+    if not request.user.is_superuser:
+        return redirect('login') 
     return render(request, "promotions/promotions.html")
 
 @login_required
 def inventory_page(request):
-    
+    if not request.user.is_superuser:
+        return redirect('login') 
     return render(request, "Inventory/Inventory.html")
 
 from .models import ProductVariantInventory
@@ -743,7 +786,7 @@ class VariantInventoryViewSet(viewsets.ModelViewSet):
     )
 
     serializer_class = ProductVariantInventorySerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSuperUser]
 
 
     def create(self, request, *args, **kwargs):
@@ -786,7 +829,7 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
 
     queryset = ProductVariant.objects.select_related('product')
     serializer_class = ProductVariant2Serializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSuperUser]
 
 
     def create(self, request, *args, **kwargs):
@@ -824,7 +867,7 @@ from .serializers import PictureSerializer
 class PictureViewSet(viewsets.ModelViewSet):
     queryset = Picture.objects.all().order_by('-created_at')
     serializer_class = PictureSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSuperUser]
 
     def get_queryset(self):
         queryset = Picture.objects.filter(is_active=True).order_by('-created_at')
@@ -838,19 +881,23 @@ class PictureViewSet(viewsets.ModelViewSet):
 
 @login_required
 def picture_page(request):
+    if not request.user.is_superuser:
+        return redirect('login') 
     return render(request, "Other/pictures.html")
 
 
 
 # views.py
-
+@login_required(login_url='login')
 def wish_to_buy_admin(request):
+    if not request.user.is_superuser:
+        return redirect('login') 
     return render(request, "Other/wish_to_buy.html")
 
 # views.py
 from django.http import JsonResponse
 from Web.models import WishToBuy
-
+@login_required(login_url='login')
 def wish_to_buy_list(request):
     data = []
 

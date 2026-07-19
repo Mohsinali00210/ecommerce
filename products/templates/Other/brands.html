@@ -126,11 +126,11 @@
         placeholder: "Select Categories",
     });
 });
-    const API_BASE_URL = "/Adminpanel/Products/api/v1/brands/";
+    const API_BASE_URL = `${window.location.origin}/Adminpanel/Products/api/v1/brands/`;
     var TOKEN ;
     getBrands();
-getDropDown(el = "Category",url="/Adminpanel/Products/api/v1/categories/");
-function getDropDown(el = "Category",url="/Adminpanel/Products/api/v1/categories/") {
+getDropDown(el = "Category",url=`${window.location.origin}/Adminpanel/Products/api/v1/categories/`);
+function getDropDown(el = "Category",url=`${window.location.origin}/Adminpanel/Products/api/v1/categories/`) {
     fetch(url, {
         method: "GET",
         headers: {

@@ -259,9 +259,9 @@
             })
             .catch(err => console.error(err)); {% endcomment %}
 
-        getDropDown("PromoProducts", "/Adminpanel/Products/api/v1/products/");
-        getDropDown("PromoCategories", "/Adminpanel/Products/api/v1/categories/");
-        function getDropDown(el = "Category",url="/Adminpanel/Products/api/v1/categories/") {
+        getDropDown("PromoProducts", `${window.location.origin}/Adminpanel/Products/api/v1/products/`);
+        getDropDown("PromoCategories", `${window.location.origin}/Adminpanel/Products/api/v1/categories/`);
+        function getDropDown(el = "Category",url=`${window.location.origin}/Adminpanel/Products/api/v1/categories/`) {
             fetch(url, {
                 method: "GET",
                 headers: {
@@ -283,7 +283,7 @@
             });
         }
       
-        const PROMO_API = "/Adminpanel/Products/api/v1/promotionss/";
+        const PROMO_API = `${window.location.origin}/Adminpanel/Products/api/v1/promotionss/`;
 
         getPromotions();
 

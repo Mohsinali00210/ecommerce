@@ -47,7 +47,7 @@
             localStorage.setItem("access_token", data.access);
             })
             .catch(err => console.error(err));
-    const USER_API = "/Adminpanel/Products/api/v1/users/";
+    const USER_API = `${window.location.origin}/Adminpanel/Products/api/v1/users/`;
 
 getUsers();
 
@@ -97,7 +97,7 @@ function toggleUserStatus(userId, currentStatus) {
     let action = currentStatus ? "block" : "unblock";
     if (!confirm(`Are you sure you want to ${action} this user?`)) return;
 
-    fetch(`/Adminpanel/Products/api/v1/users/${userId}/toggle_status/`, {
+    fetch(`${window.location.origin}/Adminpanel/Products/api/v1/users/${userId}/toggle_status/`, {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
