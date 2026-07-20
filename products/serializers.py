@@ -127,6 +127,242 @@ class PromotionSerializer(serializers.ModelSerializer):
         ]
 
 
+# Changes vs. your current ProductSerializer.create()/update():
+#
+# Every nested block (images, tags, variants, options, promotions) now
+# runs inside its own try/except. On failure it:
+#   1. Writes an ErrorLog row naming the exact table + field that broke
+#      (e.g. table="ProductVariant", field="variants[2].sku").
+#   2. Raises serializers.ValidationError({"variants": "..."}) so the
+#      response is a normal 400 with that field name as the key — which
+#      the frontend's highlightServerErrors() already knows how to point
+#      at the right input.
+#
+# This means one bad variant no longer produces a bare, unlabeled 500 —
+# you get "variants[2].sku: SKU already exists" back, logged, and
+# highlighted on screen.
+
+# import json
+# from django.db import transaction, IntegrityError
+# from rest_framework import serializers
+
+# from accounts.models import ErrorLog  # adjust import path as needed
+# from .error_logging_mixin import extract_field_from_integrity_error  # adjust import path as needed
+
+
+# def _log_and_raise(request, table_name, field_name, exc):
+#     ErrorLog.objects.create(
+#         level='validation',
+#         field_name=field_name,
+#         table_name=table_name,
+#         view_name='ProductSerializer',
+#         message=str(exc),
+#         user=request.user if request and request.user and request.user.is_authenticated else None,
+#     )
+#     raise serializers.ValidationError({field_name: str(exc)})
+
+
+# class ProductSerializer(serializers.ModelSerializer):
+    
+    
+#     reviews = ProductReviewSerializer(many=True, read_only=True)
+#     variants = ProductVariantSerializer(many=True, read_only=True)
+#     promotions = PromotionSerializer(many=True, read_only=True)
+#     images = ProductImageSerializer(many=True, read_only=True)
+#     options = ProductVariantOptionSerializer(many=True, read_only=True)
+    
+
+#     category = serializers.PrimaryKeyRelatedField( many=True, queryset=Category.objects.all())
+#     brand = serializers.PrimaryKeyRelatedField( queryset=Brand.objects.all(), required=False, allow_null=True )
+#     tax_category = serializers.PrimaryKeyRelatedField( queryset=TaxCategory.objects.all(), required=False, allow_null=True )
+#     # Read-only convenience fields
+#     category_name = serializers.ReadOnlyField(source='category.name')
+
+#     class Meta:
+#         model = Product
+#         fields = [
+#             'id', 'name', 'sku', 'category','brand', 'category_name', 'description', 'brief_description',
+#             'price','compare_at',  'bulk_discount_rules',
+#             'weight', 'length', 'width', 'height', 'shipping_class', 
+#             'free_shipping', 'handling_time', 'meta_title', 'meta_description', 
+#             'slug', 'focus_keywords', 'tags', 'stock_status','stock_quantity','status', 'variants', 
+#             'images', 'reviews', 'promotions', 'is_active','options','video', 'available_start_date',
+#             'available_end_date','allow_customer_reviews','customer_can_see_stock','product_type', 
+#             'mark_as_new','available_for_preorder','admin_comment','disable_buy_button',
+#             'disable_wishlist_button','tax_category','tax_exempt','old_price','original_price',
+#             'other_product_cost','shipping_enabled','ship_separately','shipping_charges',
+#             'additional_shipping_charges','qoute' #,'is_custom_ui','value','discount_percentage',, 'compare_at_price'
+
+#         ]
+#         read_only_fields = [ 'created_at', 'modified_at']
+#     @transaction.atomic
+#     def update(self, instance, validated_data):
+#         request = self.context.get("request")
+#         categories = validated_data.pop("category", None)
+
+#         instance = super().update(instance, validated_data)
+
+#         if categories is not None:
+#             instance.category.set(categories)
+
+#         # ---- New images (appended, not replacing existing) ----
+#         try:
+#             for image in request.FILES.getlist("images"):
+#                 ProductImage.objects.create(product=instance, image=image)
+#         except IntegrityError as exc:
+#             _log_and_raise(request, 'ProductImage', 'images', exc)
+
+#         # ---- Tags: replace wholesale if submitted ----
+#         tags_list = request.data.getlist("tags_list")
+#         if tags_list:
+#             try:
+#                 instance.tags.clear()
+#                 for tag_name in tags_list:
+#                     tag_obj, _ = Tag.objects.get_or_create(name=tag_name.strip())
+#                     instance.tags.add(tag_obj)
+#             except IntegrityError as exc:
+#                 _log_and_raise(request, 'Tag', 'tags_list', exc)
+
+#         # ---- Variants: update existing, create new, delete removed ----
+#         raw_variants = request.data.get("variants")
+#         if raw_variants is not None:
+#             try:
+#                 variants_data = json.loads(raw_variants)
+#             except json.JSONDecodeError:
+#                 raise serializers.ValidationError({"variants": "Invalid JSON format."})
+
+#             submitted_ids = []
+#             for index, variant_data in enumerate(variants_data):
+#                 field_key = f"variants[{index}]"
+#                 variant_id = variant_data.pop("id", None)
+#                 image_file = request.FILES.get(f"variants[{index}][image]")
+
+#                 try:
+#                     variant = None
+#                     if variant_id:
+#                         variant = ProductVariant.objects.filter(id=variant_id, product=instance).first()
+
+#                     if variant:
+#                         for attr, value in variant_data.items():
+#                             setattr(variant, attr, value)
+#                     else:
+#                         variant = ProductVariant.objects.create(product=instance, **variant_data)
+
+#                     if image_file:
+#                         product_image = ProductImage.objects.create(product=instance, image=image_file)
+#                         variant.image = product_image
+
+#                     variant.save()
+#                 except IntegrityError as exc:
+#                     # e.g. duplicate SKU on this specific row — tag the
+#                     # error with which variant row and which column broke.
+#                     field_name = f"{field_key}.{extract_field_from_integrity_error(exc) or 'unknown'}"
+#                     _log_and_raise(request, 'ProductVariant', field_name, exc)
+
+#                 submitted_ids.append(variant.id)
+
+#             instance.variants.exclude(id__in=submitted_ids).delete()
+
+#         return instance
+
+#     @transaction.atomic
+#     def create(self, validated_data):
+#         request = self.context.get("request")
+
+#         categories = validated_data.pop("category", [])
+#         validated_data.pop("tags", [])
+
+#         try:
+#             product = Product.objects.create(**validated_data)
+#         except IntegrityError as exc:
+#             field_name = extract_field_from_integrity_error(exc) or 'unknown'
+#             _log_and_raise(request, 'Product', field_name, exc)
+
+#         if categories:
+#             product.category.set(categories)
+
+#         # ---- Images ----
+#         try:
+#             for image in request.FILES.getlist("images"):
+#                 ProductImage.objects.create(product=product, image=image)
+#         except IntegrityError as exc:
+#             _log_and_raise(request, 'ProductImage', 'images', exc)
+
+#         # ---- Tags ----
+#         try:
+#             for tag_name in request.data.getlist("tags_list"):
+#                 tag_obj, _ = Tag.objects.get_or_create(name=tag_name.strip())
+#                 product.tags.add(tag_obj)
+#         except IntegrityError as exc:
+#             _log_and_raise(request, 'Tag', 'tags_list', exc)
+
+#         # ---- Variants ----
+#         raw_variants = request.data.get("variants")
+#         if raw_variants:
+#             try:
+#                 variants_data = json.loads(raw_variants)
+#             except json.JSONDecodeError:
+#                 raise serializers.ValidationError({"variants": "Invalid JSON format."})
+
+#             for index, variant_data in enumerate(variants_data):
+#                 field_key = f"variants[{index}]"
+#                 try:
+#                     variant = ProductVariant.objects.create(product=product, **variant_data)
+#                     image_file = request.FILES.get(f"variants[{index}][image]")
+#                     if image_file:
+#                         product_image = ProductImage.objects.create(product=product, image=image_file)
+#                         variant.image = product_image
+#                         variant.save()
+#                 except IntegrityError as exc:
+#                     field_name = f"{field_key}.{extract_field_from_integrity_error(exc) or 'unknown'}"
+#                     _log_and_raise(request, 'ProductVariant', field_name, exc)
+
+#         # ---- Options ----
+#         raw_options = request.data.get("options")
+#         if raw_options:
+#             try:
+#                 options_data = json.loads(raw_options)
+#             except json.JSONDecodeError:
+#                 raise serializers.ValidationError({"options": "Invalid JSON format."})
+
+#             try:
+#                 for item in options_data:
+#                     option_name = item.get("option_name")
+#                     option_values = item.get("option", [])
+#                     color_values = item.get("value", [])
+#                     for index, value in enumerate(option_values):
+#                         color_code = None
+#                         if option_name and option_name.lower() == "color" and index < len(color_values):
+#                             color_code = color_values[index]
+#                         ProductVariantOption.objects.create(
+#                             product=product, option_name=option_name, option=value, value=color_code
+#                         )
+#             except IntegrityError as exc:
+#                 _log_and_raise(request, 'ProductVariantOption', 'options', exc)
+
+#         # ---- Promotion ----
+#         raw_promotions = request.data.get("promotions")
+#         if raw_promotions:
+#             try:
+#                 promotion_data = json.loads(raw_promotions)
+#             except json.JSONDecodeError:
+#                 raise serializers.ValidationError({"promotions": "Invalid JSON format."})
+
+#             if promotion_data:
+#                 promo_serializer = PromotionSerializer(data=promotion_data[0])
+#                 promo_serializer.is_valid(raise_exception=True)  # bubbles up as a normal 400 already
+
+#                 try:
+#                     promo = Promotion.objects.create(**promo_serializer.validated_data)
+#                     promo.products.set([product])
+#                     if categories:
+#                         promo.categories.set(categories)
+#                 except IntegrityError as exc:
+#                     _log_and_raise(request, 'Promotion', 'promotions', exc)
+
+#         return product
+
+
 class ProductSerializer(serializers.ModelSerializer):
     # Nested Relationships
     
@@ -395,6 +631,8 @@ class ProductSerializer(serializers.ModelSerializer):
                     promo.categories.set(categories)
 
         return product
+
+
 from .models import ProductVariantInventory,ProductVariant
 
 class ProductVariantInventorySerializer(serializers.ModelSerializer):
@@ -422,254 +660,6 @@ class ProductVariant2Serializer(serializers.ModelSerializer):
             'price',
             'stock_quantity'
         ]
-# class ProductSerializer(serializers.ModelSerializer):
-#     # Nested Relationships
-    
-    
-#     reviews = ProductReviewSerializer(many=True, read_only=True)
-#     variants = ProductVariantSerializer(many=True, read_only=True)
-#     promotions = PromotionSerializer(many=True, read_only=True)
-#     images = ProductImageSerializer(many=True, read_only=True)
-#     options = ProductVariantOptionSerializer(many=True, read_only=True)
-    
-
-#     category = serializers.PrimaryKeyRelatedField( many=True, queryset=Category.objects.all())
-#     brand = serializers.PrimaryKeyRelatedField( queryset=Brand.objects.all(), required=False, allow_null=True )
-#     tax_category = serializers.PrimaryKeyRelatedField( queryset=TaxCategory.objects.all(), required=False, allow_null=True )
-#     # Read-only convenience fields
-#     category_name = serializers.ReadOnlyField(source='category.name')
-
-#     class Meta:
-#         model = Product
-#         fields = [
-#             'id', 'name', 'sku', 'category','brand', 'category_name', 'description', 'brief_description',
-#             'price','compare_at', 'compare_at_price', 'discount_percentage', 'bulk_discount_rules',
-#             'weight', 'length', 'width', 'height', 'shipping_class', 
-#             'free_shipping', 'handling_time', 'meta_title', 'meta_description', 
-#             'slug', 'focus_keywords', 'tags', 'stock_status','stock_quantity','status', 'variants', 
-#             'images', 'reviews', 'promotions', 'is_active','options','video', 'available_start_date',
-#             'available_end_date','allow_customer_reviews','product_type', 
-#             'mark_as_new','available_for_preorder','admin_comment','disable_buy_button',
-#             'disable_wishlist_button','tax_category','tax_exempt','old_price','original_price',
-#             'other_product_cost','shipping_enabled','ship_separately','shipping_charges',
-#             'additional_shipping_charges','qoute'
-
-#         ]
-#         read_only_fields = [ 'created_at', 'modified_at']
-#     @transaction.atomic
-#     def create(self, validated_data):
-        
-
-#         tags_data = validated_data.pop('tags', []) 
-        
-#         # variants_data = validated_data.pop('variants', [])
-#         # images_data = validated_data.pop('images', [])
-#         # promotion = validated_data.pop('promotions', [])
-#         request = self.context.get('request')
-#         variant_imgs = request.FILES.getlist('variants[]')  # adjust name if needed
-#         raw_variants = request.data.getlist('variants')
-#         print("raw_variants ", raw_variants)
-#         print("variant_imgs ", variant_imgs)
-#         return
-#         try:
-#             variants_data = json.loads(raw_variants[0])
-#         except json.JSONDecodeError:
-#             raise serializers.ValidationError({"variants": "Invalid JSON format."})
-#         variant_imgs = []
-#         for variant_data in variants_data:
-#             image_file = variant_data.pop('image', None)
-#             variant_imgs.append(image_file)
-#         serializer = ProductVariantSerializer(data=variants_data, many=True)
-
-#         raw_options = request.data.getlist('options')
-#         try:
-#             options_data = json.loads(raw_options[0])
-#         except json.JSONDecodeError:
-#             raise serializers.ValidationError({"options": "Invalid JSON format."})
-#         options = ProductVariantOptionSerializer(data=options_data, many=True)
-
-#         images_data = request.data.getlist('images')
-#         if images_data:
-#             images = ProductImageSerializer(data=images_data, many=True, required=False)
-
-
-#         raw_promotion = request.data.getlist('promotions')
-#         try:
-#             promotion = json.loads(raw_promotion[0])
-#         except json.JSONDecodeError:
-#             raise serializers.ValidationError({"variants": "Invalid JSON format."})
-#         if promotion:
-#             # promotions = PromotionSerializer(data=promotion, many=True, read_only=True)
-#             promo_serializer = PromotionSerializer(data=promotion[0])
-
-#         serializer.is_valid(raise_exception=True)  
-#         validated_variants = serializer.validated_data
-
-        
-#         category = validated_data.pop('category', [])
-#         # brand = validated_data.pop('brand', [])
-#         # tax_category = validated_data.pop('tax_category', [])
-#         # taxgate_ins=TaxCategory.objects.filter(id=tax_category)
-#         # brand_ins=Brand.objects.filter(id=brand)
-#         product = Product.objects.create(**validated_data)
-#         # product.brand=brand
-#         # product.tax_category=tax_category
-#         if category is not None:
-#             product.category.set(category)
-        
-#         if promotion:            
-#             if promo_serializer.is_valid(raise_exception=True):
-#                 promo_ins = Promotion.objects.create(**promo_serializer.validated_data)
-#                 promo_ins.products.set([product])
-                
-#                 if category:
-#                     promo_ins.categories.set(category)
-#         print(images_data)
-#         product_images = []
-#         for image_file in images_data:
-#             product_images.append(
-#                 ProductImage.objects.create(
-#                     product=product,
-#                     image=image_file
-#                 )
-#             )
-#         tags_list = self.context['request'].data.getlist('tags_list')
-#         for tag_name in tags_list:
-#             tag_obj, _ = Tag.objects.get_or_create(name=tag_name.strip())
-#             product.tags.add(tag_obj)
-
-#         if raw_variants:
-#             variants_data = json.loads(raw_variants[0])  # decode JSON
-#             for i, variant_data in enumerate(variants_data):
-#                 # Remove image from JSON if accidentally included
-#                 image_file = variant_data.pop('image', None)
-
-#                 # Create ProductVariant
-#                 variant = ProductVariant.objects.create(
-#                     product=product,
-#                     **variant_data
-#                 )
-
-#                 # Attach image if available
-#                 try:
-#                     img_file = variant_imgs[i]
-#                 except IndexError:
-#                     img_file = None
-
-#                 if img_file:
-#                     # Create ProductImage linked to the product
-#                     product_image = ProductImage.objects.create(
-#                         product=product,
-#                         image=img_file
-#                     )
-#                     # Assign image to variant
-#                     variant.image = product_image
-#                     variant.save()
-#         if options_data:
-#             for item in options_data:
-#                 option_name = item.get('option_name')
-#                 option_values = item.get('option')
-#                 for val in option_values:
-#                     ProductVariantOption.objects.create( product=product, option=val, option_name=option_name)
-                    
-#         return product
-
-
-
-
-
-# class ProductSerializer(serializers.ModelSerializer):
-#     # Define these as SerializerMethods or write-only fields to avoid class-level logic errors
-#     reviews = ProductReviewSerializer(many=True, read_only=True)
-    
-#     # We define these as 'required=False' because we handle them manually in create()
-#     variants = serializers.JSONField(write_only=True, required=False)
-#     images = serializers.ListField(
-#         child=serializers.ImageField(), write_only=True, required=False
-#     )
-#     promotions = serializers.JSONField(write_only=True, required=False)
-
-#     category = serializers.PrimaryKeyRelatedField(
-#         many=True, 
-#         queryset=Category.objects.all()
-#     )
-#     brand = serializers.PrimaryKeyRelatedField(
-#         queryset=Brand.objects.all(),
-#         required=False,
-#         allow_null=True
-#     )
-#     category_name = serializers.ReadOnlyField(source='category.name')
-
-#     class Meta:
-#         model = Product
-#         fields = [
-#             'id', 'name', 'sku', 'category', 'brand', 'category_name', 'description', 
-#             'brief_description', 'price', 'compare_at_price', 'discount_percentage', 
-#             'bulk_discount_rules', 'weight', 'length', 'width', 'height', 
-#             'shipping_class', 'free_shipping', 'handling_time', 'meta_title', 
-#             'meta_description', 'slug', 'focus_keywords', 'tags', 'status', 
-#             'variants', 'images', 'reviews', 'promotions', 'is_active'
-#         ]
-#         read_only_fields = ['created_at', 'modified_at']
-
-#     @transaction.atomic
-#     def create(self, validated_data):
-#         # 1. Extract data
-#         request = self.context.get('request')
-#         categories = validated_data.pop('category', [])
-#         brand = validated_data.pop('brand', [])
-#         # Tags are usually sent as a list of strings in multipart
-#         # tags_list = request.data.getlist('tags_list') 
-        
-#         # 2. Create the main Product
-#         product = Product.objects.create(**validated_data)
-        
-#         # 3. Set Many-to-Many Relationships
-#         if categories:
-#             product.category.set(categories)
-
-#         # for tag_name in tags_list:
-#         #     tag_obj, _ = Tag.objects.get_or_create(name=tag_name.strip())
-#         #     product.tags.set(tag_obj)
-#         # tags_list = self.context['request'].data.getlist('tags_list')
-#         # for tag_name in tags_list:
-#         #     tag_obj, _ = Tag.objects.get_or_create(name=tag_name.strip())
-#         #     product.tags.add(tag_obj)
-#         # 4. Handle Product Images (Files)
-#         # images_data = request.FILES.getlist('images')
-#         # for image_file in images_data:
-#         #     ProductImage.objects.create(product=product, image=image_file)
-
-#         # 5. Handle Variants (JSON string from Form-Data)
-#         # raw_variants = request.data.get('variants')
-#         # if raw_variants:
-#         #     try:
-#         #         # If sent via FormData, it might be a JSON string
-#         #         variants_data = json.loads(raw_variants) if isinstance(raw_variants, str) else raw_variants
-                
-#         #         # Validate the nested data using the variant serializer
-#         #         variant_serializer = ProductVariantSerializer(data=variants_data, many=True)
-#         #         variant_serializer.is_valid(raise_exception=True)
-                
-#         #         for v_data in variant_serializer.validated_data:
-#         #             ProductVariant.objects.create(product=product, **v_data)
-#         #     except (json.JSONDecodeError, TypeError):
-#         #         raise serializers.ValidationError({"variants": "Invalid JSON format."})
-
-#         # 6. Handle Promotions
-#         # raw_promotions = request.data.get('promotions')
-#         # if raw_promotions:
-#         #     try:
-#         #         promo_data = json.loads(raw_promotions) if isinstance(raw_promotions, str) else raw_promotions
-#         #         # Logic for linking promotions depends on your model structure
-#         #         # Example:
-#         #         for p in promo_data:
-#         #            promo_obj = Promotion.objects.get(id=p['id'])
-#         #            product.promotions.add(promo_obj)
-#         #     except Exception as e:
-#         #         print(f"Promotion error: {e}")
-
-#         return product
 
 
 # serializers.py

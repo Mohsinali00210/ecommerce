@@ -975,7 +975,7 @@ def product_list(request):
         "filters": request.GET
     }
 
-    return render(request, 'web/product_list.html', context)
+    return render(request, 'Web/product_list.html', context)
 
 
 

@@ -100,7 +100,7 @@
 <script>
 $(document).on('click', '.edit-product-btn', function () {
     const productId = $(this).data('id');
-    window.location.href = `${window.location.origin}/Adminpanel/Products/addProduct/?id=${productId}`;
+    window.location.href = `${window.location.origin}/Adminpanel/Products/addProduct/${productId}/`;
 });
    var links = $(".sidebar a");
     links.each(function() {

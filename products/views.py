@@ -236,6 +236,131 @@ class BrandViewSet(viewsets.ModelViewSet):
         instance.save()
 
 
+# Changes vs. your current ProductViewSet:
+#   1. Inherits ErrorLoggingMixin -> gives you log_validation_error() and
+#      log_exception() (both already referenced in your code but weren't
+#      defined anywhere).
+#   2. create()/update()/partial_update() now wrap the DB-touching part in
+#      try/except IntegrityError/Exception, so a bad insert on Product OR
+#      any nested table (ProductVariant, ProductVariantOption, Promotion,
+#      ProductImage) gets logged with the field+table name and returned
+#      to the frontend, instead of an unhandled 500.
+
+# from django.db import IntegrityError, transaction
+# from rest_framework import status, viewsets, filters
+# from rest_framework.exceptions import ValidationError as DRFValidationError
+# from rest_framework.response import Response
+# from django_filters.rest_framework import DjangoFilterBackend
+
+# from .error_logging_mixin import ErrorLoggingMixin  # adjust import path as needed
+
+
+# class ProductViewSet(ErrorLoggingMixin, viewsets.ModelViewSet):
+#     serializer_class = ProductSerializer
+#     permission_classes = [IsSuperUser]
+#     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+#     filterset_fields = ['category', 'status', 'stock_status', 'free_shipping']
+#     search_fields = ['name', 'sku', 'description']
+#     ordering_fields = ['price', 'created_at']
+
+#     def get_queryset(self):
+#         return Product.objects.filter(is_deleted=False) \
+#             .prefetch_related('variants', 'images', 'promotions') \
+#             .order_by('-id')
+
+#     def create(self, request, *args, **kwargs):
+#         serializer = self.get_serializer(data=request.data)
+
+#         if not serializer.is_valid():
+#             log_validation_error(self, request, serializer.errors)
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#         try:
+#             with transaction.atomic():
+#                 self.perform_create(serializer)
+#         except DRFValidationError as exc:
+#             log_validation_error(self, request, exc.detail)
+#             return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+#         except IntegrityError as exc:
+#             return self.handle_db_exception(request, exc, table_name='Product')
+#         except Exception as exc:
+#             return self.handle_db_exception(request, exc, table_name='Product')
+
+#         headers = self.get_success_headers(serializer.data)
+#         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+#     def update(self, request, *args, **kwargs):
+#         instance = self.get_object()
+#         serializer = self.get_serializer(instance, data=request.data)
+
+#         if not serializer.is_valid():
+#             log_validation_error(self, request, serializer.errors)
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#         try:
+#             with transaction.atomic():
+#                 self.perform_update(serializer)
+#         except DRFValidationError as exc:
+#             log_validation_error(self, request, exc.detail)
+#             return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+#         except IntegrityError as exc:
+#             return self.handle_db_exception(request, exc, table_name='Product')
+#         except Exception as exc:
+#             return self.handle_db_exception(request, exc, table_name='Product')
+
+#         return Response(serializer.data)
+
+#     def partial_update(self, request, *args, **kwargs):
+#         instance = self.get_object()
+#         serializer = self.get_serializer(instance, data=request.data, partial=True)
+
+#         if not serializer.is_valid():
+#             log_validation_error(self, request, serializer.errors)
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#         try:
+#             with transaction.atomic():
+#                 self.perform_update(serializer)
+#         except DRFValidationError as exc:
+#             log_validation_error(self, request, exc.detail)
+#             return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+#         except IntegrityError as exc:
+#             return self.handle_db_exception(request, exc, table_name='Product')
+#         except Exception as exc:
+#             return self.handle_db_exception(request, exc, table_name='Product')
+
+#         return Response(serializer.data)
+
+#     def destroy(self, request, *args, **kwargs):
+#         try:
+#             instance = self.get_object()
+#             instance.is_deleted = True  # soft delete, matches your original behavior
+#             instance.save()
+#             return Response(status=status.HTTP_204_NO_CONTENT)
+#         except Exception as exc:
+#             return self.handle_db_exception(request, exc, table_name='Product')
+
+#     def retrieve(self, request, *args, **kwargs):
+#         instance = self.get_object()
+#         serializer = self.get_serializer(instance)
+#         return Response(serializer.data)
+
+#     def perform_create(self, serializer):
+#         serializer.save(created_by=self.request.user)
+
+#     def perform_update(self, serializer):
+#         serializer.save(modified_by=self.request.user)
+
+
+# # log_validation_error was called in your original code but never defined
+# # anywhere in the files you shared. ErrorLoggingMixin now provides it as
+# # self.log_validation_error(...) — this free function keeps your exact
+# # original call signature (log_validation_error(self, request, errors))
+# # working without touching every call site.
+# def log_validation_error(view, request, errors):
+#     view.log_validation_error(request, errors)
+
+
 class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     permission_classes = [IsSuperUser]

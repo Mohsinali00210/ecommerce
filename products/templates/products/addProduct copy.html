@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Attributes{% endblock %}
+{% block title %}Add Product{% endblock %}
 
 {% block content %}
 <style>
@@ -8,7 +8,7 @@
     z-index: 100000;
 }
 </style>
-
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
   <div class="card mb-3">
             <div class="card-header">
                 <i class="bi bi-box-arrow-in-up"></i> Add / Manage Product
@@ -24,19 +24,33 @@
                 <form id="addProductForm">
                     <div class="row g-2">
 
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Product Name</label>
                             <input type="text" id="name" class="form-control form-control-sm" placeholder="Enter product name" required>
+                            <input type="hidden" id="id" value="112" >
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label">Product Qoute</label>
+                            <input type="text" id="qoute" class="form-control form-control-sm" placeholder="Enter product qoute" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Product Type</label>
+                            <select class="form-select form-select-sm" id="product_type" width="100%" required>
+                                <option value="1" >Simple</option>
+                                <option value="2" selected>Grouped</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
                             <label class="form-label">SKU</label>
                             <input type="text" id="sku" class="form-control form-control-sm" placeholder="Enter SKU" required>
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label" >Category</label>
-                            <select class="form-select form-select-sm" id="Category" multiple width="100%">
+                            <select class="form-select form-select-sm" id="Category" multiple width="100%" required>
                                 <option>Select Category</option>
                             </select>
                         </div>
@@ -51,50 +65,82 @@
                             <label class="form-label">Price</label>
                             <input type="number" id="price" class="form-control form-control-sm" placeholder="Enter price" required>
                         </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="old_price">Old Price</label>
+                            <input type="number" step="0.01" class="form-control form-control-sm" id="old_price" name="old_price" value="" min="0">
+                        </div>
 
                         <div class="col-md-4">
+                            <label class="form-label" for="original_price">Original Price</label>
+                            <input type="number" step="0.01" class="form-control form-control-sm" id="original_price" name="original_price" value="" min="0">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label" for="other_product_cost">Other Product Cost</label>
+                            <input type="number" step="0.01" class="form-control form-control-sm" id="other_product_cost" name="other_product_cost" value="" min="0">
+                        </div>
+                        {% comment %} <div class="col-md-4">
                             <label class="form-label">Discount (%)</label>
                             <input type="number" id="discount" class="form-control form-control-sm" placeholder="Enter discount">
-                        </div>
+                        </div> {% endcomment %}
 
                         <div class="col-md-6">
                             <label class="form-label">Stock Quantity</label>
-                            <input type="number" id="stockQuantity" class="form-control form-control-sm" placeholder="Enter stock">
+                            <input type="number" id="stockQuantity" disabled class="form-control form-control-sm" placeholder="Enter stock">
                         </div>
-                        <div class="col-md-6">
+                        {% comment %} <div class="col-md-6">
                                 <label class="form-label">Compare-at</label>
                                 <input type="number" id="compareAt1" class="form-control form-control-sm" placeholder="Enter compare at">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Compare-at Price</label>
-                                <input type="number" id="compareAtPrice1" class="form-control form-control-sm" placeholder="Enter original price">
-                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Compare-at Price</label>
+                            <input type="number" id="compareAtPrice1" class="form-control form-control-sm" placeholder="Enter original price">
+                        </div> {% endcomment %}
                         <div class="col-md-6">
                             <label class="form-label">Status</label>
                             <select class="form-select form-select-sm" id="status">
-                                <option selected>Active</option>
-                                <option>Inactive</option>
-                                <option>Featured</option>
+                                <option value="active" selected>Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="featured">Featured</option>
                             </select>
                         </div>
 
                         <div class="col-12">
                             <label class="form-label">Description</label>
-                            <textarea class="form-control form-control-sm" id="description" rows="3" placeholder="Enter product description"></textarea>
+                            <div id="description" style="height: 200px;"></div>
+                            {% comment %} <textarea class="form-control form-control-sm" id="description" rows="3" placeholder="Enter product description"></textarea> {% endcomment %}
                         </div>
                         <div class="col-12">
                             <label class="form-label">Brief Description</label>
                             <textarea class="form-control form-control-sm" id="briefDescription" rows="3" placeholder="Enter product brief description"></textarea>
                         </div>
+                        <div class="col-12">
+                            <label class="form-label">Admin Comment</label>
+                            <textarea class="form-control form-control-sm" id="admin_comment" rows="3" placeholder="Enter admin comment"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Available Start Date</label>
+                            <input type="date" class="form-control form-control-sm" id="available_start_date" placeholder="Enter available start date"/>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Available End Date</label>
+                            <input type="date" class="form-control form-control-sm" id="available_end_date" placeholder="Enter available end date"/>
+                        </div>
+                        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="allow_customer_reviews" checked name="allow_customer_reviews"><label class="form-check-label" for="allow_customer_reviews">Allow Customer Reviews</label></div></div>
+                        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="customer_can_see_stock" checked name="customer_can_see_stock"><label class="form-check-label" for="customer_can_see_stock">Customer Can Se Stock</label></div></div>
+                        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="mark_as_new" checked name="mark_as_new"><label class="form-check-label" for="mark_as_new">Mark As New</label></div></div>
+                        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="available_for_preorder" checked name="available_for_preorder"><label class="form-check-label" for="available_for_preorder">Available For Pre-Order</label></div></div>
+                        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="disable_buy_button" name="disable_buy_button"><label class="form-check-label" for="disable_buy_button">Disable Buy Button</label></div></div>
+                        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="disable_wishlist_button" name="disable_wishlist_button"><label class="form-check-label" for="disable_wishlist_button">Disable Wishlist Button</label></div></div>
                     </div>
 
                     <!-- ================= Pricing & Discounts ================= -->
                     <h6 class="border-bottom pb-1 mt-3 mb-3">
-                        <i class="bi bi-cash-stack"></i> Pricing & Discounts
+                        <i class="bi bi-cash-stack"></i> Promotions
                     </h6>
 
                         <!-- Standard Price -->
-                        <div class="mb-2 row g-2">
+                        <div class="mb-2 row g-2" id="promotionSection">
                             <div class="col-md-4">
                                 <label class="form-label">Name</label>
                                 <input type="text" id="discountedName" class="form-control form-control-sm" placeholder="Enter name">
@@ -110,27 +156,29 @@
                             <div class="col-md-4">
                                 <label class="form-label">Discount Type</label>
                                 <select id="discountedType" class="form-control form-control-sm" >
-                                    <option value="">Select Type</option>
+                                    <option value="" disabled selected>Select Type</option>
                                     <option value="percentage">Percentage (%)</option>
                                     <option value="fixed">Fixed Amount</option>
-                                    <option value="buy_x_get_y">Buy X Get Y</option>
+                                    {% comment %} <option value="buy_x_get_y">Buy X Get Y</option> {% endcomment %}
+                                    <option value="free_delivery">Free Delivary</option>
                                 <select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Price</label>
-                                <input type="number" id="discountedPrice" class="form-control form-control-sm" placeholder="Enter price">
+                                <input type="number" id="discountedPrice" disabled class="form-control form-control-sm" placeholder="Enter price">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Compare-at</label>
-                                <input type="number" id="compareAt" class="form-control form-control-sm" placeholder="Enter compare at">
+                                <input type="number" id="compareAt" disabled class="form-control form-control-sm" placeholder="Enter compare at">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Compare-at Price</label>
-                                <input type="number" id="compareAtPrice" class="form-control form-control-sm" placeholder="Enter original price">
+                                <input type="number" id="compareAtPrice" disabled class="form-control form-control-sm" placeholder="Enter original price">
                             </div>
+
                             <div class="col-md-4">
                                 <label class="form-label">Discount (%)</label>
-                                <input type="number" id="discount2" class="form-control form-control-sm" placeholder="Discount percentage">
+                                <input type="number" id="discount2" disabled class="form-control form-control-sm" placeholder="Discount percentage">
                             </div>
                              <div class="col-md-6">
                                 <label class="form-label">Promotion Start Date</label>
@@ -140,6 +188,7 @@
                                 <label class="form-label">Promotion End Date</label>
                                 <input type="date" id="promotionEDate" class="form-control form-control-sm">
                             </div>
+                            
                         </div>
 
                         {% comment %} <!-- Bulk Discounts -->
@@ -171,10 +220,11 @@
                                 <label class="form-label">Variant Name</label>
                                 <input type="text" id="variantName" class="form-control form-control-sm variant-name" placeholder="e.g., Color">
                             </div>
-                            <div class="col-md-7">
+                            <div class="col-md-5">
                                 <label class="form-label">Options (comma separated)</label>
                                 <input type="text" id="variantOption" class="form-control form-control-sm variant-options" placeholder="Red, Blue, Green">
                             </div>
+                            
                             <div class="col-md-2 d-grid align-items-end">
                                 <button type="button"  class="btn btn-dark btn-sm mt-2 add-variant-btn">Add Variant</button>
                             </div>
@@ -182,6 +232,20 @@
                     </div>
 
                     <!-- Variants Table -->
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="" id="IsCustomUI" >
+                        <label class="form-check-label" for="IsCustomUI">
+                            Custom UI For Option
+                        </label>
+                    </div>
+                    <div class=" col-md-2 custom-ui-wrapper">
+                        <label class="form-label">Pick Colors</label>
+                        <div class="d-flex gap-2 align-items-center">
+                            <input type="color" class="form-control form-control-color" id="colorPicker" value="#ff0000">
+                            <button type="button" class="btn btn-sm btn-primary" id="addColorBtn">Add</button>
+                        </div>
+                        <div id="colorList" class="mt-2 d-flex flex-wrap gap-2"></div>
+                    </div>
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" value="" id="autoFillToggle" checked>
                         <label class="form-check-label" for="autoFillToggle">
@@ -215,31 +279,79 @@
                         <input type="file" id="productImagesInput" class="form-control form-control-sm" multiple accept="image/*">
                         <small class="text-muted">Upload multiple images for product or variants</small>
                     </div>
-
                     <!-- Preview Container -->
                     <div id="productImagesPreview" class="d-flex flex-wrap gap-2"></div>
+                    <div class="mb-3">
+                        <label>Product Video</label>
+                        <input type="file" id="productVideo" class="form-control form-control-sm" accept="video/*">
+                    </div>
+
 
                     <!-- ================= Shipping & Delivery ================= -->
                     <h6 class="border-bottom pb-1 mt-3 mb-3">
                         <i class="bi bi-truck"></i> Shipping & Delivery
                     </h6>
-
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-check"><input class="form-check-input" type="checkbox" id="tax_exempt" name="tax_exempt"><label class="form-check-label" for="tax_exempt">Tax Exempt</label></div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Tax Category</label>
+                                <select class="form-select form-select-sm" id="tax_category" width="100%" disabled>
+                                     <option  selected disabled>Select Tax Category</option>
+                                    {% for tax in tax_categories %}
+                                        <option value="{{ tax.id }}">
+                                            {{ tax.name }} ({{ tax.percentage }}%)
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="shipping_enabled" name="shipping_enabled" checked>
+                                    <label class="form-check-label" for="shipping_enabled">Shipping Enabled</label>
+                                </div>
+                            </div>
+    
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="ship_separately" name="ship_separately">
+                                    <label class="form-check-label" for="ship_separately">Ship Separately</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" value="" id="freeShippingToggle">
+                                    <label class="form-check-label" for="freeShippingToggle">Free Shipping</label>
+                                </div>
+                            </div>
+    
+                            <div class="col-md-6">
+                                <label class="form-label" for="shipping_charges">Shipping Charges</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" id="shipping_charges" name="shipping_charges" value="0.00" min="0" required>
+                            </div>
+    
+                            <div class="col-md-6">
+                                <label class="form-label" for="additional_shipping_charges">Additional Shipping Charges</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" id="additional_shipping_charges" name="additional_shipping_charges" value="0.00" min="0" required>
+                            </div>
+                        </div>
                         <div class="row g-2 mb-2">
                             <div class="col-md-3">
                                 <label class="form-label">Weight (kg)</label>
-                                <input type="number" id="weight" class="form-control form-control-sm" placeholder="Weight">
+                                <input type="number" id="weight" class="form-control form-control-sm" step="0.1" placeholder="Weight">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Length (cm)</label>
-                                <input type="number" id="length" class="form-control form-control-sm" placeholder="Length">
+                                <input type="number" id="length" class="form-control form-control-sm" step="0.1" placeholder="Length">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Width (cm)</label>
-                                <input type="number" id="width" class="form-control form-control-sm" placeholder="Width">
+                                <input type="number" id="width" class="form-control form-control-sm" step="0.1" placeholder="Width">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Height (cm)</label>
-                                <input type="number" id="height" class="form-control form-control-sm" placeholder="Height">
+                                <input type="number" id="height" class="form-control form-control-sm" step="0.1" placeholder="Height">
                             </div>
                         </div>
 
@@ -252,12 +364,7 @@
                             </select>
                         </div>
 
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" value="" id="freeShippingToggle">
-                            <label class="form-check-label" for="freeShippingToggle">
-                                Free Shipping
-                            </label>
-                        </div>
+                        
 
                         <div class="mb-2">
                             <label class="form-label">Handling Time (days)</label>
@@ -292,7 +399,7 @@
                         
                     
                     <!-- ================= Product Reviews Management ================= -->
-                    <h6 class="border-bottom pb-1 mt-3 mb-2">
+                    {% comment %} <h6 class="border-bottom pb-1 mt-3 mb-2">
                         <i class="bi bi-chat-left-text"></i> Product Reviews
                     </h6>
 
@@ -324,21 +431,23 @@
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
+                    </div> {% endcomment %}
 
                     <!-- ================= Save Button ================= -->
                     <div class="mt-3">
                         <button type="submit" class="btn btn-dark btn-sm w-100" >
                             <i class="bi bi-save"></i> Save Product
                         </button>
+                        <button type="submit" id="ProductPreview" class="btn btn-primary btn-sm w-100" >
+                            <i class="bi bi-eye"></i> Product Preview
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
 
-
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+        <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+        <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <div class="modal fade" id="deleteReviewModal" tabindex="-1" aria-labelledby="deleteReviewLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -396,8 +505,107 @@
     </div>
   </div>
 </div>
-
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 <script>
+    const pathParts = window.location.pathname.split('/');
+    const productId = pathParts[pathParts.length - 2];
+
+    if (productId && !isNaN(productId)) {
+        loadProduct(productId);
+    }
+    $(document).on("click", "#addColorBtn", function () {
+        const color = $("#colorPicker").val();
+
+        const colorBox = `
+            <div class="color-box" data-value="${color}" style="
+                width:25px;
+                height:25px;
+                background:${color};
+                border:1px solid #ccc;
+                border-radius:4px;
+                cursor:pointer;
+            " title="${color}">
+            </div>
+        `;
+
+        $("#colorList").append(colorBox);
+    });
+
+    $('#tax_exempt').on('change',function(){
+        $('#tax_category')
+            .prop('disabled',!this.checked)
+            .prop('required',this.checked);
+    });
+    $('#freeShippingToggle').on('change',function(){
+        $('#shipping_charges').prop('disabled',this.checked).prop('required',!this.checked);
+        $('#additional_shipping_charges').prop('disabled',this.checked).prop('required',!this.checked);
+        
+    });
+    function generateIdentifiers() {
+        const name = $('#name').val() || '';
+        const brand = $('#Brand option:selected').text() || '';
+        
+        // 1. Handle Multiple Categories
+        // Map through each selected option and get the first 2 letters
+        let selectedCats = $('#Category option:selected').map(function() {
+            return $(this).text().substring(0, 2).toUpperCase().trim();
+        }).get(); // .get() converts the jQuery object to a real Array
+        
+        let catPart = selectedCats.join('-'); // e.g., "EL-CL" if Electronics and Clothing are picked
+
+        // 2. Generate Slug
+        let rawSlug = `${name} ${catPart} ${brand}`;
+
+        let slug = rawSlug.toLowerCase()
+            .replace(/[^a-z0-9 -]/g, '') // Remove special characters
+            .replace(/\s+/g, '-')       // Replace spaces with -
+            .replace(/-+/g, '-')       // Remove duplicate dashes
+            .replace(/^-+|-+$/g, '');   // Trim dashes from start and end
+
+        $('#urlSlug').val(slug);
+        // 3. Generate SKU
+        if (name.length >= 2) {
+            let namePart = name.substring(0, 3).toUpperCase();
+            let brandPart = brand.substring(0, 2).toUpperCase().trim();
+            let timePart = Math.floor(Date.now() / 1000).toString().slice(-4); 
+
+            // Final SKU Format: CATS-BRAND-NAME-TIME
+            // Using filter(Boolean) to remove empty dashes if fields are missing
+            let skuParts = [namePart, catPart, brandPart,  timePart].filter(Boolean);
+            let sku = skuParts.join('-');
+            
+            $('#sku').val(sku);
+
+        } else {
+            $('#sku').val('');
+        }
+    }
+
+    // Trigger on change for the multiple select
+    $('#name, #Category, #Brand').on('input change', function() { generateIdentifiers(); });
+
+    var quill = new Quill('#description', {theme: 'snow',modules: { toolbar: [['bold', 'italic', 'underline'], [{ 'list': 'ordered'}, { 'list': 'bullet' }], ['link', 'clean']]}});
+   $('#discountedType').on('change', function() {
+        const $fields = $('#discount2, #compareAtPrice, #compareAt, #discountedPrice');
+        $fields.prop('disabled', true).prop('required', false);
+
+        switch(this.value) {
+            case 'percentage':
+                $('#discount2, #compareAt').prop('disabled', false).prop('required', true);
+                break;
+            case 'fixed':
+                $('#compareAtPrice, #compareAt').prop('disabled', false).prop('required', true);
+                break;
+            case 'free_delivery':
+                $('#compareAt').prop('disabled', false).prop('required', true);
+                break;
+        }
+    });
+
+    $(".sidebar a").each(function() { $(this).removeClass('active');});
+    $("#ProductLink").addClass('active');
+    
+
     $("#BrandLogo").change(function() {
     const file = this.files[0];
     if (file) {
@@ -408,24 +616,105 @@
         reader.readAsDataURL(file);
     }
 });
+  
+    function saveProductPreview(e) {
+        if (e) e.preventDefault();
+
+        // ===== BUILD PRODUCT OBJECT =====
+        let productPreview = {
+            id: $('#id').val() || null,
+            name: $('#name').val(),
+            sku: $('#sku').val(),
+            qoute: $('#qoute').val(),
+            price: parseFloat($('#price').val()) || 0,
+            old_price: parseFloat($('#old_price').val()) || 0,
+            original_price: parseFloat($('#original_price').val()) || 0,
+            other_product_cost: parseFloat($('#other_product_cost').val()) || 0,
+            description: (typeof quill !== "undefined") ? quill.root.innerHTML : '',
+            brief_description: $('#briefDescription').val(),
+            status: $('#status').val(),
+            promotion: [],
+            images: [],
+            options: [],
+            variants: []
+        };
+
+        // ===== PROMOTION =====
+        if ($("#discountedType").val()) {
+            productPreview.promotion.push({
+                name: $('#discountedName').val(),
+                description: $('#promotionDescription').val(),
+                promo_code: $('#discountedPromoCode').val() || null,
+                discount_type: $('#discountedType').val(),
+                discounted_price: parseFloat($('#discountedPrice').val()) || 0,
+                compare_at_price: parseFloat($('#compareAtPrice').val()) || 0,
+                compare_at: parseFloat($('#compareAt').val()) || 0,
+                discount_value: parseFloat($('#discount2').val()) || 0,
+                start_date: $('#promotionSDate').val(),
+                end_date: $('#promotionEDate').val()
+            });
+        }
+
+        // ===== OPTIONS =====
+        $('#variantsInputs .variant-row').each(function () {
+            const name = $(this).find('.variant-name').val().trim();
+            const values = $(this)
+                .find('.variant-options')
+                .val()
+                .split(',')
+                .map(o => o.trim())
+                .filter(o => o);
+
+            if (name && values.length > 0) {
+                productPreview.options.push({
+                    option_name: name,
+                    option: values
+                });
+            }
+        });
+
+        // ===== IMAGES =====
+        const files = $('#productImagesInput')[0].files;
+        if (files.length > 0) {
+            for (let i = 0; i < files.length; i++) {
+                productPreview.images.push(URL.createObjectURL(files[i]));
+            }
+        }
+
+        // ===== VARIANTS =====
+        $('#variantsTableBody tr').each(function () {
+            productPreview.variants.push({
+                name: $(this).find('.variant-name-input').val(),
+                sku: $(this).find('.variant-sku').val(),
+                price: parseFloat($(this).find('.variant-price').val()) || 0,
+                stock: parseInt($(this).find('.variant-stock').val()) || 0
+            });
+        });
+
+        // ===== SAVE TO SESSION =====
+        sessionStorage.setItem('productPreview', JSON.stringify(productPreview));
+
+        // ===== REDIRECT =====
+        window.open("{% url 'ProductPreview' %}", "_blank");
+    }
+
     $(document).ready(function() {
     // Initialize Select2
-    $('#Category').select2({
-        placeholder: "Select Categories",
-    });
-    $('#Brand').select2({
-        placeholder: "Select Categories",
-    });
-    $('#addProductForm').on('submit', function(e) {
-        saveProduct(e);
-    });
+    $('#Category').select2({ placeholder: "Select Categories",});
+    $('#Brand').select2({ placeholder: "Select Categories",});
+    $('#addProductForm').on('submit', function(e) { saveProduct(e); });
+    $('#ProductPreview').on('click', function(e) { saveProductPreview(e); });
+
+  
+
+
 });
-    const API_BASE_URL = "http://127.0.0.1:8000/api/v1/brands/";
+    const API_BASE_URL = "{% url 'brand-list'%} ";
     var TOKEN ;
-getDropDown(el = "Brand",url="http://127.0.0.1:8000/api/v1/brands/");
+getDropDown(el = "Brand",url="{% url 'brand-list'%}");
     
-getDropDown(el = "Category",url="http://127.0.0.1:8000/api/v1/categories/");
-function getDropDown(el = "Category",url="http://127.0.0.1:8000/api/v1/categories/") {
+getDropDown(el = "Category",url="{% url 'category-list'%}");
+function getDropDown(el = "Category",url="{% url 'category-list'%}") {
     fetch(url, {
         method: "GET",
         headers: {
@@ -507,6 +796,8 @@ function getBrands(el = "brandsBody") {
     localStorage.setItem("access_token", data.access);
     })
     .catch(err => console.error(err)); {% endcomment %}
+
+
 function saveProduct(e) {
     if (e) {
         e.preventDefault();
@@ -517,34 +808,79 @@ function saveProduct(e) {
     formData.append('name', $('#name').val());
     formData.append('sku', $('#sku').val());
     formData.append('category', $('#Category').val());
+    //formData.append('category', (($('#Category').val()) || []).forEach(cat => formData.append('category', cat)));
     formData.append('brand', $('#Brand').val());
     formData.append('price', $('#price').val());
     formData.append('compare_at_price', $('#compareAtPrice1').val());
     formData.append('discount_percentage', $('#discount').val());
     formData.append('stock_quantity', $('#stockQuantity').val());
     formData.append('status', $('#status').val().toLowerCase());
-    formData.append('description', $('#description').val());
+    formData.append('description', quill.root.innerHTML);
+    //formData.append('description', $('#description').val());
     formData.append('brief_description', $('#briefDescription').val());
     formData.append('compare_at', $('#compareAt1').val() || 0);
 
+    formData.append('available_start_date', $('#available_start_date').val());
+    formData.append('available_end_date', $('#available_end_date').val());
+    formData.append('allow_customer_reviews', $('#allow_customer_reviews').is(':checked'));
+    formData.append('customer_can_see_stock', $('#customer_can_see_stock').is(':checked'));
+    formData.append('qoute', $('#qoute').val());
+    formData.append('product_type', $('#product_type').val());
+    formData.append('mark_as_new', $('#mark_as_new').is(':checked'));
+    formData.append('available_for_preorder', $('#available_for_preorder').is(':checked'));
+    formData.append('admin_comment', $('#admin_comment').val());
+    formData.append('disable_buy_button', $('#disable_buy_button').is(':checked'));
+    formData.append('disable_wishlist_button', $('#disable_wishlist_button').is(':checked'));
+    formData.append('delivery_date', $('#delivery_date').val());
+
+    /* Tax */
+    formData.append('tax_exempt', $('#tax_exempt').is(':checked'));
+    formData.append('tax_category', $('#tax_category').val()); // multiple select
+
+    /* Prices */
+    formData.append('old_price', $('#old_price').val());
+    formData.append('original_price', $('#original_price').val());
+    formData.append('other_product_cost', $('#other_product_cost').val());
+
     // promotion
     let promotion=[];
-    promotion.push({
-        name:$('#discountedName').val(),
-        description: $('#promotionDescription').val(),
-        promo_code:$('#discountedPromoCode').val(),
-        discount_type: $('#discountedType').val(),
-        discounted_price:$('#discountedPrice').val() ,
-        compare_at_price:$('#compareAtPrice').val() ,
-        compare_at: $('#compareAt').val(),
-        discount_value:$('#discount2').val(),
-        start_date:$('#promotionSDate').val(),
-        end_date:$('#promotionEDate').val() 
-    });
-    
+    if($("#discountedType").val()!=""){
+        promotion.push({
+            name:$('#discountedName').val(),
+            description: $('#promotionDescription').val(),
+            promo_code:$('#discountedPromoCode').val()||null,
+            discount_type: $('#discountedType').val(),
+            discounted_price:$('#discountedPrice').val()  || 0,
+            compare_at_price:$('#compareAtPrice').val()  || 0,
+            compare_at: $('#compareAt').val()  || 0,
+            discount_value:$('#discount2').val() || 0,
+            start_date:$('#promotionSDate').val(),
+            end_date:$('#promotionEDate').val() 
+        });
+
+    }
     formData.append('promotions', JSON.stringify(promotion) || {});
 
+    let options = []; 
+    $('#variantsInputs .variant-row').each(function() {
+        const name = $(this).find('.variant-name').val().trim();
+        const is_custom_ui = $('#IsCustomUI').is(':checked');
+        const values = $(this).find('.variant-options').val().split(',').map(o => o.trim()).filter(o => o);
+        let colors = [];
+        if (name.toLowerCase() == "color") 
+            colors = $('#colorList .color-box').map(function () { return $(this).data('value');}).get();
+        if (name && values.length > 0) { options.push({ option_name: name, option: values, is_custom_ui:is_custom_ui,value: colors.length ? colors : null }); }
+    });
+    formData.append('options', JSON.stringify(options));
+
+  
     // 2. Shipping Info
+    
+    formData.append('shipping_enabled', $('#shipping_enabled').is(':checked'));
+    formData.append('ship_separately', $('#ship_separately').is(':checked'));
+    formData.append('shipping_charges', $('#shipping_charges').val());
+    formData.append('additional_shipping_charges', $('#additional_shipping_charges').val());
+    
     formData.append('weight', $('#weight').val() || 0);
     formData.append('length', $('#length').val() || 0);
     formData.append('width', $('#width').val() || 0);
@@ -564,6 +900,10 @@ function saveProduct(e) {
     }).get();   
     selectedTags.forEach(tag => formData.append('tags_list', tag));
 
+    const videoFile = $('#productVideo')[0].files[0];
+    if (videoFile) {
+        formData.append('video', videoFile);
+    }
     // 4. Handle Main Images
     //const imageFiles = document.querySelector('#productImagesInput').files;
     for (let i = 0; i < selectedImages.length; i++) {
@@ -575,11 +915,19 @@ function saveProduct(e) {
 
     // Collect variant TEXT data only
     $('#variantsTable tbody tr').each(function () {
+        //const colors = $(this)
+        //    .find('[data-color]')
+        //    .map(function () {
+        //        return $(this).data('color');
+        //    })
+        //    .get();
         variants.push({
+            id: $(this).find('.variantId').val() || null,
             name: $(this).find('.variantName').val(),
             sku: $(this).find('.variantSku').val(),
             price: $(this).find('.variantPrice').val(),
-            stock_quantity: $(this).find('.stockQuantity').val()
+            stock_quantity: $(this).find('.stockQuantity').val(),
+            //value: colors.length ? colors : null
         });
     });
 
@@ -589,19 +937,25 @@ function saveProduct(e) {
     // Attach variant images separately (multipart-safe)
     $('#variantsTable tbody tr').each(function (index) {
         const imageInput = $(this).find('.variant-images')[0];
-
         if (imageInput && imageInput.files.length > 0) {
+            console.log(" imageInput.files.length", imageInput.files.length);
             formData.append(
                 `variants[${index}][image]`,
-                imageInput.files[0] // single image per variant
+                imageInput.files[0]
             );
         }
     });
 
+ 
+    const productId = $('#id').val();
+    const isEdit = !!productId;
+    const productListUrl = "{% url 'product-list' %}";
+    const productDetailUrl = "{% url 'product-detail' 0 %}";
 
+    const url = isEdit ? productDetailUrl.replace("0", productId) : productListUrl;
     // API Call
-    fetch("http://127.0.0.1:8000/api/v1/products/", {
-        method: "POST",
+    fetch(url, {
+        method: isEdit ? "PATCH" : "POST",
         headers: {
             "Authorization": `Bearer ${localStorage.getItem("access_token")}`
         },
@@ -615,7 +969,7 @@ function saveProduct(e) {
     })
     .then(result => {
         if (result.status === 'success') {
-            showAlert("Product Created!", "success");
+            showAlert(isEdit ? "Product Updated!" : "Product Created!", "success");
         } 
         else if (result.status === 'validation_error') {
             let errorMsg = flattenErrors(result.data) || "Validation failed.";
@@ -632,6 +986,198 @@ function saveProduct(e) {
 
 
 
+function setSelect2Value(selector, values) {
+    const $el = $(selector);
+    $el.val(values).trigger('change');
+}
+
+function loadProduct(productId) {
+    $("#id").val(productId);
+    const url = "{% url 'product-detail' 0 %}".replace("0", productId);
+    fetch(url, {
+        headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` }
+    })
+    .then(res => res.json())
+    .then(data => fillProductForm(data))
+    .catch(err => { showAlert("Failed to load product", "danger"); console.error(err); });
+}
+function fillProductForm(product) {
+
+    // ================= BASIC INFO =================
+
+    $('#old_price').val(product.old_price || '');
+    $('#original_price').val(product.original_price || '');
+    $('#other_product_cost').val(product.other_product_cost || '');
+    $('#product_type').val(product.product_type).trigger('change');
+    $('#compare_at').val(product.compare_at || 0);
+    $('#qoute').val(product.qoute || '');
+    $('#mark_as_new').prop('checked', product.mark_as_new);
+    $('#available_for_preorder').prop('checked', product.available_for_preorder);
+    $('#tax_exempt').prop('checked', product.tax_exempt);
+    $('#shipping_enabled').prop('checked', product.shipping_enabled);
+    $('#ship_separately').prop('checked', product.ship_separately);
+    $('#shipping_charges').val(product.shipping_charges || '');
+    $('#additional_shipping_charges').val(product.additional_shipping_charges || '');
+    $('#tax_category').val(product.tax_category).trigger('change');
+    $('#stockStatus').val(product.stock_status).trigger('change');
+
+    $('#id').val(product.id || '');
+    $('#name').val(product.name || '');
+    $('#sku').val(product.sku || '');
+    $('#price').val(product.price || '');
+    $('#discount').val(product.discount_percentage || '');
+    $('#stockQuantity').val(product.stock_quantity || '');
+    $('#compareAtPrice1').val(product.compare_at_price || '');
+    quill.root.innerHTML=product.description;
+    //$('#description').val(product.description || '');
+    $('#briefDescription').val(product.brief_description || '');
+    $('#admin_comment').val(product.admin_comment || '');
+    $('#allow_customer_reviews').prop('checked', product.allow_customer_reviews);
+    $('#customer_can_see_stock').prop('checked', product.customer_can_see_stock);
+    $('#disable_wishlist_button').prop('checked', product.disable_wishlist_button);
+    $('#free_shipping').prop('checked', product.free_shipping);
+    $('#disable_buy_button').prop('checked', product.disable_buy_button);
+    $('#available_start_date').val(product.available_start_date || '');
+    $('#available_end_date').val(product.available_end_date || '');
+
+    // ================= CATEGORY & BRAND =================
+    if (product.category) {
+        setSelect2Value('#Category', product.category.map(String));
+    }
+
+    if (product.brand) {
+        setSelect2Value('#Brand', String(product.brand));
+    } else {
+        $('#Brand').val(null).trigger('change');
+    }
+    $('#status').val(product.status|| 'active').trigger('change');
+    // ================= STATUS =================
+    //$('#status').val(product.status || 'active');
+
+    // ================= SHIPPING =================
+    $('#weight').val(product.weight || '');
+    $('#length').val(product.length || '');
+    $('#width').val(product.width || '');
+    $('#height').val(product.height || '');
+    $('#shippingClass').val(product.shipping_class || 'standard');
+    $('#freeShippingToggle').prop('checked', product.free_shipping);
+    $('#handlingTime').val(product.handling_time || '');
+
+    // ================= SEO =================
+    $('#metaTitle').val(product.meta_title || '');
+    $('#metaDescription').val(product.meta_description || '');
+    $('#urlSlug').val(product.slug || '');
+    $('#focusKeywords').val(product.focus_keywords || '');
+
+    // ================= TAGS =================
+    $('#tagsPreview').empty();
+    (product.tags || []).forEach(tag => {
+        $('#tagsPreview').append(`
+            <span class="badge bg-secondary">${tag.name}</span>
+        `);
+    });
+
+    // ================= PRODUCT IMAGES =================
+    $('.product-images-preview').remove(); // clear previous if any
+    if (product.images && product.images.length > 0) {
+        product.images.forEach(img => {
+            $('#productImagesPreview').prepend(`
+                <div class="product-images-preview mb-2">
+                    <img src="${img.image}" style="width:80px;height:80px;object-fit:cover;border:1px solid #ddd;border-radius:4px">
+                </div>
+            `);
+        });
+    }
+
+    // ================= VARIANTS =================
+    const tbody = $('#variantsTableBody');
+    tbody.empty();
+
+    if (product.variants && product.variants.length > 0) {
+        product.variants.forEach(variant => {
+            tbody.append(`
+                <tr>
+                    <td>
+                        <input type="hidden" class="variantId" value="${variant.id || ''}">
+                        <input type="hidden" class="variantName" value="${variant.name}">
+                        ${variant.name}
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm variantSku" value="${variant.sku}">
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm variantPrice" required value="${variant.price}">
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm stockQuantity" required value="${variant.stock_quantity}">
+                    </td>
+                    <td>
+                        <input type="file" class="variant-images" accept="image/*">
+                        ${
+                            variant.image
+                                ? `<img src="${variant.image}" style="width:60px;height:60px;margin-top:5px">`
+                                : ''
+                        }
+                    </td>
+                </tr>
+            `);
+
+        });
+
+        
+    }
+    // ================= PROMOTION =================
+    if (product.promotions && product.promotions.length > 0) {
+        const promo = product.promotions[0];
+
+        $("#discountedName").val(promo.name || "");
+        $("#promotionDescription").val(promo.description || "");
+        $("#discountedPromoCode").val(promo.promo_code || "");
+        $("#discountedType").val(promo.discount_type).trigger("change");
+        $("#discountedPrice").val(promo.discounted_price || 0);
+        $("#compareAt").val(promo.compare_at || 0);
+        $("#compareAtPrice").val(promo.compare_at_price || 0);
+        $("#discount2").val(promo.discount_value || 0);
+        $("#promotionSDate").val(
+            promo.start_date ? promo.start_date.substring(0, 10) : ""
+        );
+        $("#promotionEDate").val(
+            promo.end_date ? promo.end_date.substring(0, 10) : ""
+        );
+    } else {
+        $("#discountedName").val("");
+        $("#promotionDescription").val("");
+        $("#discountedPromoCode").val("");
+        $("#discountedType").val("").trigger("change");
+        $("#discountedPrice").val("");
+        $("#compareAt").val("");
+        $("#compareAtPrice").val("");
+        $("#discount2").val("");
+        $("#promotionSDate").val("");
+        $("#promotionEDate").val("");
+    }
+    stocktotalsumevent();
+    attachAutoFillVariants();
+    $("#promotionSection").hide();
+    $(".add-variant-btn").prop("disabled",true);
+}
+{% comment %} function loadProduct(productId) {
+    fetch(`/api/v1/products/${productId}/`, {
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        fillProductForm(data);
+    })
+    .catch(err => {
+        showAlert("Failed to load product", "danger");
+        console.error(err);
+    });
+} {% endcomment %}
+
+
 
 
 
@@ -642,6 +1188,49 @@ function saveProduct(e) {
 
 let variants = [];
 
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('add-variant-btn')) {
+       const rows = $('#variantsInputs .variant-row');
+        variants=[];
+        let flag=true;
+        rows.each(function() {
+            const name = $(this).find('.variant-name').val().trim();
+            const optionInput = $(this).find('.variant-options');
+            const options = $(this).find('.variant-options').val()
+                .split(',')
+                .map(o => o.trim())
+                .filter(o => o);
+            const colorValues = $('#colorList .color-box').map(function () { return $(this).data('value'); }).get();
+            const isCustom = $("#IsCustomUI").is(":checked");
+            if (!name || options.length === 0) {
+                alert('Enter variant name and options');
+                flag=false;
+                return false; // In jQuery .each(), 'return false' breaks the loop
+            }
+            if (isCustom && name.includes("color")) {
+                console.log(options.length);
+                console.log(colorValues.length);
+                if (options.length !== colorValues.length) {
+                    optionInput.addClass("is-invalid");
+                    showAlert("Color names and selected colors must match!","danger");
+                    flag = false;
+                    return false;
+                } else {
+                    optionInput.removeClass("is-invalid");
+                }
+            }
+            variants.push({ name, options,colors: colorValues });
+        });
+        if (flag){
+            if (variants.length < 4) {
+                addVariantInputRow(); // add new row for next variant
+            }
+        }
+        generateCombinations();
+        attachAutoFillVariants();
+    }
+});
+{% comment %} 
 document.addEventListener('click', function(e) {
     if (e.target.classList.contains('add-variant-btn')) {
         const row = e.target.closest('.variant-row');
@@ -659,7 +1248,7 @@ document.addEventListener('click', function(e) {
         generateCombinations();
         attachAutoFillVariants();
     }
-});
+}); {% endcomment %}
 
 // Add new variant input row dynamically
 function addVariantInputRow() {
@@ -690,33 +1279,95 @@ function generateCombinations() {
     tableBody.innerHTML = '';
 
     const allOptions = variants.map(v => v.options);
-
     if (allOptions.length === 0) return;
 
     const combinations = cartesian(allOptions);
 
-    combinations.forEach(combo => {
+    combinations.forEach((combo) => {
+
         const variantName = combo.join(' / ');
-        const sku = 'SKU-' + combo.join('-').toUpperCase();
+
+        const prodName = ($("#name").val() || "").replace(/\s+/g, "");
+
+        const sku = 'SKU-' + prodName.substring(0, 5).toUpperCase() + '-' + combo.join('-').toUpperCase();
+        let colorBoxHtml = '';
+        // 🎨 Build color boxes
+        variants.forEach((v, i) => {
+            if (v.name.toLowerCase().includes("color") && v.colors && v.colors.length > 0) {
+
+                const selectedOption = combo[i];
+                const optionIndex = v.options.indexOf(selectedOption);
+
+                if (optionIndex !== -1) {
+                    const color = v.colors[optionIndex];
+
+                    if (color) {
+                        colorBoxHtml += `
+                            <span title="${selectedOption}" 
+                                data-color="${color}" 
+                                style="
+                                    display:inline-block;
+                                    width:18px;
+                                    height:18px;
+                                    background:${color};
+                                    border:1px solid #ccc;
+                                    border-radius:3px;
+                                    margin-right:4px;
+                                ">
+                            </span>
+                        `;
+                    }
+                }
+            }
+        });
 
         const tr = document.createElement('tr');
 
         tr.innerHTML = `
-            <td><input type="hidden" class="form-control form-control-sm variantName" value="${variantName}">${variantName}</td>
-            <td><input type="text" class="form-control form-control-sm variantSku" value="${sku}"></td>
-            <td><input type="number" class="form-control form-control-sm variantPrice" placeholder="Price"></td>
-            <td><input type="number" class="form-control form-control-sm stockQuantity" placeholder="Stock"></td>
+            <td>
+                ${colorBoxHtml}
+                <input type="hidden" class="variantName" value="${variantName}">
+                ${variantName}
+            </td>
+
+            <td>
+                <input type="text" class="form-control form-control-sm variantSku" value="${sku}">
+            </td>
+
+            <td>
+                <input type="number" class="form-control form-control-sm variantPrice" required placeholder="Price">
+            </td>
+
+            <td>
+                <input type="number" class="form-control form-control-sm stockQuantity variantStockQTY" required placeholder="Stock">
+            </td>
+
             <td>
                 <input type="file" class="variant-images" multiple accept="image/*">
                 <div class="image-preview d-flex flex-wrap gap-1 mt-1"></div>
             </td>
         `;
+
         tableBody.appendChild(tr);
     });
 
+
+       stocktotalsumevent();
     attachImagePreview();
 }
-
+function stocktotalsumevent(){
+     const inputs = document.querySelectorAll(".variantStockQTY");
+        const totalDisplay = document.getElementById("stockQuantity");
+        const updateSum = () => {
+            const total = Array.from(inputs).reduce((sum, input) => {
+                const val = parseFloat(input.value) || 0;
+                return sum + val;
+            }, 0);
+            totalDisplay.value = total;
+            console.log(total);
+        };
+        inputs.forEach(input => {  input.addEventListener("blur", updateSum); });
+}
 // Cartesian product function
 function cartesian(arr) {
     return arr.reduce((a, b) => a.flatMap(d => b.map(e => [...d, e])), [[]]);
@@ -873,6 +1524,7 @@ function renderTags() {
         const badge = document.createElement('span');
         badge.className = 'badge bg-secondary d-flex align-items-center';
         badge.style.gap = '5px';
+        badge.style.fontSize= '14px';
         badge.innerHTML = `${tag} <i class="bi bi-x-circle" style="cursor:pointer;"></i>`;
 
         badge.querySelector('i').addEventListener('click', () => {
