@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+
+{% block title %}{% if product %}Edit Product{% else %}Add Product{% endif %}{% endblock %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    span.select2-dropdown.select2-dropdown--below { z-index: 100000; }
+</style>
+
+{% if messages %}
+    <div id="alertContainer">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<div class="card mb-3">
+    <div class="card-header">
+        <i class="bi bi-box-arrow-in-up"></i> {% if product %}Edit Product — {{ product.name }}{% else %}Add Product{% endif %}
+    </div>
+
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <ul class="nav nav-tabs" id="productTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-general" type="button">General</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-pricing" type="button">Pricing</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-shipping" type="button">Shipping</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-seo" type="button">SEO</button>
+                </li>
+            </ul>
+
+            <div class="tab-content border border-top-0 p-3 mb-3">
+
+                <!-- GENERAL -->
+                <div class="tab-pane fade show active row g-3" id="tab-general">
+                    <div class="col-md-4">
+                        <label class="form-label">Product Name</label>
+                        {{ form.name }}
+                        {{ form.name.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Product Quote</label>
+                        {{ form.qoute }}
+                        {{ form.qoute.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Product Type</label>
+                        {{ form.product_type }}
+                        {{ form.product_type.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">SKU</label>
+                        {{ form.sku }}
+                        {{ form.sku.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Category</label>
+                        {{ form.category }}
+                        {{ form.category.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Brand</label>
+                        {{ form.brand }}
+                        {{ form.brand.errors }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        {{ form.status }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Stock Status</label>
+                        {{ form.stock_status }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Available Start Date</label>
+                        {{ form.available_start_date }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Available End Date</label>
+                        {{ form.available_end_date }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Description</label>
+                        {{ form.description }}
+                        {{ form.description.errors }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Brief Description</label>
+                        {{ form.brief_description }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Admin Comment</label>
+                        {{ form.admin_comment }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Product Video</label>
+                        {{ form.video }}
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Display Order</label>
+                        {{ form.display_order }}
+                    </div>
+                    <div class="col-12 d-flex flex-wrap gap-4">
+                        <div class="form-check">{{ form.allow_customer_reviews }}<label class="form-check-label">Allow Customer Reviews</label></div>
+                        <div class="form-check">{{ form.customer_can_see_stock }}<label class="form-check-label">Customer Can See Stock</label></div>
+                        <div class="form-check">{{ form.mark_as_new }}<label class="form-check-label">Mark As New</label></div>
+                        <div class="form-check">{{ form.available_for_preorder }}<label class="form-check-label">Available For Pre-Order</label></div>
+                        <div class="form-check">{{ form.disable_buy_button }}<label class="form-check-label">Disable Buy Button</label></div>
+                        <div class="form-check">{{ form.disable_wishlist_button }}<label class="form-check-label">Disable Wishlist Button</label></div>
+                        <div class="form-check">{{ form.show_on_home_page }}<label class="form-check-label">Show On Home Page</label></div>
+                        <div class="form-check">{{ form.visible_individually }}<label class="form-check-label">Visible Individually</label></div>
+                    </div>
+                </div>
+
+                <!-- PRICING -->
+                <div class="tab-pane fade row g-3" id="tab-pricing">
+                    <div class="col-md-3"><label class="form-label">Price</label>{{ form.price }}{{ form.price.errors }}</div>
+                    <div class="col-md-3"><label class="form-label">Old Price</label>{{ form.old_price }}</div>
+                    <div class="col-md-3"><label class="form-label">Original Price</label>{{ form.original_price }}</div>
+                    <div class="col-md-3"><label class="form-label">Other Product Cost</label>{{ form.other_product_cost }}</div>
+                    <div class="col-md-3"><label class="form-label">Compare At</label>{{ form.compare_at }}</div>
+                    <div class="col-md-3"><label class="form-label">Compare At Price</label>{{ form.compare_at_price }}</div>
+                    <div class="col-md-3"><label class="form-label">Discount %</label>{{ form.discount_percentage }}</div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tax Category</label>
+                        {{ form.tax_category }}
+                    </div>
+                    <div class="col-12"><label class="form-label">Bulk Discount Rules</label>{{ form.bulk_discount_rules }}</div>
+                    <div class="col-12"><div class="form-check">{{ form.tax_exempt }}<label class="form-check-label">Tax Exempt</label></div></div>
+                </div>
+
+                <!-- SHIPPING -->
+                <div class="tab-pane fade row g-3" id="tab-shipping">
+                    <div class="col-md-3"><label class="form-label">Weight (kg)</label>{{ form.weight }}</div>
+                    <div class="col-md-3"><label class="form-label">Length (cm)</label>{{ form.length }}</div>
+                    <div class="col-md-3"><label class="form-label">Width (cm)</label>{{ form.width }}</div>
+                    <div class="col-md-3"><label class="form-label">Height (cm)</label>{{ form.height }}</div>
+                    <div class="col-md-4"><label class="form-label">Shipping Class</label>{{ form.shipping_class }}</div>
+                    <div class="col-md-4"><label class="form-label">Handling Time (days)</label>{{ form.handling_time }}</div>
+                    <div class="col-md-4"><label class="form-label">Shipping Charges</label>{{ form.shipping_charges }}</div>
+                    <div class="col-md-6"><label class="form-label">Additional Shipping Charges</label>{{ form.additional_shipping_charges }}</div>
+                    <div class="col-12 d-flex gap-4">
+                        <div class="form-check">{{ form.free_shipping }}<label class="form-check-label">Free Shipping</label></div>
+                        <div class="form-check">{{ form.shipping_enabled }}<label class="form-check-label">Shipping Enabled</label></div>
+                        <div class="form-check">{{ form.ship_separately }}<label class="form-check-label">Ship Separately</label></div>
+                    </div>
+                </div>
+
+                <!-- SEO -->
+                <div class="tab-pane fade row g-3" id="tab-seo">
+                    <div class="col-12"><label class="form-label">Meta Title</label>{{ form.meta_title }}</div>
+                    <div class="col-12"><label class="form-label">Meta Description</label>{{ form.meta_description }}</div>
+                    <div class="col-12"><label class="form-label">Focus Keywords</label>{{ form.focus_keywords }}</div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-dark"><i class="bi bi-save"></i> Save Product</button>
+            <a href="{% url 'product_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+
+{% if product %}
+<div class="row g-3">
+
+    <!-- VARIANTS -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-diagram-3"></i> Variants</span>
+                <button type="button" class="btn btn-sm btn-dark" onclick="openModal('{% url 'variant_add' product.id %}')">
+                    <i class="bi bi-plus-lg"></i> Add Variants
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Name</th><th>SKU</th><th>Price</th><th>Stock</th><th></th></tr></thead>
+                    <tbody>
+                        {% for variant in product.variants.all %}
+                        <tr>
+                            <td>{{ variant.name }}</td>
+                            <td>{{ variant.sku }}</td>
+                            <td>{{ variant.price }}</td>
+                            <td>{{ variant.stock_quantity }}</td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="openModal('{% url 'variant_edit' product.id variant.id %}')"><i class="bi bi-pencil"></i></button>
+                                <a href="{% url 'variant_delete' product.id variant.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this variant?')"><i class="bi bi-trash"></i></a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted">No variants yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- IMAGES -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-images"></i> Images</span>
+                <button type="button" class="btn btn-sm btn-dark" onclick="openModal('{% url 'image_add' product.id %}')">
+                    <i class="bi bi-plus-lg"></i> Add Image
+                </button>
+            </div>
+            <div class="card-body d-flex flex-wrap gap-2">
+                {% for image in product.images.all %}
+                <div class="position-relative">
+                    <img src="{{ image.image.url }}" style="width:80px;height:80px;object-fit:cover;border:1px solid #ddd;border-radius:4px;">
+                    {% if image.is_primary %}<span class="badge bg-success position-absolute top-0 start-0">Primary</span>{% endif %}
+                    <a href="{% url 'image_delete' product.id image.id %}" class="btn btn-sm btn-danger position-absolute top-0 end-0 p-0 px-1" onclick="return confirm('Remove this image?')">&times;</a>
+                </div>
+                {% empty %}
+                <span class="text-muted">No images yet.</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- PROMOTIONS -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-cash-stack"></i> Promotions</span>
+                <button type="button" class="btn btn-sm btn-dark" onclick="openModal('{% url 'promotion_add' product.id %}')">
+                    <i class="bi bi-plus-lg"></i> Add Promotion
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Name</th><th>Type</th><th>Value</th><th>Running</th><th></th></tr></thead>
+                    <tbody>
+                        {% for promo in product.promotions.all %}
+                        <tr>
+                            <td>{{ promo.name }}</td>
+                            <td>{{ promo.get_discount_type_display }}</td>
+                            <td>{{ promo.discount_value|default:"-" }}</td>
+                            <td>{% if promo.is_currently_running %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="openModal('{% url 'promotion_edit' product.id promo.id %}')"><i class="bi bi-pencil"></i></button>
+                                <a href="{% url 'promotion_delete' product.id promo.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this promotion from the product?')"><i class="bi bi-trash"></i></a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted">No promotions yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAGS -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-tags"></i> Tags</span>
+                <button type="button" class="btn btn-sm btn-dark" onclick="openModal('{% url 'tag_add' product.id %}')">
+                    <i class="bi bi-plus-lg"></i> Add Tag
+                </button>
+            </div>
+            <div class="card-body d-flex flex-wrap gap-2">
+                {% for tag in product.tags.all %}
+                <span class="badge bg-secondary d-flex align-items-center" style="gap:6px;font-size:14px;">
+                    {{ tag.name }}
+                    <a href="{% url 'tag_remove' product.id tag.id %}" class="text-white" onclick="return confirm('Remove this tag?')"><i class="bi bi-x-circle"></i></a>
+                </span>
+                {% empty %}
+                <span class="text-muted">No tags yet.</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">Save the product first — Variants, Images, Promotions and Tags can be added once the product exists.</div>
+{% endif %}
+
+<!-- Shared modal used by every "Add" button above -->
+<div class="modal fade" id="genericModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="genericModalBody">
+                <div class="text-center text-muted py-4">Loading...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function () {
+    $('#id_category').select2({ width: '100%', dropdownParent: $('#id_category').closest('.tab-pane') });
+});
+
+const genericModalEl = document.getElementById('genericModal');
+const genericModal = new bootstrap.Modal(genericModalEl);
+
+function openModal(url) {
+    document.getElementById('genericModalBody').innerHTML = '<div class="text-center text-muted py-4">Loading...</div>';
+    $("#genericModal").modal("show");
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(data => {
+            const body = document.getElementById('genericModalBody');
+            body.innerHTML = data.html;
+            runScripts(body);
+        })
+        .catch(() => {
+            document.getElementById('genericModalBody').innerHTML = '<div class="alert alert-danger">Failed to load form.</div>';
+        });
+}
+
+// innerHTML never executes <script> tags, so re-create and re-insert them manually
+// whenever we inject a fetched partial (needed for the variant builder's JS).
+function runScripts(container) {
+    container.querySelectorAll('script').forEach(oldScript => {
+        const newScript = document.createElement('script');
+        if (oldScript.src) {
+            newScript.src = oldScript.src;
+        } else {
+            newScript.textContent = oldScript.textContent;
+        }
+        oldScript.replaceWith(newScript);
+    });
+}
+
+// Delegate submit for any form rendered inside the modal body
+document.addEventListener('submit', function (e) {
+    const form = e.target;
+    if (!form.closest('#genericModalBody')) return;
+    e.preventDefault();
+
+    const formData = new FormData(form);
+    fetch(form.action, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                genericModal.hide();
+                location.reload();
+            } else {
+                const body = document.getElementById('genericModalBody');
+                body.innerHTML = data.html;
+                runScripts(body);
+            }
+        })
+        .catch(() => {
+            document.getElementById('genericModalBody').innerHTML = '<div class="alert alert-danger">Something went wrong. Please try again.</div>';
+        });
+});
+
+</script>
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}

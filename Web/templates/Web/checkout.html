@@ -1310,7 +1310,7 @@
             $(".modal-title").text("Add Address");
         });
         function openEditAddress(addressId) {
-            fetch(`/address/${addressId}/`, {
+            fetch(`${window.location.origin}/address/${addressId}/`, {
                 method: "GET",
                 credentials: "same-origin",
                 headers: {
@@ -1352,8 +1352,8 @@
             const isUpdate = Boolean(addressId);
 
             const url = isUpdate
-                ? `/address/${addressId}/`
-                : `/address/`;
+                ? `${window.location.origin}/address/${addressId}/`
+                : `${window.location.origin}/address/`;
 
             const method = isUpdate ? "PUT" : "POST";
 

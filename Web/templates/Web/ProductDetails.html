@@ -2017,7 +2017,7 @@ const protocol = window.location.protocol === "https:" ? "wss" : "ws";
 
         // 🔹 INITIAL LOAD (GET THREAD + MESSAGES)
         function loadMessages() {
-            fetch(`/messages/${product_id}/`)
+            fetch(`${window.location.origin}/messages/${product_id}/`)
             .then(res => res.json())
             .then(data => {
                 chatBody.innerHTML = "";
@@ -2390,7 +2390,7 @@ console.log("productData", JSON.stringify(productData.options));
                 $(".price-now").text(variant.final_price);$(".old-price").text(variant.price); $(".old-price").data("oldprice", variant.price);$("#off-price-discount").text("RS."+variant.off_price+" Off"); $("#off-price-discount").data("offprice", variant.off_price);$(".price-now").data("pricenow", variant.final_price); updateStock(variant.stock_quantity); cartPrice=variant.price; cartVariant=variant.id; cartProduct=variant.product; }
         } 
         $(document).on("click", "#wishBtn", function () {
-            fetch("/wish-to-buy/", {
+            fetch(`${window.location.origin}/wish-to-buy/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

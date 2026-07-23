@@ -604,7 +604,7 @@
                 }
 
                 try {
-                    const response = await fetch('/api/token/refresh/', {
+                    const response = await fetch(`${window.location.origin}/api/token/refresh/`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -622,7 +622,7 @@
                         // If the refresh token is also expired or invalid
                         console.error("Refresh token expired. Logging out...");
                         localStorage.clear();
-                        window.location.href = "/login/"; 
+                        window.location.href = `${window.location.origin}/login/`; 
                         return null;
                     }
                 } catch (error) {
@@ -740,7 +740,7 @@
                     <button class="btn position-relative" data-bs-toggle="dropdown" style="margin-right: 6px;" onclick="loadNotifications()">
                         <i class="fa-solid fa-bell"></i>
                         <span id="notificationBadge"
-                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="top: 8px !important;">
                             0
                         </span>
                     </button>
@@ -890,8 +890,7 @@
             <a href="{% url 'login' %}"><i class="fa-solid fa-right-to-bracket me-2"></i> Sign In</a>
         {% endif %}
         <a href="{% url 'Cart' %}" class="position-relative"><i class="fa-solid fa-cart-shopping me-2"></i> Cart
-                        <span class="cartcountBadge"
-                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        <span id="cartcountBadge" class="cartcountBadge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                             0
                         </span>
         </a>
@@ -1419,9 +1418,9 @@
 </script>
 <script>
    
-    const NOTIFICATION_API = "/notifications/";
-    const carcount_API = "/User_Cart_Count/";
-    const MARK_READ_API = "/notifications/mark-read/";
+    const NOTIFICATION_API = `${window.location.origin}/notifications/`;
+    const carcount_API = `${window.location.origin}/User_Cart_Count/`;
+    const MARK_READ_API = `${window.location.origin}/notifications/mark-read/`;
 
     /* ===============================
     LOAD NOTIFICATIONS
@@ -1544,7 +1543,9 @@
             </li>`;
 
             document.getElementById("notificationDropdown").innerHTML = html;
-            document.getElementById("notificationBadge").innerText = unreadCount;
+            const badge = document.getElementById("notificationBadge");
+            badge.innerText = unreadCount;
+            badge.style.display = unreadCount > 0 ? "inline-block" : "none";
         })
         .catch(error => {
             console.error("Notification error:", error);
@@ -1552,14 +1553,15 @@
     }
 
     function loadUserCartItemsCount() {
-        authorizedApiCall(carcount_API) // Uses the smart wrapper above
-            .then(res => res.json())
+        authorizedApiCall(carcount_API)
+            .then(response => response.json())
             .then(data => {
-                if (data && data.cart_products_count !== undefined) {
-                    $(".cartcountBadge").html(data.cart_products_count);
-                }
+                $("#cartcountBadge").html(data.cart_products_count || 0);
+                $(".cartcountInside").html(data.cart_products_count || 0);
             })
-            .catch(err => console.error("Final Cart Error:", err));
+            .catch(error => {
+                console.error("Cart Count Error:", error);
+            });
     }
     function getCookie(name) {
         let cookieValue = null;

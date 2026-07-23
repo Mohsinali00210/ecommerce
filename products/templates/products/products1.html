@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Products{% endblock %}
+
+{% block content %}
+<style>
+    span.select2-dropdown.select2-dropdown--below {
+    z-index: 100000;
+}
+</style>
+
+
+
+       <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div><i class="bi bi-box"></i> Products List</div>
+                <div><a href="./AddProduct.html" class="btn text-white"> <i class="bi bi-plus-lg"></i></a></div>
+            </div>
+
+            <!-- Filters -->
+            <div class="card-body border-bottom">
+                <div class="row g-2 align-items-end">
+                    <!-- Search -->
+                    <div class="col-md-3">
+                        <label class="form-label mb-1">Search Product</label>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Name, SKU">
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Category</label>
+                        <select class="form-select form-select-sm" id="categoryFilter">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+
+                    <!-- Stock Status -->
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Stock Status</label>
+                        <select class="form-select form-select-sm" id="stockFilter">
+                            <option value="">All</option>
+                            <option value="in_stock">In Stock</option>
+                            <option value="low_stock">Low Stock</option>
+                            <option value="out_of_stock">Out of Stock</option>
+                        </select>
+                    </div>
+
+                    <!-- Price Range -->
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Price</label>
+                        <input type="text" class="form-control" id="priceFilter" placeholder="Min - Max">
+                    </div>
+
+                    <!-- Status -->
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Status</label>
+                        <select class="form-select form-select-sm" id="statusFilter">
+                            <option value="">All</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="featured">Featured</option>
+                        </select>
+                    </div>
+
+                    <!-- Apply Filter Button -->
+                    <div class="col-md-1 d-grid">
+                        <button class="btn btn-dark btn-sm" id="applyFilterBtn">
+                            <i class="bi bi-funnel"></i>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Products Table -->
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Product Name</th>
+                            <th>SKU</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+
+<script>
+$(document).on('click', '.edit-product-btn', function () {
+    const productId = $(this).data('id');
+    window.location.href = `${window.location.origin}/Adminpanel/Products/addProduct/${productId}/`;
+});
+   var links = $(".sidebar a");
+    links.each(function() {
+        $(this).removeClass('active');
+    });
+    $("#ProductLink").addClass('active');
+    
+    $(document).ready(function() {
+        getDropDown(el = "categoryFilter",url="{% url 'category-list' %}");
+        getProducts();
+   
+});
+    const API_BASE_URL = "{% url 'product-list' %}";
+    var TOKEN ;
+
+function getDropDown(el = "categoryFilter",url="{% url 'category-list' %}") {
+    fetch(url, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Content-Type": "application/json"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        let innerHtml = ``; 
+        innerHtml += `<option value="">All</option>`;
+        data.forEach(function(item) {
+           innerHtml += `<option value="${item.id}">${item.name}</option>`;
+        });
+        $(`#${el}`).html(innerHtml);
+    })
+    .catch(err => {
+        showAlert("Failed to load data", "danger");
+        console.error(err);
+    });
+}
+function getProducts(el = "productsBody", filters = {}) {
+    const params = new URLSearchParams(filters).toString();
+    const url = params ? `${API_BASE_URL}?${params}` : API_BASE_URL;
+
+    fetch(url, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        let innerHtml = "";
+
+        if (!Array.isArray(data) || data.length === 0) {
+            innerHtml = `
+                <tr>
+                    <td colspan="6" class="text-center text-muted">
+                        No items found here.
+                    </td>
+                </tr>
+            `;
+        } else {
+            data.forEach(item => {
+                innerHtml += `
+                    <tr>
+                        <td>${item.name ?? '-'}</td>
+                        <td>${item.sku ?? '-'}</td>
+                        <td>${(item.category_name || []).join(', ')}</td>
+                        <td>${item.price ?? '-'}</td>
+                        <td>${item.stock_quantity ?? 0}</td>
+                        <td>
+                            <span class="badge ${item.status=='active' ? 'bg-success' : 'bg-secondary'}">
+                                ${item.status}
+                            </span>
+                        </td>
+                         <td>
+                            <button type="button" class="btn btn-sm btn-outline-primary edit-product-btn" data-id="${item.id}">
+                                <i class="bi bi-pencil-square"></i> Edit
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        document.getElementById(el).innerHTML = innerHtml;
+    })
+    .catch(err => {
+        showAlert("Failed to load products", "danger");
+        console.error(err);
+    });
+}
+document.getElementById("applyFilterBtn").addEventListener("click", function () {
+    const filters = {
+        search: document.getElementById("searchInput").value.trim(),
+        category: document.getElementById("categoryFilter").value,
+        stock_status: document.getElementById("stockFilter").value,
+        price: document.getElementById("priceFilter").value,
+        status: document.getElementById("statusFilter").value
+    };
+
+    // Remove empty filters
+    Object.keys(filters).forEach(key => {
+        if (!filters[key]) delete filters[key];
+    });
+
+    getProducts("productsBody", filters);
+});
+
+{% comment %} fetch('{% url 'token_obtain_pair' %}', {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+        email: "mohsinali@gmail.com",
+        password: "Today@123"
+    })
+    })
+    .then(res => res.json())
+    .then(data => {
+        TOKEN=data.access;
+    // Save access token
+    localStorage.setItem("access_token", data.access);
+    })
+    .catch(err => console.error(err)); {% endcomment %}
+
+</script>
+{% endblock %}
+
+{% block extra_js %}
+
+
+{% endblock %}

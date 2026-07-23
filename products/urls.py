@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import wish_to_buy_admin,wish_to_buy_list,picture_page,PictureViewSet,OrdersByStatus,inventory_page,VariantInventoryViewSet,ProductVariantViewSet,promotions_page,PromotionsViewSet,wishlist_page,admin_reviews_page,AdminReviewListAPIView,AdminReviewUpdateAPIView,AdminOrderRequestUpdateAPIView,support_ticket_list_view,OrderDetailAPIView,OrderUpdateStatusAPIView,OrdersListAPIView,orders,ProductPreview,editProduct,products,addProduct,CategoryViewSet,categories,ProductAttributeViewSet,attributes,AttributeTypesViewSet,BrandViewSet,brands,ProductViewSet,PromotionViewSet 
+from .views import variant_bulk_create,product_list,product_form_view,variant_add_modal,variant_edit_modal,variant_delete,image_modal,image_delete,promotion_modal,promotion_modal,promotion_delete,tag_modal,tag_remove,wish_to_buy_admin,wish_to_buy_list,picture_page,PictureViewSet,OrdersByStatus,inventory_page,VariantInventoryViewSet,ProductVariantViewSet,promotions_page,PromotionsViewSet,wishlist_page,admin_reviews_page,AdminReviewListAPIView,AdminReviewUpdateAPIView,AdminOrderRequestUpdateAPIView,support_ticket_list_view,OrderDetailAPIView,OrderUpdateStatusAPIView,OrdersListAPIView,orders,ProductPreview,editProduct,products,addProduct,CategoryViewSet,categories,ProductAttributeViewSet,attributes,AttributeTypesViewSet,BrandViewSet,brands,ProductViewSet,PromotionViewSet 
 
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet, basename='category')
@@ -43,4 +43,30 @@ urlpatterns = [
 
     path("admin/wish-to-buy/", wish_to_buy_admin, name="wish_to_buy_admin"),
     path("api/wish-to-buy/", wish_to_buy_list, name="wish_to_buy_list"),
+
+
+    
+
+     path('products/', product_list, name='product_list'),
+    path('products/add/', product_form_view, name='product_add'),
+    path('products/<int:pk>/edit/', product_form_view, name='product_edit'),
+ 
+    # Variants
+    path('products/<int:product_id>/variants/add/', variant_add_modal, name='variant_add'),
+    path('products/<int:product_id>/variants/bulk-add/', variant_bulk_create, name='variant_bulk_add'),
+    path('products/<int:product_id>/variants/<int:variant_id>/edit/', variant_edit_modal, name='variant_edit'),
+    path('products/<int:product_id>/variants/<int:variant_id>/delete/', variant_delete, name='variant_delete'),
+ 
+    # Images
+    path('products/<int:product_id>/images/add/', image_modal, name='image_add'),
+    path('products/<int:product_id>/images/<int:image_id>/delete/', image_delete, name='image_delete'),
+ 
+    # Promotions
+    path('products/<int:product_id>/promotions/add/', promotion_modal, name='promotion_add'),
+    path('products/<int:product_id>/promotions/<int:promotion_id>/edit/', promotion_modal, name='promotion_edit'),
+    path('products/<int:product_id>/promotions/<int:promotion_id>/delete/', promotion_delete, name='promotion_delete'),
+ 
+    # Tags
+    path('products/<int:product_id>/tags/add/', tag_modal, name='tag_add'),
+    path('products/<int:product_id>/tags/<int:tag_id>/remove/', tag_remove, name='tag_remove'),
 ]

@@ -307,15 +307,15 @@
                 <div class="cart-left bg-white p-3">
 
                     <!-- Free Shipping Banner -->
-                    <div class="alert alert-success d-flex justify-content-between">
+                    {% comment %} <div class="alert alert-success d-flex justify-content-between">
                         <span><i class="fa-solid fa-check"></i> Free shipping special for you</span>
                         <span class="text-muted">Limited-time offer</span>
-                    </div>
+                    </div> {% endcomment %}
 
                     <!-- Select All -->
                     <div class="select-all-row">
                         <input type="checkbox" id="selectAll">
-                        <label for="selectAll" class="m-0">Select all (1)</label>
+                        <label for="selectAll" class="m-0">Select all </label>
                     </div>
                     
                     {% if cart and cart.items.all %}
@@ -372,6 +372,19 @@
                         {% endfor %}
                     {% else %}
                         <p class="text-muted">Your cart is empty.</p>
+
+                        <script>
+                        $(function () {
+                            $(".checkout-btn")
+                                .addClass("disabled")
+                                .css({
+                                    "pointer-events": "none",
+                                    "opacity": "0.5",
+                                    "cursor": "not-allowed"
+                                })
+                                .removeAttr("href");
+                        });
+                        </script>
                     {% endif %}
 
 
@@ -716,7 +729,7 @@
                     body: JSON.stringify({ item_id: itemId })
                 })
                 .then(res => { if (res.ok) 
-                    { return res.json()
+                    { window.location.reload; return res.json()
                 .then(data => ({ status: 'success', data })); }  else if (res.status === 400) { return res.json()
                 .then(data => ({ status: 'validation_error', data })); } else if (res.status === 401) { return { status: 'auth_error' }; } else {return { status: 'server_error' };} }) 
                 .then(result => { if (result.status === 'success') { showAlert(result.message, "success"); } else if (result.status === 'auth_error') { showAlert("Session expired. Please login again.", "danger"); } else { showAlert("Server error. Logged in database.", "danger"); } }) 

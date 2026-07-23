@@ -35,6 +35,7 @@ urlpatterns = [
         path("wish-to-buy/", wish_to_buy, name="wish_to_buy"),
         path("promo/<int:id>/", PromotionDetail, name="promo"),
 
+
 ]
 
 if settings.DEBUG:

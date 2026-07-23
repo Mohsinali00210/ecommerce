@@ -1038,3 +1038,340 @@ def wish_to_buy_list(request):
         })
 
     return JsonResponse(data, safe=False)
+
+
+
+import json
+ 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.template.loader import render_to_string
+from django.db import transaction
+from django.db.models import Q
+ 
+from .models import Product, Category, ProductVariant, ProductVariantOption, ProductImage, Promotion, Tag
+from .forms import (
+    ProductForm, ProductVariantForm, ProductImageForm, PromotionForm, TagAddForm,
+)
+ 
+ 
+# ---------------------------------------------------------------------------
+# Product list
+# ---------------------------------------------------------------------------
+@login_required
+def product_list(request):
+    products = Product.objects.filter(is_deleted=False).order_by('-id')
+ 
+    search = request.GET.get('search', '').strip()
+    category = request.GET.get('category')
+    stock_status = request.GET.get('stock_status')
+    status = request.GET.get('status')
+ 
+    if search:
+        products = products.filter(Q(name__icontains=search) | Q(sku__icontains=search))
+    if category:
+        products = products.filter(category__id=category)
+    if stock_status:
+        products = products.filter(stock_status=stock_status)
+    if status:
+        products = products.filter(status=status)
+ 
+    context = {
+        'products': products.distinct(),
+        'categories': Category.objects.filter(is_deleted=False, is_active=True),
+        'filters': {
+            'search': search, 'category': category,
+            'stock_status': stock_status, 'status': status,
+        },
+    }
+    return render(request, 'products/products.html', context)
+ 
+ 
+# ---------------------------------------------------------------------------
+# Product add / edit (core fields only)
+# ---------------------------------------------------------------------------
+@login_required
+def product_form_view(request, pk=None):
+    product = get_object_or_404(Product, pk=pk, is_deleted=False) if pk else None
+ 
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES, instance=product)
+        if form.is_valid():
+            instance = form.save(commit=False)
+            if product is None:
+                instance.created_by = request.user
+            else:
+                instance.modified_by = request.user
+            instance.save()
+            form.save_m2m()
+            messages.success(request, f"Product '{instance.name}' saved successfully.")
+            return redirect('product_edit', pk=instance.pk)
+        messages.error(request, "Please fix the errors highlighted below.")
+    else:
+        form = ProductForm(instance=product)
+ 
+    context = {
+        'form': form,
+        'product': product,
+    }
+    return render(request, 'products/product_form.html', context)
+ 
+ 
+# ---------------------------------------------------------------------------
+# Shared helper: modal add/edit views all follow the same GET/POST shape:
+#   GET  -> return {"html": "<form partial>"}                (to fill the modal)
+#   POST (invalid) -> return {"success": false, "html": "..."} (re-render with errors)
+#   POST (valid)   -> return {"success": true, "message": "..."} (JS closes + reloads)
+# ---------------------------------------------------------------------------
+ 
+@login_required
+def variant_add_modal(request, product_id):
+    """Returns the multi-variant builder partial (option groups -> generated
+    combination table). Saving happens via variant_bulk_create, not here."""
+    product = get_object_or_404(Product, pk=product_id)
+    html = render_to_string(
+        'products/partials/variant_form.html',
+        {'product': product, 'mode': 'add'}, request=request,
+    )
+    return JsonResponse({'html': html})
+ 
+ 
+@login_required
+def variant_edit_modal(request, product_id, variant_id):
+    product = get_object_or_404(Product, pk=product_id)
+    variant = get_object_or_404(ProductVariant, pk=variant_id, product=product)
+ 
+    if request.method == 'POST':
+        form = ProductVariantForm(request.POST, instance=variant, product=product)
+        if form.is_valid():
+            instance = form.save(commit=False)
+            instance.product = product
+            instance.modified_by = request.user
+            instance.save()
+            return JsonResponse({'success': True, 'message': 'Variant saved successfully.'})
+        html = render_to_string(
+            'products/partials/variant_form.html',
+            {'form': form, 'product': product, 'variant': variant, 'mode': 'edit'}, request=request,
+        )
+        return JsonResponse({'success': False, 'html': html})
+ 
+    form = ProductVariantForm(instance=variant, product=product)
+    html = render_to_string(
+        'products/partials/variant_form.html',
+        {'form': form, 'product': product, 'variant': variant, 'mode': 'edit'}, request=request,
+    )
+    return JsonResponse({'html': html})
+ 
+ 
+@login_required
+def variant_delete(request, product_id, variant_id):
+    variant = get_object_or_404(ProductVariant, pk=variant_id, product_id=product_id)
+    variant.delete()
+    messages.success(request, "Variant deleted.")
+    return redirect('product_edit', pk=product_id)
+ 
+ 
+@login_required
+def variant_bulk_create(request, product_id):
+    """Saves every row generated by the variant-combination builder (name/options ->
+    cartesian product table) in one go, plus the ProductVariantOption definitions
+    they were built from. Mirrors the old DRF create() logic, minus DRF."""
+    product = get_object_or_404(Product, pk=product_id)
+ 
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method.'}, status=405)
+ 
+    raw_variants = request.POST.get('variants')
+    raw_options = request.POST.get('options')
+    print(" raw_variants ",raw_variants)
+    print("raw_options ",raw_options)
+    if not raw_variants:
+        return JsonResponse({
+            'success': False,
+            'message': 'No variants were generated. Add at least one variant option and click "Add Variant" first.',
+        })
+ 
+    try:
+        variants_data = json.loads(raw_variants)
+    except (json.JSONDecodeError, TypeError):
+        return JsonResponse({'success': False, 'message': 'Variant data was malformed. Please try again.'})
+ 
+    if not variants_data:
+        return JsonResponse({
+            'success': False,
+            'message': 'No variants were generated. Add at least one variant option and click "Add Variant" first.',
+        })
+ 
+    options_data = []
+    if raw_options:
+        try:
+            options_data = json.loads(raw_options)
+        except (json.JSONDecodeError, TypeError):
+            return JsonResponse({'success': False, 'message': 'Variant option data was malformed. Please try again.'})
+ 
+    # ---- Validate every row up front so we either save everything or nothing ----
+    errors = []
+    seen_skus = set()
+    for index, variant_data in enumerate(variants_data, start=1):
+        sku = (variant_data.get('sku') or '').strip()
+        price = variant_data.get('price')
+ 
+        if not sku:
+            errors.append(f"Row {index}: SKU is required.")
+        elif sku in seen_skus:
+            errors.append(f"Row {index}: SKU '{sku}' is duplicated in this batch.")
+        elif ProductVariant.objects.filter(sku=sku).exists():
+            errors.append(f"Row {index}: SKU '{sku}' already exists.")
+        seen_skus.add(sku)
+ 
+        if price in (None, ''):
+            errors.append(f"Row {index}: Price is required.")
+ 
+    if errors:
+        return JsonResponse({'success': False, 'message': ' '.join(errors)})
+ 
+    with transaction.atomic():
+        created_variants = []
+        for index, variant_data in enumerate(variants_data):
+            variant = ProductVariant.objects.create(
+                product=product,
+                name=variant_data.get('name', ''),
+                sku=variant_data.get('sku'),
+                price=variant_data.get('price') or 0,
+                stock_quantity=variant_data.get('stock_quantity') or 0,
+                created_by=request.user,
+            )
+            image_file = request.FILES.get(f'variants[{index}][image]')
+            if image_file:
+                product_image = ProductImage.objects.create(
+                    product=product, image=image_file, created_by=request.user,
+                )
+                variant.image = product_image
+                variant.save()
+            created_variants.append(variant)
+ 
+        for item in options_data:
+            option_name = item.get('option_name')
+            option_values = item.get('option', [])
+            color_values = item.get('value', [])
+            if not option_name or not option_values:
+                continue
+            for i, value in enumerate(option_values):
+                color_code = color_values[i] if option_name.lower() == 'color' and i < len(color_values) else None
+                ProductVariantOption.objects.create(
+                    product=product,
+                    option_name=option_name,
+                    option=value,
+                    value=color_code,
+                    created_by=request.user,
+                )
+ 
+    return JsonResponse({
+        'success': True,
+        'message': f'{len(created_variants)} variant(s) created successfully.',
+    })
+ 
+ 
+@login_required
+def image_modal(request, product_id):
+    product = get_object_or_404(Product, pk=product_id)
+ 
+    if request.method == 'POST':
+        form = ProductImageForm(request.POST, request.FILES)
+        if form.is_valid():
+            instance = form.save(commit=False)
+            instance.product = product
+            instance.created_by = request.user
+            instance.save()
+            return JsonResponse({'success': True, 'message': 'Image added successfully.'})
+        html = render_to_string(
+            'products/partials/image_form.html',
+            {'form': form, 'product': product}, request=request,
+        )
+        return JsonResponse({'success': False, 'html': html})
+ 
+    form = ProductImageForm()
+    html = render_to_string(
+        'products/partials/image_form.html',
+        {'form': form, 'product': product}, request=request,
+    )
+    return JsonResponse({'html': html})
+ 
+ 
+@login_required
+def image_delete(request, product_id, image_id):
+    image = get_object_or_404(ProductImage, pk=image_id, product_id=product_id)
+    image.delete()
+    messages.success(request, "Image removed.")
+    return redirect('product_edit', pk=product_id)
+ 
+ 
+@login_required
+def promotion_modal(request, product_id, promotion_id=None):
+    product = get_object_or_404(Product, pk=product_id)
+    promotion = get_object_or_404(Promotion, pk=promotion_id, products=product) if promotion_id else None
+ 
+    if request.method == 'POST':
+        form = PromotionForm(request.POST, instance=promotion)
+        if form.is_valid():
+            instance = form.save(commit=False)
+            instance.created_by = request.user if promotion is None else instance.created_by
+            instance.modified_by = request.user
+            instance.save()
+            instance.products.add(product)
+            return JsonResponse({'success': True, 'message': 'Promotion saved successfully.'})
+        html = render_to_string(
+            'products/partials/promotion_form.html',
+            {'form': form, 'product': product, 'promotion': promotion}, request=request,
+        )
+        return JsonResponse({'success': False, 'html': html})
+ 
+    form = PromotionForm(instance=promotion)
+    html = render_to_string(
+        'products/partials/promotion_form.html',
+        {'form': form, 'product': product, 'promotion': promotion}, request=request,
+    )
+    return JsonResponse({'html': html})
+ 
+ 
+@login_required
+def promotion_delete(request, product_id, promotion_id):
+    promotion = get_object_or_404(Promotion, pk=promotion_id, products__id=product_id)
+    promotion.products.remove(product_id)
+    messages.success(request, "Promotion removed from this product.")
+    return redirect('product_edit', pk=product_id)
+ 
+ 
+@login_required
+def tag_modal(request, product_id):
+    product = get_object_or_404(Product, pk=product_id)
+ 
+    if request.method == 'POST':
+        form = TagAddForm(request.POST)
+        if form.is_valid():
+            name = form.cleaned_data['tag_name'].strip()
+            tag, _ = Tag.objects.get_or_create(name=name)
+            product.tags.add(tag)
+            return JsonResponse({'success': True, 'message': f"Tag '{name}' added."})
+        html = render_to_string(
+            'products/partials/tag_form.html',
+            {'form': form, 'product': product}, request=request,
+        )
+        return JsonResponse({'success': False, 'html': html})
+ 
+    form = TagAddForm()
+    html = render_to_string(
+        'products/partials/tag_form.html',
+        {'form': form, 'product': product}, request=request,
+    )
+    return JsonResponse({'html': html})
+ 
+ 
+@login_required
+def tag_remove(request, product_id, tag_id):
+    product = get_object_or_404(Product, pk=product_id)
+    product.tags.remove(tag_id)
+    messages.success(request, "Tag removed.")
+    return redirect('product_edit', pk=product_id)

@@ -1,0 +1,62 @@
+<form method="post" action="{% if promotion %}{% url 'promotion_edit' product.id promotion.id %}{% else %}{% url 'promotion_add' product.id %}{% endif %}">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="row g-2">
+        <div class="col-md-6">
+            <label class="form-label">Name</label>
+            {{ form.name }}
+            {% for error in form.name.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Promo Code</label>
+            {{ form.promo_code }}
+            {% for error in form.promo_code.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12">
+            <label class="form-label">Description</label>
+            {{ form.description }}
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Discount Type</label>
+            {{ form.discount_type }}
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Discount Value</label>
+            {{ form.discount_value }}
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Discounted Price</label>
+            {{ form.discounted_price }}
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Compare At Price</label>
+            {{ form.compare_at_price }}
+        </div>
+        <div class="col-md-6"></div>
+        <div class="col-md-6">
+            <label class="form-label">Start Date</label>
+            {{ form.start_date }}
+            {% for error in form.start_date.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">End Date</label>
+            {{ form.end_date }}
+            {% for error in form.end_date.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12">
+            <div class="form-check">
+                {{ form.show_on_home }}
+                <label class="form-check-label">Show on home page</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3 text-end">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-dark">Save Promotion</button>
+    </div>
+</form>

@@ -166,11 +166,29 @@ class AddToCartAPIView(APIView):
             cart, _ = Cart.objects.get_or_create( session_key=request.session.session_key, is_active=True )
         print("request.user.is_authenticated ",request.user.is_authenticated)
         price = variant.price if variant else product.price
-
-        cart_item, created = CartItem.objects.get_or_create( cart=cart, product=product, variant=variant, defaults={"price": price,"quantity": quantity, } )
+        cart_item, created = CartItem.objects.get_or_create(
+            cart=cart,
+            product=product,
+            variant=variant,
+            defaults={
+                "price": price,
+                "quantity": quantity,
+                "is_active": True,
+                "is_deleted": False,
+            }
+        )
 
         if not created:
-            cart_item.quantity += quantity
+            if quantity > 1:
+                # Set the quantity directly
+                cart_item.quantity = quantity
+            else:
+                # Increment the existing quantity
+                cart_item.quantity += quantity
+
+            cart_item.price = price
+            cart_item.is_active = True
+            cart_item.is_deleted = False
             cart_item.save()
 
         return Response({ "message": "Item added to cart", "cart_id": cart.id, "item_id": cart_item.id, "quantity": cart_item.quantity, })
@@ -197,7 +215,7 @@ def MyCart(request):
     if request.user.is_authenticated:
         cart = (
             Cart.objects
-            .filter(user=request.user,is_active=True)
+            .filter(user=request.user,is_active=True,items__is_active=True)
             .prefetch_related(
                 "items",
                 "items__product",
@@ -525,7 +543,6 @@ def CheckoutPage(request):
 
     
     # return render( request, "Web/checkout.html",  {"items": updated_items,"defaultaddresses":defaultaddresses,"addresses":addresses})
-
 class RemoveCartItemAPIView(APIView):
     authentication_classes = [SessionAuthentication]
     permission_classes = [AllowAny]
@@ -533,16 +550,34 @@ class RemoveCartItemAPIView(APIView):
     def post(self, request):
         item_id = request.data.get("item_id")
 
-        cart_item = get_object_or_404(CartItem, id=item_id)
+        if not item_id:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Item ID is required."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        cart_item.is_active=False
-        cart_item.is_deleted=True
+        cart_item = get_object_or_404(
+            CartItem,
+            id=item_id,
+            is_deleted=False
+        )
 
-        return Response({
-            "success": True,
-            "item_id": item_id
-        })
+        # Soft delete
+        cart_item.is_active = False
+        cart_item.is_deleted = True
+        cart_item.save(update_fields=["is_active", "is_deleted"])
 
+        return Response(
+            {
+                "success": True,
+                "message": "Item removed successfully.",
+                "item_id": item_id
+            },
+            status=status.HTTP_200_OK
+        )
 
 
 class CheckoutView(APIView):
@@ -982,86 +1017,113 @@ def product_list(request):
 
 from django.db.models import Sum
 
+# class UserCartCountAPIView(APIView):
+#     # permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+
+#         if request.user.is_authenticated:
+#             cart = (
+#                 Cart.objects
+#                 .filter(user=request.user,is_active=True)
+#                 .prefetch_related(
+#                     "items",
+#                     "items__product",
+#                     "items__variant",
+#                     "items__product__images",
+#                 )
+#                 .first()
+#             )
+#         else:
+
+#             cart = (
+#                 Cart.objects
+#                 .filter(session_key=request.session.session_key, is_active=True)
+#                 .prefetch_related(
+#                     "items",
+#                     "items__product",
+#                     "items__variant",
+#                     "items__product__images",
+#                 )
+#                 .first()
+#             )
+#         shipping_total = Decimal(0)
+#         additional_total = Decimal(0)
+#         subtotal = Decimal(0)
+#         cart_products_count=0
+#         cart_items_count=0
+#         if cart:
+#             current_date = timezone.now()
+
+#             for cartitem in cart.items.all():
+#                 product = cartitem.product
+
+#                 promo = (
+#                     product.promotions
+#                     .filter(start_date__lte=current_date, end_date__gte=current_date)
+#                     .first()
+#                 )
+#                 if promo:
+#                     final_price = promo.get_discounted_price(product.price)
+
+#                     product.final_price = final_price
+#                     product.discounted_price = final_price
+#                     product.discount_type = promo.discount_type
+#                     product.discount_value = promo.discount_value
+#                     product.has_discount = final_price < product.price
+#                 else:
+#                     product.final_price = product.price
+#                     product.discounted_price = product.price
+#                     product.discount_type = None
+#                     product.discount_value = None
+#                     product.has_discount = False
+                
+#                 subtotal += product.final_price * cartitem.quantity
+#                 shipping_total += product.shipping_charges
+#                 additional_total += product.additional_shipping_charges
+
+#             cart_items_count = cart.items.aggregate(total=Sum("quantity"))["total"] or 0
+#             cart_products_count = cart.items.count()
+#         context = {
+#             "cart": CartSerializer(cart).data,
+#             "subtotal": subtotal,
+#             "shipping_total": shipping_total,
+#             "additional_total": additional_total,
+#             "final_total": subtotal + shipping_total + additional_total,
+#             "cart_items_count": cart_items_count,
+#             "cart_products_count": cart_products_count,
+#         }
+
+#         return Response(context)
+
+
 class UserCartCountAPIView(APIView):
-    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
-
         if request.user.is_authenticated:
-            cart = (
-                Cart.objects
-                .filter(user=request.user,is_active=True)
-                .prefetch_related(
-                    "items",
-                    "items__product",
-                    "items__variant",
-                    "items__product__images",
-                )
-                .first()
-            )
+            cart = Cart.objects.filter(
+                user=request.user,
+                is_active=True,
+                is_deleted=False
+            ).first()
         else:
+            cart = Cart.objects.filter(
+                session_key=request.session.session_key,
+                is_active=True,
+                is_deleted=False
+            ).first()
 
-            cart = (
-                Cart.objects
-                .filter(session_key=request.session.session_key, is_active=True)
-                .prefetch_related(
-                    "items",
-                    "items__product",
-                    "items__variant",
-                    "items__product__images",
-                )
-                .first()
-            )
-        shipping_total = Decimal(0)
-        additional_total = Decimal(0)
-        subtotal = Decimal(0)
-        cart_products_count=0
-        cart_items_count=0
+        cart_products_count = 0
+
         if cart:
-            current_date = timezone.now()
-
-            for cartitem in cart.items.all():
-                product = cartitem.product
-
-                promo = (
-                    product.promotions
-                    .filter(start_date__lte=current_date, end_date__gte=current_date)
-                    .first()
-                )
-                if promo:
-                    final_price = promo.get_discounted_price(product.price)
-
-                    product.final_price = final_price
-                    product.discounted_price = final_price
-                    product.discount_type = promo.discount_type
-                    product.discount_value = promo.discount_value
-                    product.has_discount = final_price < product.price
-                else:
-                    product.final_price = product.price
-                    product.discounted_price = product.price
-                    product.discount_type = None
-                    product.discount_value = None
-                    product.has_discount = False
-                
-                subtotal += product.final_price * cartitem.quantity
-                shipping_total += product.shipping_charges
-                additional_total += product.additional_shipping_charges
-
-            cart_items_count = cart.items.aggregate(total=Sum("quantity"))["total"] or 0
-            cart_products_count = cart.items.count()
-        context = {
-            "cart": CartSerializer(cart).data,
-            "subtotal": subtotal,
-            "shipping_total": shipping_total,
-            "additional_total": additional_total,
-            "final_total": subtotal + shipping_total + additional_total,
-            "cart_items_count": cart_items_count,
-            "cart_products_count": cart_products_count,
-        }
-
-        return Response(context)
-
-
+            cart_products_count = cart.items.filter(
+                is_active=True,
+                is_deleted=False
+            ).count()
+        print("cart_products_count ",cart_products_count)
+        return Response({
+            "cart_products_count": cart_products_count
+        })
 
 
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -1146,7 +1208,7 @@ def get_cat(request):
     categories = Category.objects.annotate(
         product_count=Count(
             'products',
-            filter=Q(products__status='active', products__visible_individually=True)
+            filter=Q(products__status='active',products__is_active=True, products__visible_individually=True)
         )
     ).filter(product_count__gt=0)
 

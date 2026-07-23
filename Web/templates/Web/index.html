@@ -560,48 +560,68 @@
         <!-- Bootstrap 5 -->
         <div class="container  my-5 position-relative " style="top: -50px;">
             
-            <div class="row g-1 product-container justify-content-center">
-
-                <!-- ========== PRODUCT CARD 1 ========== -->
+           <div class="row g-1 product-container justify-content-center">
                 {% for product in Products %}
-
-                    <div class="col-md-2 col-6">
+                    <div class="col-md-2 col-6 {% if forloop.counter > 6 %}extra-product d-none{% endif %}">
                         <div class="product-card">
                             <a href="{% url 'ProductDetails' id=product.id %}">
-                               <div class="product-image">
+                                <div class="product-image">
                                     {% if product.images.all %}
-                                        <img src="{{ product.images.all.0.image.url }}"
-                                            alt="{{ product.name }}">
+                                        <img src="{{ product.images.all.0.image.url }}" alt="{{ product.name }}">
                                     {% endif %}
                                 </div>
                             </a>
 
                             <div class="product-info">
-                                <div class="mt-2 product-title"><a href="{% url 'ProductDetails' id=product.id %}" title="{{ product.name }}" >{{product.name}}</a></div>
+                                <div class="mt-2 product-title">
+                                    <a href="{% url 'ProductDetails' id=product.id %}" title="{{ product.name }}">
+                                        {{ product.name }}
+                                    </a>
+                                </div>
 
                                 <div class="price mt-1">
-                                    {{product.price}}
-                                    <span class="old-price">{{product.old_price}}</span>
-                                    <div class="sold-text">{{product.sold}}+ sold</div>
+                                    {{ product.price }}
+                                    <span class="old-price">{{ product.old_price }}</span>
+                                    <div class="sold-text">{{ product.sold }}+ sold</div>
                                 </div>
 
                                 <div class="rating-stars d-flex justify-content-between mt-2">
-                                    <span>{% for i in "12345" %}{% if forloop.counter <= product.star_count %}★{% else %}☆{% endif %}{% endfor %} <span class="text-muted">({{product.rating_count}})</span></span>
-                                    <div class="add-cart-btn">🛒</div>
+                                    <span>
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= product.star_count %}
+                                                ★
+                                            {% else %}
+                                                ☆
+                                            {% endif %}
+                                        {% endfor %}
+                                        <span class="text-muted">({{ product.rating_count }})</span>
+                                    </span>
+
+                                    {% comment %} <div class="add-cart-btn">🛒</div> {% endcomment %}
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 {% endfor %}
-
             </div>
-
-            <!-- View More Button -->
-            <div class="text-center my-4">
-                <button class="view-more-btn">View more ▼</button>
-            </div>
-
+            {% if Products|length > 6 %}
+                <div class="text-center my-4">
+                    <button id="viewMoreBtn" class="view-more-btn">
+                        View More ▼
+                    </button>
+                </div>
+                <script>
+                    $("#viewMoreBtn").click(function () {
+                        if ($(this).hasClass("expanded")) {
+                            $(".extra-product").addClass("d-none");
+                            $(this).removeClass("expanded").text("View More ▼");
+                        } else {
+                            $(".extra-product").removeClass("d-none");
+                            $(this).addClass("expanded").text("View Less ▲");
+                        }
+                    });
+                </script>
+            {% endif %}
             {% comment %} free_shipping {% endcomment %}
             <!-- ================= FREE SHIPPING DEALS ================= -->
             <div class="promo-section mt-4">
@@ -1075,12 +1095,38 @@
         </div>
 
     </div>
+
+    {% comment %} <script>
+         function(product_id,variant_id,){
+        fetch("{% url 'AddToCart' %}", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" }, 
+                    body: JSON.stringify({product_id: product_id,variant_id: cartVariant,quantity: $("#quantity").val()})})
+            .then(res => {
+                if (res.ok) { return res.json().then(data => ({ status: 'success', data })); }
+                else if (res.status === 400) { return res.json().then(data => ({ status: 'validation_error', data })); } 
+                else if (res.status === 401) { return { status: 'auth_error' }; } 
+                else {return { status: 'server_error' };}
+            })
+            .then(result => {
+                if (result.status === 'success') {
+                    showAlert(result.message, "success");
+                    openCart();
+                } 
+            })
+            .catch(err => {
+                showAlert("Connection failed!", "danger");
+                console.error("Fetch Error:", err);
+            });
+           
+        }
+    </script> {% endcomment %}
 {% endblock %}
 
 
 {% block 'extra_js' %}
 <script>
 
+        
+    
 
     document.querySelectorAll(".scroll-left").forEach(btn=>{
     btn.onclick=function(){
