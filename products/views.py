@@ -556,8 +556,34 @@ def editProduct(request, id=None):
 @login_required(login_url='login')
 def products(request):
     if not request.user.is_superuser:
-        return redirect('login') 
-    return render(request, "products/products.html")
+        return redirect('login')
+ 
+    product_qs = Product.objects.filter(is_deleted=False).order_by('-id')
+ 
+    search = request.GET.get('search', '').strip()
+    category = request.GET.get('category')
+    stock_status = request.GET.get('stock_status')
+    status = request.GET.get('status')
+ 
+    if search:
+        product_qs = product_qs.filter(Q(name__icontains=search) | Q(sku__icontains=search))
+    if category:
+        product_qs = product_qs.filter(category__id=category)
+    if stock_status:
+        product_qs = product_qs.filter(stock_status=stock_status)
+    if status:
+        product_qs = product_qs.filter(status=status)
+ 
+    context = {
+        'products': product_qs.distinct(),
+        'categories': Category.objects.filter(is_deleted=False, is_active=True),
+        'filters': {
+            'search': search, 'category': category,
+            'stock_status': stock_status, 'status': status,
+        },
+    }
+    return render(request, 'products/products.html', context)
+ 
 
 @login_required(login_url='login')
 def ProductPreview(request):
