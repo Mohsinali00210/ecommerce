@@ -1,0 +1,538 @@
+{% extends "base2.html" %}
+{% load static %}
+{% block content %}
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/4.0.0/jquery.min.js"></script>
+
+{% if request.user.is_authenticated %}
+
+
+        <script>
+        {% comment %} fetch('{% url 'token_obtain_pair' %}', {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email: "mohsinali00260@gmail.com",
+                    password: "Today@123"
+                })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    TOKEN=data.access;
+                // Save access token
+                localStorage.setItem("access_token", data.access);
+                })
+                .catch(err => console.error(err)); {% endcomment %}
+
+            async function syncSessionWithToken() {
+                    try {
+                        const res = await fetch(`{% url 'get_my_token' %}`);
+
+                        if (res.status === 403) {
+                            console.error("User is not logged into Django session.");
+                            return;
+                        }
+
+                        const data = await res.json();
+
+                        if (data.access) {
+                            localStorage.setItem("access_token", data.access);
+                            localStorage.setItem("refresh_token", data.refresh);
+                        }
+                    } catch (err) {
+                        console.error("Sync error:", err);
+                    }
+                }
+
+                $(document).ready(async function() {
+                    await syncSessionWithToken();
+
+                    setInterval(refreshToken, 50 * 60 * 1000);
+                    loadUserCartItemsCount();
+                    loadNotifications();
+                });
+                window.onfocus = function() {
+                    refreshToken();
+                    loadUserCartItemsCount(); 
+                    loadNotifications();
+                };
+                async function refreshToken() {
+                const refresh = localStorage.getItem("refresh_token");
+
+                if (!refresh) {
+                    console.warn("No refresh token found. User must log in.");
+                    return null;
+                }
+
+                try {
+                    const response = await fetch(`${window.location.origin}/api/token/refresh/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ refresh: refresh }),
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Update the access token in storage
+                        localStorage.setItem("access_token", data.access);
+                        console.log("Access token refreshed successfully.");
+                        return data.access;
+                    } else {
+                        // If the refresh token is also expired or invalid
+                        console.error("Refresh token expired. Logging out...");
+                        localStorage.clear();
+                        window.location.href = `${window.location.origin}/login/`; 
+                        return null;
+                    }
+                } catch (error) {
+                    console.error("Error during token refresh:", error);
+                    return null;
+                }
+            }
+            async function authorizedApiCall(url, options = {}) {
+                let token = localStorage.getItem("access_token");
+
+                // Add Authorization header
+                options.headers = {
+                    ...options.headers,
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                };
+
+                let response = await fetch(url, options);
+
+                // If token is expired (Django returns 401)
+                if (response.status === 401) {
+                    console.log("Access token expired, attempting refresh...");
+                    const newToken = await refreshToken();
+
+                    if (newToken) {
+                        // Update header with the NEW token and retry the call once
+                        options.headers["Authorization"] = `Bearer ${newToken}`;
+                        response = await fetch(url, options);
+                    }
+                }
+
+                return response;
+            }
+
+    </script>
+{% endif %}
+
+  <!-- ============ PAGE HEADER ============ -->
+  <section class="py-4 border-bottom" style="border-color:var(--border) !important;">
+    <div class="container-xl">
+      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
+        <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="profile">My Account</a></li>
+        <li class="breadcrumb-item active">Orders</li>
+      </ol></nav>
+      <h1 class="font-display mb-0">My Orders</h1>
+    </div>
+  </section>
+
+  <section class="py-5">
+    <div class="container-xl">
+      <div class="row g-4">
+
+        <!-- Account sidebar -->
+        <div class="col-lg-3">
+          <div class="account-sidebar p-3">
+            <a href="{% url 'home:user-profile' %}" class="account-nav-link"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+            <a href="{% url 'home:Orders' %}" class="account-nav-link active"><i class="bi bi-box-seam me-2"></i>Orders</a>
+            <a href="{% url 'home:user-wallet' %}" class="account-nav-link"><i class="bi bi-wallet2 me-2"></i>Wallet</a>
+            <a href="{% url 'home:user-address' %}" class="account-nav-link"><i class="bi bi-geo-alt me-2"></i>Addresses</a>
+            <a href="{% url 'home:Wishlist' %}" class="account-nav-link"><i class="bi bi-heart me-2"></i>Wishlist</a>
+            <a href="{% url 'home:Contact' %}" class="account-nav-link"><i class="bi bi-life-preserver me-2"></i>Support</a>
+          </div>
+        </div>
+
+        <!-- Orders list -->
+        <div class="col-lg-9">
+          <div class="d-flex flex-wrap gap-2 mb-4" id="orderStatusFilters">
+            <button class="btn btn-sm btn-outline-ink filter-btn active" data-filter="all">All</button>
+            <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="pending">Pending</button>
+            <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="processing">Processing</button>
+            <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="shipped">Shipped</button>
+            <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="delivered">Delivered</button>
+            <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="cancelled">Cancelled</button>
+          </div>
+
+          {% if not orders %}
+            <div class="text-center py-5" id="ordersEmptyState">
+              <i class="bi bi-inbox" style="font-size:3rem;color:var(--text-muted);"></i>
+              <h5 class="font-display mt-3">No orders here</h5>
+              <a href="{% url 'home:home' %}" class="btn btn-brass mt-2">Start Shopping</a>
+            </div>
+          {% else %}
+            <div class="text-center py-5 d-none" id="ordersEmptyState">
+              <i class="bi bi-inbox" style="font-size:3rem;color:var(--text-muted);"></i>
+              <h5 class="font-display mt-3">No orders here</h5>
+              <a href="{% url 'home:home' %}" class="btn btn-brass mt-2">Start Shopping</a>
+            </div>
+
+            <div class="d-flex flex-column gap-3" id="ordersList">
+              {% for order in orders %}
+                <div class="order-card p-3" data-status="{{ order.status }}">
+                  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                    <div>
+                      <div class="fw-semibold">{{ order.order_number }}</div>
+                      <div class="small text-muted-custom">Placed {{ order.placed_at|date:"M d, Y" }} &middot; {{ order.get_payment_method_display }}</div>
+                    </div>
+
+                    {% if order.status == "pending" %}
+                      <span class="status-badge status-pending"><i class="bi bi-circle-fill"></i> Pending</span>
+                    {% elif order.status == "submited" %}
+                      <span class="status-badge status-pending"><i class="bi bi-circle-fill"></i> Submitted</span>
+                    {% elif order.status == "processing" %}
+                      <span class="status-badge status-processing"><i class="bi bi-circle-fill"></i> Processing</span>
+                    {% elif order.status == "shipped" %}
+                      <span class="status-badge status-shipped"><i class="bi bi-circle-fill"></i> Shipped</span>
+                    {% elif order.status == "delivered" %}
+                      <span class="status-badge status-delivered"><i class="bi bi-circle-fill"></i> Delivered</span>
+                    {% elif order.status == "cancelled" %}
+                      <span class="status-badge status-cancelled"><i class="bi bi-circle-fill"></i> Cancelled</span>
+                    {% elif order.status == "returned" %}
+                      <span class="status-badge status-cancelled"><i class="bi bi-circle-fill"></i> Returned</span>
+                    {% elif order.status == "failed" %}
+                      <span class="status-badge status-cancelled"><i class="bi bi-circle-fill"></i> Payment Failed</span>
+                    {% endif %}
+                  </div>
+
+                  <div class="d-flex align-items-center gap-2 mt-3">
+                    {% for item in order.items.all|slice:":3" %}
+                      <img src="{% if item.product.images.first %}{{ item.product.images.first.image.url }}{% else %}{% static 'default-product.png' %}{% endif %}"
+                          width="100px"  alt="{{ item.product.name|default:'Product' }}" class="order-thumb">
+                    {% endfor %}
+                    {% if order.items.count > 3 %}
+                      <span class="small text-muted-custom">+{{ order.items.count|add:"-3" }} more</span>
+                    {% endif %}
+                  </div>
+
+                  <!-- Pending / submitted cancel-return requests for this order -->
+                  {% if order.requests.all %}
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                      {% for req in order.requests.all %}
+                        <span class="badge border
+                          {% if req.status == 'pending' %}bg-warning-subtle text-dark
+                          {% elif req.status == 'approved' or req.status == 'completed' %}bg-success-subtle text-dark
+                          {% elif req.status == 'rejected' %}bg-danger-subtle text-dark
+                          {% else %}bg-secondary-subtle text-dark{% endif %}">
+                          {{ req.get_request_type_display }} request &middot; {{ req.status|title }}
+                        </span>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+
+                  <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top" style="border-color:var(--border) !important;">
+                    <div class="fw-semibold">Rs. {{ order.total_amount|floatformat:2 }}</div>
+                    <div class="d-flex gap-2">
+                      <a href="{% url 'home:order-detail' order.order_number %}" class="btn btn-sm btn-outline-ink">View Details</a>
+
+                      {% if not order.has_pending_request %}
+                        {% if order.status == "pending" or order.status == "processing" %}
+                          <button type="button" class="btn btn-sm btn-outline-ink"
+                                  onclick="openCancelReturnModal({{ order.id }}, 'cancel')">Cancel</button>
+                        {% endif %}
+
+                        {% if order.status == "delivered" %}
+                          <button type="button" class="btn btn-sm btn-outline-ink"
+                                  onclick="openCancelReturnModal({{ order.id }}, 'return')">Return / Refund</button>
+                        {% endif %}
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Cancel / Return Modal ============ -->
+  <div class="modal fade" id="cancelReturnModal" tabindex="-1" aria-labelledby="cancelReturnModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header" style="padding: 6px 17px;">
+          <h5 class="modal-title" id="cancelReturnModalLabel">Order Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <form id="cancelReturnForm">
+
+            <!-- Previously submitted requests for this order -->
+            <div class="mb-3 d-none" id="existingRequestsSection">
+              <label class="form-label fw-semibold">Previous Requests</label>
+              <div id="existingRequestsList" class="d-flex flex-column gap-2"></div>
+            </div>
+
+            <!-- Select Request Type -->
+            <div class="mb-3">
+              <label for="requestType" class="form-label fw-semibold">Request Type</label>
+              <select class="form-select" id="requestType" required>
+                <option value="" selected disabled>Select type</option>
+                <option value="cancel">Cancel Order</option>
+                <option value="return">Return Order</option>
+              </select>
+            </div>
+            <input type="hidden" id="cancelOrderId"/>
+
+            <!-- Select Items -->
+            <div class="mb-3" id="returnItems">
+              <label class="form-label fw-semibold">Select Items</label>
+              <div class="list-group"></div>
+            </div>
+
+            <!-- Reason -->
+            <div class="mb-3" id="requestReasonCon">
+              <label for="requestReason" class="form-label fw-semibold">Reason</label>
+              <textarea class="form-control" id="requestReason" rows="3" placeholder="Enter reason for cancel/return"></textarea>
+            </div>
+
+            <!-- Preferred Action -->
+            <div class="mb-3" id="preferredActionsCon">
+              <label class="form-label fw-semibold">Preferred Action</label>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="preferredAction" id="refund" value="refund">
+                <label class="form-check-label" for="refund">Refund</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="preferredAction" id="replacement" value="replacement">
+                <label class="form-check-label" for="replacement">Replacement</label>
+              </div>
+            </div>
+
+            <!-- Optional Upload -->
+            <div class="mb-3">
+              <label for="requestAttachment" class="form-label fw-semibold">Attachment (optional)</label>
+              <input class="form-control" type="file" id="requestAttachment" accept="image/*,application/pdf">
+            </div>
+
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" form="cancelReturnForm" class="btn btn-danger">Submit Request</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="floating-stack">
+    <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+    <a href="https://wa.me/10000000000" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'assets/js/app.js' %}"></script>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+     function showAlert(message, type) {
+    if (typeof window.showAlert === "function" && window.showAlert !== showAlert) {
+        window.showAlert(message, type);
+        return;
+      }
+      alert(message);
+    }
+
+    // ---------- CSRF helper (session-auth, matches the plain Django views setup) ----------
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let cookie of cookies) {
+          cookie = cookie.trim();
+          if (cookie.startsWith(name + "=")) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    const csrftoken = getCookie("csrftoken");
+
+    // ---------- Client-side status filtering over the server-rendered cards ----------
+    function applyOrderFilter(filter) {
+      const cards = document.querySelectorAll("#ordersList .order-card");
+      let visibleCount = 0;
+      cards.forEach(card => {
+        const match = filter === "all" || card.dataset.status === filter;
+        card.classList.toggle("d-none", !match);
+        if (match) visibleCount++;
+      });
+      const emptyState = document.getElementById("ordersEmptyState");
+      if (emptyState) emptyState.classList.toggle("d-none", visibleCount !== 0);
+    }
+
+    document.querySelectorAll(".filter-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        applyOrderFilter(btn.dataset.filter);
+      });
+    });
+
+    // ---------- Show/hide reason + preferred action based on request type ----------
+    function toggleRequestFields() {
+      const requestTypeEl = document.getElementById("requestType");
+      const isCancel = requestTypeEl.value === "cancel";
+      document.getElementById("requestReasonCon").classList.toggle("d-none", isCancel);
+      document.getElementById("preferredActionsCon").classList.toggle("d-none", isCancel);
+    }
+    document.getElementById("requestType").addEventListener("change", toggleRequestFields);
+
+    // ---------- Open modal and populate it with the order's items + past requests ----------
+    function openCancelReturnModal(orderId, type) {
+      const orderDetailBaseUrl = "{% url 'OrderDetailApi' 0 %}";
+      const url = orderDetailBaseUrl.replace("0", orderId);
+
+      fetch(url, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Order not found");
+          return res.json();
+        })
+        .then(data => {
+          document.getElementById("cancelReturnModalLabel").innerText = `Order #${data.order_number} Details`;
+          document.getElementById("requestType").value = type;
+          document.getElementById("cancelOrderId").value = data.id;
+
+          const itemsContainer = document.getElementById("returnItems").querySelector(".list-group");
+          itemsContainer.innerHTML = "";
+          data.items.forEach(item => {
+            const totalPrice = parseFloat(item.price) * parseInt(item.quantity);
+            const html = `
+              <label class="list-group-item d-flex align-items-center">
+                <input class="form-check-input me-3" type="checkbox" name="items[]" checked value="${item.id}">
+                <img src="${item.product_image || '/static/default-product.png'}" width="50" class="border rounded me-3">
+                <div class="flex-grow-1">
+                  <div class="fw-semibold">${item.product_name}</div>
+                  <small class="text-muted">Qty: ${item.quantity}</small>
+                </div>
+                <div class="fw-semibold">Rs. ${totalPrice.toFixed(2)}</div>
+              </label>`;
+            itemsContainer.insertAdjacentHTML("beforeend", html);
+          });
+
+          // ---- Previously submitted / pending requests for this order ----
+          const requestsSection = document.getElementById("existingRequestsSection");
+          const requestsList = document.getElementById("existingRequestsList");
+          requestsList.innerHTML = "";
+          const existingRequests = data.requests || [];
+
+          if (existingRequests.length > 0) {
+            existingRequests.forEach(req => {
+              const badgeClass = req.status === "pending" ? "bg-warning-subtle text-dark"
+                : (req.status === "approved" || req.status === "completed") ? "bg-success-subtle text-dark"
+                : req.status === "rejected" ? "bg-danger-subtle text-dark"
+                : "bg-secondary-subtle text-dark";
+              const label = req.request_type === "cancel" ? "Cancellation" : "Return";
+              requestsList.insertAdjacentHTML("beforeend", `
+                <div class="border rounded p-2 small">
+                  <span class="badge ${badgeClass} border me-2">${req.status}</span>
+                  <strong>${label}</strong> request${req.reason ? ` &mdash; ${req.reason}` : ""}
+                </div>`);
+            });
+            requestsSection.classList.remove("d-none");
+          } else {
+            requestsSection.classList.add("d-none");
+          }
+
+          const hasPendingRequest = existingRequests.some(r => r.status === "pending");
+          const submitBtn = document.querySelector('button[form="cancelReturnForm"]');
+          const requestTypeSelect = document.getElementById("requestType");
+          submitBtn.disabled = hasPendingRequest;
+          requestTypeSelect.disabled = hasPendingRequest;
+          if (hasPendingRequest) {
+            showAlert("A request for this order is already pending review.", "warning");
+          }
+
+          toggleRequestFields();
+          new bootstrap.Modal(document.getElementById("cancelReturnModal")).show();
+        })
+        .catch(err => {
+          console.error(err);
+          showAlert("Failed to load order details", "warning");
+        });
+    }
+
+    // ---------- Submit cancel/return request ----------
+    document.getElementById("cancelReturnForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const requestTypeEl = document.getElementById("requestType");
+      const requestType = requestTypeEl.value;
+      if (!requestType) {
+        showAlert("Please select request type", "warning");
+        return;
+      }
+
+      const items = Array.from(this.querySelectorAll("input[name='items[]']:checked")).map(i => i.value);
+      if (items.length === 0) {
+        showAlert("Please select at least one item", "warning");
+        return;
+      }
+
+      const reason = document.getElementById("requestReason").value;
+      const preferredAction = this.querySelector("input[name='preferredAction']:checked")?.value;
+
+      if (requestType !== "cancel") {
+        if (!reason || !preferredAction) {
+          showAlert("Please fill reason and select preferred action", "warning");
+          return;
+        }
+      }
+
+      const formData = new FormData();
+      formData.append("order_id", document.getElementById("cancelOrderId").value);
+      formData.append("request_type", requestType);
+      items.forEach(id => formData.append("items[]", id));
+      formData.append("reason", reason);
+      formData.append("preferred_action", preferredAction || "");
+
+      const attachmentInput = document.getElementById("requestAttachment");
+      if (attachmentInput.files.length > 0) {
+        formData.append("attachment", attachmentInput.files[0]);
+      }
+
+      const cancelReturnUrl = "{% url 'order-request' %}";
+      fetch(cancelReturnUrl, {
+        method: "POST",
+        headers: { "X-CSRFToken": csrftoken, "Authorization": `Bearer ${localStorage.getItem("access_token")}` },
+        body: formData
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showAlert("Request submitted successfully", "warning");
+            new bootstrap.Modal(document.getElementById("cancelReturnModal")).hide();
+            window.location.reload();
+          } else {
+            showAlert("Failed to submit request: " + (data.error || "Unknown error"), "warning");
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showAlert("Failed to submit request", "warning");
+        });
+    });
+
+    applyOrderFilter("all");
+  </script>
+{% endblock %}

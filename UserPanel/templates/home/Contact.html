@@ -1,0 +1,139 @@
+{% extends "base2.html" %}
+{% load static %}
+{% block content %}
+
+  <!-- ============ PAGE HEADER ============ -->
+  <section class="py-4 border-bottom" style="border-color:var(--border) !important;">
+    <div class="container-xl">
+      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
+        <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
+        <li class="breadcrumb-item active">Contact / Support</li>
+      </ol></nav>
+      <h1 class="font-display mb-0">Get in Touch</h1>
+      <p class="text-muted-custom mb-0 mt-1">Questions about an order, a product, or anything else — we're here to help.</p>
+    </div>
+  </section>
+
+  <section class="py-5">
+    <div class="container-xl">
+      <div class="row g-4">
+
+        <!-- ============ CONTACT INFO ============ -->
+        <div class="col-lg-4">
+          <div class="p-4 border rounded mb-3" style="border-color:var(--border) !important;">
+            <div class="d-flex align-items-start gap-3 mb-3">
+              <i class="bi bi-envelope fs-4"></i>
+              <div>
+                <div class="fw-semibold">Email</div>
+                <div class="small text-muted-custom">support@shanzee.com</div>
+              </div>
+            </div>
+            <div class="d-flex align-items-start gap-3 mb-3">
+              <i class="bi bi-telephone fs-4"></i>
+              <div>
+                <div class="fw-semibold">Phone</div>
+                <div class="small text-muted-custom">+92 300 0000000</div>
+              </div>
+            </div>
+            <div class="d-flex align-items-start gap-3 mb-3">
+              <i class="bi bi-whatsapp fs-4"></i>
+              <div>
+                <div class="fw-semibold">WhatsApp</div>
+                <a href="https://wa.me/10000000000" target="_blank" class="small text-decoration-underline">Chat with us</a>
+              </div>
+            </div>
+            <div class="d-flex align-items-start gap-3">
+              <i class="bi bi-clock fs-4"></i>
+              <div>
+                <div class="fw-semibold">Support Hours</div>
+                <div class="small text-muted-custom">Mon &ndash; Sat, 10:00 AM &ndash; 7:00 PM</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 border rounded" style="border-color:var(--border) !important;">
+            <div class="fw-semibold mb-2"><i class="bi bi-box-seam me-1"></i> Order-related question?</div>
+            <p class="small text-muted-custom mb-2">You can also raise a cancel/return request directly from your order.</p>
+            <a href="{% url 'home:Orders' %}" class="btn btn-sm btn-outline-ink">View My Orders</a>
+          </div>
+        </div>
+
+        <!-- ============ CONTACT FORM ============ -->
+        <div class="col-lg-8">
+          <div class="p-4 border rounded" style="border-color:var(--border) !important;">
+
+            {% if success %}
+              <div class="alert alert-success d-flex align-items-center gap-2">
+                <i class="bi bi-check-circle-fill"></i>
+                Thanks &mdash; your message has been received. We'll get back to you shortly.
+              </div>
+            {% endif %}
+
+            {% if error %}
+              <div class="alert alert-danger d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-circle-fill"></i> {{ error }}
+              </div>
+            {% endif %}
+
+            <form method="POST" enctype="multipart/form-data">
+              {% csrf_token %}
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="contactName" class="form-label fw-semibold">Your Name</label>
+                  <input type="text" class="form-control" id="contactName" name="name" value="{{ data.name }}" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="contactEmail" class="form-label fw-semibold">Email Address</label>
+                  <input type="email" class="form-control" id="contactEmail" name="email" value="{{ data.email }}" required>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="supportType" class="form-label fw-semibold">Support Type</label>
+                  <select class="form-select" id="supportType" name="support_type">
+                    <option value="general">General Inquiry</option>
+                    <option value="order">Order Issue</option>
+                    <option value="payment">Payment / Billing</option>
+                    <option value="product">Product Question</option>
+                    <option value="technical">Technical Issue</option>
+                    <option value="feedback">Feedback</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label for="contactSubject" class="form-label fw-semibold">Subject</label>
+                  <input type="text" class="form-control" id="contactSubject" name="subject" value="{{ data.subject }}" required>
+                </div>
+
+                <div class="col-12">
+                  <label for="contactMessage" class="form-label fw-semibold">Message</label>
+                  <textarea class="form-control" id="contactMessage" name="message" rows="5" required>{{ data.message }}</textarea>
+                </div>
+
+                <div class="col-12">
+                  <label for="contactAttachment" class="form-label fw-semibold">Attachment (optional)</label>
+                  <input type="file" class="form-control" id="contactAttachment" name="attachment" accept="image/*,application/pdf">
+                  <div class="small text-muted-custom mt-1">Screenshot of an issue, order proof, etc.</div>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-brass px-4 mt-4">
+                <i class="bi bi-send me-1"></i> Send Message
+              </button>
+            </form>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="floating-stack">
+    <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+    <a href="https://wa.me/10000000000" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'assets/js/app.js' %}"></script>
+{% endblock %}

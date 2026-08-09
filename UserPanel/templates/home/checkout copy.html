@@ -1,0 +1,331 @@
+{% extends "base2.html" %}
+{% block content %}
+
+
+
+  <!-- ============ HEADER ============ -->
+  <header class="site-header">
+    <div class="container-xl py-3 d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-4">
+         <div class="container-xl">
+      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
+        <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+        <li class="breadcrumb-item"><a href="cart.html">Cart</a></li>
+        <li class="breadcrumb-item active">Checkout</li>
+      </ol></nav>
+      <h1 class="font-display mb-0">Checkout</h1>
+    </div>
+      </div>
+      <div class="checkout-steps d-none d-md-flex align-items-center gap-2 small text-muted-custom">
+        <span class="step done"><i class="bi bi-check-circle-fill text-success"></i> Cart</span>
+        <i class="bi bi-chevron-right"></i>
+        <span class="step active fw-semibold" style="color:var(--ink);">Checkout</span>
+        <i class="bi bi-chevron-right"></i>
+        <span class="step">Confirmation</span>
+      </div>
+      <a href="cart.html" class="btn-icon" aria-label="Back to cart"><i class="bi bi-arrow-left"></i></a>
+    </div>
+  </header>
+
+  <!-- ============ CHECKOUT ============ -->
+  <section class="py-5">
+    <div class="container-xl">
+      <form id="checkoutForm" class="row g-4 needs-validation" novalidate>
+
+        <div class="col-lg-8 d-flex flex-column gap-4">
+
+          <!-- Shipping address -->
+          <div class="checkout-panel p-4">
+            <h5 class="font-display mb-3"><i class="bi bi-truck me-2"></i>Shipping Address</h5>
+            <div class="row g-3">
+                <select class="form-select" id="addressSelect">
+                <option value="">Select Address</option>
+                {% for address in addresses %}
+                <option value="{{ address.id }}"
+                        {% if address.is_default %}selected{% endif %}>
+                {{ address.full_name }}
+                -
+                {{ address.city }}
+                </option>
+                {% endfor %}
+
+                </select>
+              <div class="col-md-6">
+                <label class="form-label small">Full Name</label>
+                <input
+                    type="text"
+                    class="form-control"
+                    name="shipping_full_name"
+                    value="{{ defaultaddresses.first.full_name }}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small">Phone</label>
+                <input type="tel" class="form-control" value="{{ defaultaddresses.first.phone }}" name="shipping_phone" required>
+              </div>
+              <div class="col-12">
+                <label class="form-label small">Street Address</label>
+                <input type="text" class="form-control" value="{{ defaultaddresses.first.address }}" name="shipping_street_address" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">City</label>
+                <input type="text" class="form-control" value="{{ defaultaddresses.first.city }}" name="shipping_city" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">State / Province</label>
+                <input type="text" class="form-control" name="shipping_state" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">Postal Code</label>
+                <input type="text" class="form-control" name="shipping_postal_code" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small">Country</label>
+                <select class="form-select" name="shipping_country" required>
+                  <option value="">Select country</option>
+                  <option>United States</option>
+                  <option>Pakistan</option>
+                  <option>United Kingdom</option>
+                  <option>Canada</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Billing address -->
+          <div class="checkout-panel p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="font-display mb-0"><i class="bi bi-receipt me-2"></i>Billing Address</h5>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="sameAsShipping" checked>
+                <label class="form-check-label small" for="sameAsShipping">Same as shipping</label>
+              </div>
+            </div>
+            <div class="row g-3" id="billingFields" style="display:none;">
+              <div class="col-md-6">
+                <label class="form-label small">Full Name</label>
+                <input type="text" class="form-control" name="billing_full_name">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small">Phone</label>
+                <input type="tel" class="form-control" name="billing_phone">
+              </div>
+              <div class="col-12">
+                <label class="form-label small">Street Address</label>
+                <input type="text" class="form-control" name="billing_street_address">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">City</label>
+                <input type="text" class="form-control" name="billing_city">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">State / Province</label>
+                <input type="text" class="form-control" name="billing_state">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">Postal Code</label>
+                <input type="text" class="form-control" name="billing_postal_code">
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment method -->
+          <div class="checkout-panel p-4">
+            <h5 class="font-display mb-3"><i class="bi bi-credit-card me-2"></i>Payment Method</h5>
+            <div class="d-flex flex-column gap-2">
+              <label class="payment-option d-flex align-items-center gap-3 p-3">
+                <input type="radio" name="payment_method" value="cod" checked>
+                <i class="bi bi-cash-stack fs-4"></i>
+                <div><div class="fw-semibold">Cash on Delivery</div><small class="text-muted-custom">Pay when your order arrives</small></div>
+              </label>
+              <label class="payment-option d-flex align-items-center gap-3 p-3">
+                <input type="radio" name="payment_method" value="card">
+                <i class="bi bi-credit-card-2-front fs-4"></i>
+                <div><div class="fw-semibold">Card Payment</div><small class="text-muted-custom">Visa, Mastercard, Amex</small></div>
+              </label>
+              <label class="payment-option d-flex align-items-center gap-3 p-3">
+                <input type="radio" name="payment_method" value="wallet">
+                <i class="bi bi-wallet2 fs-4"></i>
+                <div><div class="fw-semibold">AUGUST Wallet</div><small class="text-muted-custom">Balance available: <span id="walletBalance">$42.00</span></small></div>
+              </label>
+            </div>
+
+            <div id="cardFields" class="row g-3 mt-2" style="display:none;">
+              <div class="col-md-6">
+                <label class="form-label small">Card Number</label>
+                <input type="text" class="form-control" placeholder="•••• •••• •••• ••••">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small">Expiry</label>
+                <input type="text" class="form-control" placeholder="MM/YY">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small">CVC</label>
+                <input type="text" class="form-control" placeholder="•••">
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="checkout-panel p-4">
+            <h5 class="font-display mb-3"><i class="bi bi-sticky me-2"></i>Order Notes (optional)</h5>
+            <textarea class="form-control" name="notes" rows="3" placeholder="Delivery instructions, gift notes, etc."></textarea>
+          </div>
+
+        </div>
+
+        <!-- Order summary -->
+        <div class="col-lg-4">
+          <div class="summary-card p-4">
+            <h5 class="font-display mb-3">Order Summary</h5>
+
+            <div class="d-flex flex-column gap-3 mb-3">
+
+              {% for cart in items.cart_items %}
+              <div class="d-flex gap-2 align-items-center">
+
+                  <img
+                      src="{% if cart.product.images.first %}{{ cart.product.images.first.image.url }}{% endif %}"
+                      class="checkout-thumb" width="100px"
+                      alt="{{ cart.product.name }}">
+
+                  <div class="flex-grow-1">
+
+                      <div class="small fw-semibold">
+                          {{ cart.product.name }}
+                      </div>
+
+                      {% if cart.variant %}
+                      <div class="small text-muted">
+                          SKU: {{ cart.variant.sku }}
+                      </div>
+                      {% endif %}
+
+                      <div class="small text-muted-custom">
+                          Qty {{ cart.quantity }}
+                      </div>
+
+                  </div>
+
+                  <div class="text-end">
+
+                      {% if cart.product.has_discount %}
+                          <div class="small fw-semibold">
+                              ${{ cart.product.final_price|floatformat:2 }}
+                          </div>
+
+                          <small class="text-decoration-line-through text-muted">
+                              ${{ cart.variant.price|floatformat:2 }}
+                          </small>
+                      {% else %}
+                          <div class="small fw-semibold">
+                              ${{ cart.variant.price|floatformat:2 }}
+                          </div>
+                      {% endif %}
+
+                  </div>
+
+              </div>
+              {% endfor %}
+
+              </div>
+
+            <hr>
+            <div class="summary-row d-flex justify-content-between">
+              <span>Subtotal</span><span>${{ items.subtotal|floatformat:2 }}</span>
+            </div>
+            <div class="summary-row d-flex justify-content-between">
+              <span>Shipping</span><span>${{ items.shipping_total|floatformat:2 }}</span>
+            </div>
+            <div class="summary-row d-flex justify-content-between text-success"
+                  {% if items.total_off_price == 0 %}
+                  style="display:none"
+                  {% endif %}>
+              <span>Discount</span><span>-${{ items.total_off_price|floatformat:2 }}</span>
+            </div>
+            <hr>
+            <div class="summary-row d-flex justify-content-between fw-semibold fs-5">
+              <span>Total</span><span>${{ items.final_total|floatformat:2 }}</span>
+            </div>
+            <div class="alert alert-light mt-3">
+                <i class="bi bi-truck"></i>
+                Estimated Delivery
+                <strong>
+                    {{ items.estimated_date|date:"d M Y" }}
+                </strong>
+            </div>
+            <button type="submit" class="btn btn-brass w-100 mt-4">Place Order</button>
+
+            <div class="d-flex align-items-center gap-2 mt-3 text-muted-custom small">
+              <i class="bi bi-shield-check"></i> Secure checkout · 256-bit SSL
+            </div>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </section>
+
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    // Same demo cart data shape as cart.html — wire this up to your real cart source.
+  
+    const appliedDiscountRate = 0; // set from a coupon carried over from cart.html, if any
+
+    function checkoutItemRow(item) {
+      return `
+      <div class="d-flex gap-2 align-items-center">
+        <img src="${item.image}" class="checkout-thumb" alt="${item.name}">
+        <div class="flex-grow-1">
+          <div class="small fw-semibold">${item.name}</div>
+          <div class="small text-muted-custom">Qty ${item.qty}</div>
+        </div>
+        <div class="small fw-semibold">$${(item.price * item.qty).toFixed(2)}</div>
+      </div>`;
+    }
+
+    function renderCheckoutSummary() {
+      document.getElementById("checkoutItemsList").innerHTML = CHECKOUT_ITEMS.map(checkoutItemRow).join("");
+      const subtotal = CHECKOUT_ITEMS.reduce((sum, i) => sum + i.price * i.qty, 0);
+      const shipping = subtotal >= 75 ? 0 : 8.5;
+      const discount = subtotal * appliedDiscountRate;
+      const total = Math.max(0, subtotal + shipping - discount);
+
+      document.getElementById("ckSubtotal").textContent = `$${subtotal.toFixed(2)}`;
+      document.getElementById("ckShipping").textContent = shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`;
+      document.getElementById("ckTotal").textContent = `$${total.toFixed(2)}`;
+
+      const discountRow = document.getElementById("ckDiscountRow");
+      if (discount > 0) {
+        discountRow.style.display = "flex";
+        document.getElementById("ckDiscount").textContent = `-$${discount.toFixed(2)}`;
+      }
+    }
+
+    // Same-as-shipping toggle
+    const sameAsShipping = document.getElementById("sameAsShipping");
+    const billingFields = document.getElementById("billingFields");
+    sameAsShipping.addEventListener("change", () => {
+      billingFields.style.display = sameAsShipping.checked ? "none" : "flex";
+    });
+
+    // Payment method → show/hide card fields
+    document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+      radio.addEventListener("change", () => {
+        document.getElementById("cardFields").style.display =
+          document.querySelector('input[name="payment_method"]:checked').value === "card" ? "flex" : "none";
+      });
+    });
+
+    {% comment %} document.getElementById("checkoutForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (!this.checkValidity()) {
+        this.classList.add("was-validated");
+        return;
+      }
+      // Hook this up to your order-placement endpoint.
+      window.location.href = "orders.html";
+    }); {% endcomment %}
+  </script>
+{% endblock %}

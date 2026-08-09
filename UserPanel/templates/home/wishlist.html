@@ -1,0 +1,179 @@
+{% extends "base2.html" %}
+{% load static %}
+{% block content %}
+  <!-- ============ PAGE HEADER ============ -->
+  <section class="py-4 border-bottom" style="border-color:var(--border) !important;">
+    <div class="container-xl d-flex justify-content-between align-items-end flex-wrap gap-2">
+      <div>
+        <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
+          <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
+          <li class="breadcrumb-item active">Wishlist</li>
+        </ol></nav>
+        <h1 class="font-display mb-0">Your Wishlist</h1>
+      </div>
+      <div class="small text-muted-custom"><span id="wishlistCountLabel">{{ wishlist_items.count }}</span> saved items</div>
+    </div>
+  </section>
+
+  <!-- ============ WISHLIST ============ -->
+  <section class="py-5">
+    <div class="container-xl">
+
+      {% if not wishlist_items %}
+        <div id="wishlistEmptyState" class="text-center py-5">
+          <i class="bi bi-heart" style="font-size:3rem;color:var(--text-muted);"></i>
+          <h4 class="font-display mt-3">Your wishlist is empty</h4>
+          <p class="text-muted-custom">Tap the heart on any product to save it here.</p>
+          <a href="{% url 'home:home' %}" class="btn btn-brass mt-2">Browse Products</a>
+        </div>
+      {% else %}
+        <div id="wishlistEmptyState" class="text-center py-5 d-none">
+          <i class="bi bi-heart" style="font-size:3rem;color:var(--text-muted);"></i>
+          <h4 class="font-display mt-3">Your wishlist is empty</h4>
+          <p class="text-muted-custom">Tap the heart on any product to save it here.</p>
+          <a href="{% url 'home:home' %}" class="btn btn-brass mt-2">Browse Products</a>
+        </div>
+
+        <div class="row g-3" id="wishlistGrid">
+          {% for item in wishlist_items %}
+            {% with product=item.product variant=item.variant %}
+              {% with current_price=variant.price|default:product.price was_price=product.compare_at_price in_stock=variant.stock_quantity|default:1 %}
+                <div class="col-6 col-md-4 col-lg-3"
+                     data-wish-card="{{ item.id }}"
+                     data-product-id="{{ product.id }}"
+                     data-variant-id="{{ variant.id|default:'' }}">
+                  <div class="product-card reveal in">
+                    <div class="product-media">
+                      <a href="product-details.html?id={{ product.id }}">
+                        <img class="img-primary"
+                             src="{% if product.images.first %}{{ product.images.first.image.url }}{% else %}{% static 'default-product.png' %}{% endif %}"
+                             alt="{{ product.name }}">
+                      </a>
+                      <div class="badge-stack">
+                        {% if was_price and was_price > current_price %}
+                          <span class="badge-tag badge-sale">Sale</span>
+                        {% endif %}
+                        {% if in_stock <= 0 %}
+                          <span class="badge-tag" style="background:var(--text-muted);">Out of Stock</span>
+                        {% endif %}
+                      </div>
+                      <div class="product-actions">
+                        <button class="btn-icon" onclick="removeFromWishlist({{ product.id }}, {{ variant.id|default:'null' }})" aria-label="Remove from wishlist">
+                          <i class="bi bi-heart-fill" style="color:var(--rust);"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="ticket-divider"></div>
+                    <div class="product-info">
+                      <div class="cat">{{ product.category.name|default:"" }}</div>
+                      <div class="name">{{ product.name }}</div>
+                      <div class="price-row mt-1">
+                        <span class="price-now">Rs. {{ current_price|floatformat:2 }}</span>
+                        {% if was_price and was_price > current_price %}
+                          <span class="price-was">Rs. {{ was_price|floatformat:2 }}</span>
+                        {% endif %}
+                      </div>
+                      <button class="btn btn-brass w-100 mt-3" {% if in_stock <= 0 %}disabled{% endif %}
+                              onclick="Cart.add('{{ product.id }}', 1{% if variant.id %}, '{{ variant.id }}'{% endif %})">
+                        <i class="bi bi-bag-plus me-1"></i> {% if in_stock > 0 %}Add to Cart{% else %}Notify Me{% endif %}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              {% endwith %}
+            {% endwith %}
+          {% endfor %}
+        </div>
+
+        <div class="d-flex justify-content-center mt-4" id="wishlistBulkActions">
+          <button class="btn btn-brass px-4" onclick="addAllToCart()"><i class="bi bi-bag-plus me-1"></i> Add All to Cart</button>
+        </div>
+      {% endif %}
+
+    </div>
+  </section>
+
+
+  <div class="floating-stack">
+    <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+    <a href="https://wa.me/10000000000" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'assets/js/cart.js' %}"></script>
+  <script src="{% static 'assets/js/app.js' %}"></script>
+{% endblock %}
+
+
+{% block extra_js %}
+  <script>
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let cookie of cookies) {
+          cookie = cookie.trim();
+          if (cookie.startsWith(name + "=")) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    const csrftoken = getCookie("csrftoken");
+
+    function updateWishlistCountBadges() {
+      const count = document.querySelectorAll("#wishlistGrid [data-wish-card]").length;
+      document.getElementById("wishlistCountLabel").textContent = count;
+      document.querySelectorAll("[data-wishlist-count]").forEach(el => el.textContent = count);
+
+      if (count === 0) {
+        document.getElementById("wishlistEmptyState").classList.remove("d-none");
+        const bulk = document.getElementById("wishlistBulkActions");
+        if (bulk) bulk.classList.add("d-none");
+      }
+    }
+
+    function removeFromWishlist(productId, variantId) {
+      const wishToBuyUrl = "{% url 'home:wish-to-buy' %}";
+      fetch(wishToBuyUrl, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrftoken
+        },
+        body: JSON.stringify({ product_id: productId, variant_id: variantId || null })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "success") {
+            const card = document.querySelector(`[data-product-id="${productId}"][data-variant-id="${variantId || ''}"]`);
+            if (card) card.remove();
+            updateWishlistCountBadges();
+          } else {
+            showAlert(data.message || "Failed to remove item", "warning");
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showAlert("Failed to remove item", "warning");
+        });
+    }
+
+    function addAllToCart() {
+      document.querySelectorAll("#wishlistGrid [data-wish-card]").forEach(card => {
+        const btn = card.querySelector(".btn-brass");
+        if (btn && !btn.disabled) btn.click();
+      });
+    }
+
+    function showAlert(message, type) {
+      if (typeof window.showAlert === "function" && window.showAlert !== showAlert) {
+        window.showAlert(message, type);
+        return;
+      }
+      alert(message);
+    }
+  </script>
+{% endblock %}

@@ -1,0 +1,82 @@
+/* =========================================================
+   AUGUST — Design Tokens
+   A premium goods retailer. Aesthetic: "the tear-off ticket" —
+   perforated tag edges, receipt-mono pricing, brass foil accents.
+   ========================================================= */
+
+:root{
+  /* ---- Brand palette ---- */
+  --ink:            #14181B;   /* near-black, warm */
+  --ink-soft:       #1D2226;
+  --paper:          #F7F4EE;   /* warm paper */
+  --paper-soft:     #EFEAE0;
+  --brass:          #B08D57;   /* primary accent — foil brass */
+  --brass-deep:     #8C6E3F;
+  --pine:           #2B3A32;   /* secondary — deep bottle green */
+  --pine-soft:      #3C4F45;
+  --rust:           #C1502E;   /* sale / discount */
+  --slate:          #5B6360;   /* muted text on paper */
+  --slate-dark:     #A7ADA8;   /* muted text on ink */
+  --line:           rgba(20,24,27,0.12);
+  --line-dark:      rgba(247,244,238,0.14);
+
+
+
+  /* ---- Semantic (light = default) ---- */
+  --bg:             var(--paper);
+  --bg-elevated:    #FFFFFF;
+  --bg-soft:        var(--paper-soft);
+  --text:           var(--ink);
+  --text-muted:     var(--slate);
+  --border:         var(--line);
+  --accent:         var(--brass);
+  --accent-deep:    var(--brass-deep);
+  --on-accent:      #14181B;
+
+  /* ---- Type ---- */
+  --font-display: "Fraunces", "Iowan Old Style", serif;
+  --font-body:    "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:    "IBM Plex Mono", ui-monospace, monospace;
+
+  /* ---- Scale ---- */
+  --radius-sm: 3px;
+  --radius: 6px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(20,24,27,0.06);
+  --shadow: 0 8px 24px -8px rgba(20,24,27,0.18);
+  --shadow-lg: 0 24px 48px -16px rgba(20,24,27,0.28);
+
+  --dur: 220ms;
+  --ease: cubic-bezier(.4,0,.2,1);
+
+
+      --sz-green-deep: #0f2e22;
+    --sz-green: #153c2b;
+    --sz-green-light: #1f5038;
+    --sz-gold: #c99a3d;
+    --sz-gold-light: #e0b967;
+    --sz-cream: #faf8f3;
+    --sz-ink: #1c1f1d;
+    --sz-muted: #6b756f;
+    --sz-border: #e7e3d8;
+    --sz-red: #c0392b;
+}
+
+/* ---- Dark mode ---- */
+html[data-theme="dark"]{
+  --bg:            var(--ink);
+  --bg-elevated:   var(--ink-soft);
+  --bg-soft:       #23282C;
+  --text:          var(--paper);
+  --text-muted:    var(--slate-dark);
+  --border:        var(--line-dark);
+  --accent:        var(--brass);
+  --accent-deep:   #C9A768;
+  --on-accent:     #14181B;
+  --shadow:        0 8px 28px -8px rgba(0,0,0,0.55);
+  --shadow-lg:     0 28px 56px -16px rgba(0,0,0,0.65);
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}

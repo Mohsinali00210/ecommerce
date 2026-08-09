@@ -1,0 +1,146 @@
+{% extends "base2.html" %}
+{% load static %}
+{% block content %}
+
+  <!-- ============ PAGE HEADER ============ -->
+  <section class="py-4 border-bottom" style="border-color:var(--border) !important;">
+    <div class="container-xl">
+      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
+        <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="profile">My Account</a></li>
+        <li class="breadcrumb-item active">Edit Profile</li>
+      </ol></nav>
+      <h1 class="font-display mb-0">Edit Profile</h1>
+    </div>
+  </section>
+
+  <section class="py-5">
+    <div class="container-xl">
+      <div class="row g-4">
+
+        <!-- Account sidebar -->
+        <div class="col-lg-3">
+          <div class="account-sidebar p-3">
+            <a href="{% url 'home:user-profile' %}" class="account-nav-link"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+            <a href="{% url 'home:Orders' %}" class="account-nav-link active"><i class="bi bi-box-seam me-2"></i>Orders</a>
+            <a href="{% url 'home:user-wallet' %}" class="account-nav-link"><i class="bi bi-wallet2 me-2"></i>Wallet</a>
+            <a href="{% url 'home:user-address' %}" class="account-nav-link"><i class="bi bi-geo-alt me-2"></i>Addresses</a>
+            <a href="{% url 'home:Wishlist' %}" class="account-nav-link"><i class="bi bi-heart me-2"></i>Wishlist</a>
+            <a href="{% url 'home:Contact' %}" class="account-nav-link"><i class="bi bi-life-preserver me-2"></i>Support</a>
+          </div>
+        </div>
+
+        <div class="col-lg-9">
+
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-success d-flex align-items-center gap-2" role="alert">
+                <i class="bi bi-check-circle-fill"></i> {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+
+          <div class="p-4 border rounded" style="border-color:var(--border) !important;">
+            <form method="post" enctype="multipart/form-data" novalidate>
+              {% csrf_token %}
+
+              <!-- Avatar -->
+              <div class="d-flex align-items-center gap-4 mb-4 pb-4 border-bottom" style="border-color:var(--border) !important;">
+                <img id="avatarPreview"
+                     src="{% if request.user.avatar %}{{ request.user.avatar.url }}{% else %}{% static 'default-avatar.png' %}{% endif %}"
+                     alt="Avatar preview" class="rounded-circle" width="88" height="88" style="object-fit:cover;">
+                <div>
+                  <label for="{{ form.avatar.id_for_label }}" class="btn btn-outline-ink btn-sm mb-1">
+                    <i class="bi bi-camera me-1"></i> Change Photo
+                  </label>
+                  {{ form.avatar }}
+                  <div class="small text-muted-custom">JPG or PNG, up to 5MB.</div>
+                  {% if form.avatar.errors %}
+                    <div class="small text-danger mt-1">{{ form.avatar.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <!-- Full Name -->
+                <div class="col-md-6">
+                  <label for="{{ form.full_name.id_for_label }}" class="form-label fw-semibold">Full Name</label>
+                  {{ form.full_name }}
+                  {% if form.full_name.errors %}<div class="small text-danger mt-1">{{ form.full_name.errors.0 }}</div>{% endif %}
+                </div>
+
+                <!-- Email -->
+                <div class="col-md-6">
+                  <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">Email</label>
+                  {{ form.email }}
+                  <div class="small text-muted-custom mt-1">Changing your email will require re-verification.</div>
+                  {% if form.email.errors %}<div class="small text-danger mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+                </div>
+
+                <!-- Mobile -->
+                <div class="col-md-6">
+                  <label for="{{ form.mobile.id_for_label }}" class="form-label fw-semibold">Mobile Number</label>
+                  {{ form.mobile }}
+                  {% if form.mobile.errors %}<div class="small text-danger mt-1">{{ form.mobile.errors.0 }}</div>{% endif %}
+                </div>
+
+                <!-- Date of Birth -->
+                <div class="col-md-6">
+                  <label for="{{ form.dob.id_for_label }}" class="form-label fw-semibold">Date of Birth</label>
+                  {{ form.dob }}
+                  {% if form.dob.errors %}<div class="small text-danger mt-1">{{ form.dob.errors.0 }}</div>{% endif %}
+                </div>
+
+                <!-- Gender -->
+                <div class="col-md-6">
+                  <label for="{{ form.gender.id_for_label }}" class="form-label fw-semibold">Gender</label>
+                  {{ form.gender }}
+                  {% if form.gender.errors %}<div class="small text-danger mt-1">{{ form.gender.errors.0 }}</div>{% endif %}
+                </div>
+              </div>
+
+              {% if form.non_field_errors %}
+                <div class="alert alert-danger mt-3">{{ form.non_field_errors.0 }}</div>
+              {% endif %}
+
+              <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-brass px-4"><i class="bi bi-check-lg me-1"></i> Save Changes</button>
+                <a href="profile" class="btn btn-outline-ink px-4">Cancel</a>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="floating-stack">
+    <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+    <a href="https://wa.me/10000000000" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'assets/js/app.js' %}"></script>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    const avatarInput = document.getElementById("{{ form.avatar.id_for_label }}");
+    const avatarPreview = document.getElementById("avatarPreview");
+
+    avatarInput.classList.add("d-none");
+    avatarInput.addEventListener("change", function () {
+      const file = this.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image must be under 5MB.");
+        this.value = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = e => { avatarPreview.src = e.target.result; };
+      reader.readAsDataURL(file);
+    });
+  </script>
+{% endblock %}

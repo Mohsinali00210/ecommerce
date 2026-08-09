@@ -1,42 +1,90 @@
-{% load socialaccount %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Continue with Google</title>
+{% extends "base2.html" %}
+{% load static %}
+{% block content %}
 
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
+  <section class="py-5">
+    <div class="container-xl">
+      <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+          <div class="border rounded-4 overflow-hidden d-flex flex-column flex-md-row" style="border-color:var(--border) !important;">
 
-<body class="bg-light">
+            <!-- LEFT PANEL -->
+            <div class="d-none d-md-flex flex-column align-items-center justify-content-center text-center gap-3 p-5"
+                 style="flex:1;background:var(--pine,#1f3d2f);color:#fff;">
+              <img src="{% static 'images/logo.png' %}" width="80" alt="Shan Zee">
+              <h3 class="font-display mb-0">Welcome Back</h3>
+              <p class="opacity-75 small mb-0">Sign in to track orders, manage your wallet, and pick up your wishlist right where you left off.</p>
+            </div>
 
-<div class="container d-flex justify-content-center align-items-center vh-100">
-    <div class="card p-4 shadow text-center" style="width: 420px; border-radius: 12px;">
+            <!-- RIGHT PANEL -->
+            <div class="p-5" style="flex:1;">
+              <h4 class="font-display text-center mb-4">Login</h4>
 
-        <h4 class="mb-3">Sign in with Google</h4>
+              <form method="POST" id="loginForm">
+                {% csrf_token %}
 
-        <p class="text-muted">
-            You are about to sign in using your Google account.
-        </p>
+                {% if error %}
+                  <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
 
-        <!-- Continue Button -->
-        <form method="post">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-danger w-100 d-flex align-items-center justify-content-center gap-2">
-                <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" width="20">
-                Continue with Google
-            </button>
-        </form>
+                <div class="mb-3">
+                  <label class="form-label small text-muted-custom">Email Address</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-transparent"><i class="bi bi-envelope"></i></span>
+                    <input type="email" name="username" class="form-control" placeholder="you@email.com" required>
+                  </div>
+                </div>
 
-        <hr>
+                <div class="mb-3">
+                  <label class="form-label small text-muted-custom">Password</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-transparent"><i class="bi bi-lock"></i></span>
+                    <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
+                    <span class="input-group-text" style="cursor:pointer;" onclick="togglePassword('password', this)">
+                      <i class="bi bi-eye"></i>
+                    </span>
+                  </div>
+                </div>
 
-        <a href="{% url 'account_login' %}" class="btn btn-outline-secondary w-100">
-            Cancel
-        </a>
+                <button type="submit" class="btn btn-brass w-100" id="loginBtn">Login</button>
 
+                {% load socialaccount %}
+                <a href="{% provider_login_url 'google' %}" class="btn btn-outline-ink w-100 mt-3">
+                  <i class="bi bi-google me-2"></i> Continue with Google
+                </a>
+
+                <div class="text-center mt-3">
+                  <a href="{% url 'register' %}" class="text-decoration-underline">Create an account</a>
+                </div>
+              </form>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </div>
-</div>
+  </section>
 
-</body>
-</html>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    function togglePassword(inputId, iconEl) {
+      const input = document.getElementById(inputId);
+      const icon = iconEl.querySelector("i");
+      if (input.type === "password") {
+        input.type = "text";
+        icon.classList.replace("bi-eye", "bi-eye-slash");
+      } else {
+        input.type = "password";
+        icon.classList.replace("bi-eye-slash", "bi-eye");
+      }
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", function () {
+      const btn = document.getElementById("loginBtn");
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Logging in...`;
+      btn.disabled = true;
+    });
+  </script>
+{% endblock %}

@@ -32,7 +32,7 @@ class Category(models.Model):
         blank=True,
         related_name='children'
     )
-
+    image = models.ImageField( upload_to="categories/", null=True, blank=True )
     is_active = models.BooleanField(default=True)
     is_deleted = models.BooleanField(default=False)
 
@@ -716,7 +716,7 @@ class Wishlist(BaseAuditModel):
         unique_together = ("user", "product")  # Prevent duplicate wishlist
 
     def __str__(self):
-        return f"{self.user.username} - {self.product.name}"
+        return f"{self.user.full_name} - {self.product.name}"
 
 
 

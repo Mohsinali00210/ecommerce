@@ -1,0 +1,32 @@
+<section class="cat-strip">
+    <div class="container-xl">
+        <div class="cat-strip-scroll">
+
+            {% for category in categories %}
+            <a href="#" class="cat-circle-item">
+
+                <div class="cat-circle">
+
+                    {% if category.image %}
+                        <img src="{{ category.image.url }}" alt="{{ category.name }}">
+                    {% else %}
+                        <img src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=200&q=80"
+                             alt="{{ category.name }}">
+                    {% endif %}
+
+                </div>
+
+                <span>{{ category.name }}</span>
+
+            </a>
+            {% empty %}
+
+            <div class="text-center w-100 py-4">
+                <h6>No Categories Found</h6>
+            </div>
+
+            {% endfor %}
+
+        </div>
+    </div>
+</section>

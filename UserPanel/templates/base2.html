@@ -1,0 +1,722 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shan Zee — Considered Goods, Well Made</title>
+<meta name="description" content="AUGUST is a premium goods retailer — apparel, home, and accessories made to last.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="{% static 'css/variables.css' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/animations.css' %}">
+<link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+{% block extra_css %}{% endblock %}
+
+</head>
+<body>
+
+<!-- ============ TOPBAR ============ -->
+<div class="topbar">
+  <div class="container-xl d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="d-flex gap-4 flex-wrap">
+      <span class="topbar-perk"><i class="bi bi-truck"></i> Free Delivery on Orders over PKR 3,500</span>
+      <span class="topbar-perk d-none d-md-flex"><i class="bi bi-cash-coin"></i> Cash on Delivery Available</span>
+      <span class="topbar-perk d-none d-lg-flex"><i class="bi bi-arrow-repeat"></i> Easy 7 Days Returns</span>
+    </div>
+    <div class="d-none d-md-flex align-items-center gap-3">
+      <a href="#"><i class="bi bi-geo-alt"></i> Track Order</a>
+      <a href="#">Help Center</a>
+      <span class="divider">|</span>
+      <a href="tel:+923001234567"><i class="bi bi-telephone"></i> +92 300 1234567</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============ HEADER ============ -->
+<header class="site-header">
+  <div class="container-xl py-3 d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-4">
+      <button class="btn-icon d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#mobileNav"><i class="bi bi-list"></i></button>
+        <a href="{% url 'home:home' %}" class="brand-mark">Shan Zee<span class="dot">.</span></a>
+
+    </div>
+
+    <nav class="main-nav d-none d-lg-flex position-relative">
+      {% comment %} <div class="nav-item has-mega position-relative">
+        <a href="shop.html" class="nav-link active">Shop</a>
+        <div class="mega-menu p-4">
+          <div class="container-xl">
+            <div class="row g-4">
+              <div class="col-3">
+                <h6>Women</h6>
+                <ul><li><a href="shop.html">New Arrivals</a></li><li><a href="shop.html">Outerwear</a></li><li><a href="shop.html">Knitwear</a></li><li><a href="shop.html">Footwear</a></li></ul>
+              </div>
+              <div class="col-3">
+                <h6>Men</h6>
+                <ul><li><a href="shop.html">New Arrivals</a></li><li><a href="shop.html">Shirting</a></li><li><a href="shop.html">Outerwear</a></li><li><a href="shop.html">Footwear</a></li></ul>
+              </div>
+              <div class="col-3">
+                <h6>Home</h6>
+                <ul><li><a href="shop.html">Tableware</a></li><li><a href="shop.html">Textiles</a></li><li><a href="shop.html">Lighting</a></li></ul>
+              </div>
+              <div class="col-3">
+                <div class="mega-promo">
+                  <div>
+                    <div class="hero-eyebrow">Season Edit</div>
+                    <div class="fw-semibold fs-5 font-display">Autumn Layers</div>
+                    <a href="shop.html" class="small text-white text-decoration-underline">Shop the edit →</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div> {% endcomment %}
+      <a href="categories.html" class="nav-link">Categories</a>
+      {% comment %} <a href="index.html#sale" class="nav-link">Sale</a> {% endcomment %}
+      {% comment %} <a href="index.html#journal" class="nav-link">Journal</a> {% endcomment %}
+      <a href="{% url 'home:Contact' %}" class="nav-link">Contact</a>
+    </nav>
+
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn-icon" data-open-search aria-label="Search"><i class="bi bi-search"></i></button>
+      {% comment %} <button class="btn-icon theme-toggle" aria-label="Toggle dark mode"><i class="bi bi-moon-stars"></i></button> {% endcomment %}
+
+      <div class="dropdown">
+        <button class="btn-icon position-relative" data-bs-toggle="dropdown" aria-label="Notifications">
+          <i class="bi bi-bell"></i>
+          <span class="icon-badge">3</span>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end notif-panel p-0">
+          <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+            <strong>Notifications</strong>
+            <a href="notifications.html" class="small">View all</a>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon"><i class="bi bi-lightning-charge text-warning"></i></div>
+            <div><div class="fw-semibold small">Flash sale is live</div><small class="text-muted-custom">Up to 40% off outerwear · 2h ago</small></div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon"><i class="bi bi-box-seam text-success"></i></div>
+            <div><div class="fw-semibold small">Order #AG-10234 shipped</div><small class="text-muted-custom">Arriving Thu · 5h ago</small></div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon"><i class="bi bi-wallet2" style="color:var(--brass)"></i></div>
+            <div><div class="fw-semibold small">$4.20 cashback credited</div><small class="text-muted-custom">Yesterday</small></div>
+          </div>
+        </div>
+      </div>
+
+      <a href="{% url 'home:Wishlist' %}" class="btn-icon position-relative" aria-label="Wishlist">
+        <i class="bi bi-heart"></i>
+        <span class="icon-badge" data-wishlist-count>0</span>
+      </a>
+      <a href="{% url 'home:MyCart' %}" class="btn-icon position-relative" data-bump="cart" aria-label="Cart">
+        <i class="bi bi-bag"></i>
+        <span class="icon-badge" data-cart-count>0</span>
+      </a>
+      <div class="dropdown">
+          <button
+              class="btn btn-link nav-link dropdown-toggle d-flex align-items-center gap-1 text-decoration-none"
+              type="button"
+              id="accountDropdown"
+              data-bs-toggle="dropdown"
+              aria-expanded="false">
+
+              <i class="fa-solid fa-circle-user fs-5"></i>
+
+              <span class="d-none d-lg-inline">
+                  {% if request.user.is_authenticated %}
+                      {{ request.user.full_name|default:request.user.email|truncatechars:16 }}
+                  {% else %}
+                      Account
+                  {% endif %}
+              </span>
+          </button>
+
+          <ul class="dropdown-menu dropdown-menu-end p-3 shadow"
+              aria-labelledby="accountDropdown"
+              style="min-width:230px;">
+
+              {% if request.user.is_authenticated %}
+
+                  <li class="px-1 pb-2 mb-2 border-bottom">
+                      <div class="fw-semibold text-truncate">
+                          {{ request.user.full_name|default:"Welcome" }}
+                      </div>
+
+                      <div class="small text-muted-custom text-truncate">
+                          {{ request.user.email }}
+                      </div>
+                  </li>
+
+                  <li>
+                      <a class="dropdown-item rounded" href="profile">
+                          <i class="bi bi-speedometer2 me-2"></i>
+                          Dashboard
+                      </a>
+                  </li>
+
+                  <li>
+                      <a class="dropdown-item rounded" href="{% url 'home:Orders' %}">
+                          <i class="bi bi-box-seam me-2"></i>
+                          Orders
+                      </a>
+                  </li>
+
+                  <li>
+                      <a class="dropdown-item rounded" href="{% url 'home:user-wallet' %}">
+                          <i class="bi bi-wallet2 me-2"></i>
+                          Wallet
+                      </a>
+                  </li>
+
+                  <li>
+                      <a class="dropdown-item rounded" href="{% url 'home:Wishlist' %}">
+                          <i class="bi bi-heart me-2"></i>
+                          Wishlist
+                      </a>
+                  </li>
+
+                  <li>
+                      <a class="dropdown-item rounded" href="{% url 'home:user-address' %}">
+                          <i class="bi bi-geo-alt me-2"></i>
+                          Addresses
+                      </a>
+                  </li>
+
+                  <li><hr class="dropdown-divider"></li>
+
+                  <li>
+                      <a class="dropdown-item rounded text-danger"
+                        href="{% url 'logout' %}">
+                          <i class="bi bi-box-arrow-right me-2"></i>
+                          Logout
+                      </a>
+                  </li>
+
+              {% else %}
+
+                  <li class="px-1">
+                      <button type="button"
+                              class="btn btn-brass w-100 mb-2"
+                              data-bs-toggle="modal"
+                              data-bs-target="#loginModal">
+                          Login
+                      </button>
+
+                      <button type="button"
+                              class="btn btn-outline-ink w-100"
+                              data-bs-toggle="modal"
+                              data-bs-target="#registerModal">
+                          Create Account
+                      </button>
+                  </li>
+
+              {% endif %}
+          </ul>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile offcanvas nav -->
+<div class="offcanvas offcanvas-start" id="mobileNav">
+  <div class="offcanvas-header">
+    <span class="brand-mark">Shan Zee<span class="dot">.</span></span><button class="btn-close" data-bs-dismiss="offcanvas"></button></div>
+  <div class="offcanvas-body">
+    <nav class="nav flex-column fs-5">
+      {% comment %} <a class="nav-link py-2" href="shop.html">Shop</a> {% endcomment %}
+      <a class="nav-link py-2" href="categories.html">Categories</a>
+      {% comment %} <a class="nav-link py-2" href="index.html#sale">Sale</a> {% endcomment %}
+      <a class="nav-link py-2" href="profile.html">My Account</a>
+      <a class="nav-link py-2" href="{% url 'home:Contact' %}">Contact</a>
+    </nav>
+  </div>
+</div>
+<!-- Search overlay -->
+<div class="search-overlay" id="searchOverlay">
+  <span class="search-close"><i class="bi bi-x-lg"></i></span>
+  <div class="container-xl">
+    <input type="text" id="searchInput" placeholder="Search products, categories, brands…">
+    <div class="text-white-50 mt-4 small">Try: "wool coat", "ceramic vase", "leather boots"</div>
+  </div>
+</div>
+
+
+{% block content %}{% endblock %}
+
+
+
+<!-- ============ FOOTER ============ -->
+<footer class="site-footer">
+  <div class="container-xl">
+    <div class="row g-4">
+      <div class="col-lg-4">
+                <div class="brand-text mb-2" style="color:#fff;">Shan Zee</div>
+
+        <p class="text-muted-custom">Considered goods for people who keep things a long time. Est. 2014.</p>
+        <div class="d-flex gap-2">
+          <a href="#" class="btn-icon"><i class="bi bi-instagram"></i></a>
+          <a href="#" class="btn-icon"><i class="bi bi-twitter-x"></i></a>
+          <a href="#" class="btn-icon"><i class="bi bi-pinterest"></i></a>
+        </div>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6>Shop</h6>
+        <ul><li><a href="{% url 'home:home' %}">All Products</a></li><li><a href="categories.html">Categories</a></li><li><a href="index.html#sale">Sale</a></li><li><a href="wishlist.html">Wishlist</a></li></ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6>Account</h6>
+        <ul><li><a href="user-profile">Dashboard</a></li><li><a href="{% url 'home:Orders' %}">Orders</a></li><li><a href="{% url 'home:user-wallet' %}">Wallet</a></li><li><a href="{% url 'home:user-address' %}">Addresses</a></li></ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6>Support</h6>
+        <ul><li><a href="faq.html">FAQ</a></li><li><a href="{% url 'home:Contact' %}">Support Tickets</a></li><li><a href="{% url 'home:Contact' %}">Contact</a></li><li><a href="return-order.html">Returns</a></li></ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6>Company</h6>
+        <ul><li><a href="#">About</a></li><li><a href="#">Careers</a></li><li><a href="#">Sustainability</a></li><li><a href="#">Press</a></li></ul>
+      </div>
+    </div>
+    <div class="footer-bottom d-flex flex-wrap justify-content-between align-items-center">
+      <span>© 2026 AUGUST Goods Co. All rights reserved.</span>
+      <div class="payment-icons">
+        <i class="bi bi-credit-card"></i><i class="bi bi-paypal"></i><i class="bi bi-apple"></i><i class="bi bi-google"></i>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ============ FLOATING BUTTONS ============ -->
+<!-- ============ FLOATING BUTTONS (base.html, near footer) ============ -->
+<div class="floating-stack">
+  <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+  <a href="https://wa.me/10000000000" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  {% if show_message_box %}
+    <button class="fab fab-chat pulse-ring" data-toggle-chat id="chatToggle" aria-label="Chat with us"><i class="bi bi-chat-dots-fill"></i></button>
+  {% else %}
+    <a class="fab fab-chat pulse-ring" href="{% url 'home:Contact' %}" aria-label="Support Help"><i class="bi bi-headset"></i></a>
+  {% endif %}
+</div>
+
+{% if show_message_box %}
+<!-- data-product-id: falls back to "0" (general support thread) on pages with no product in context -->
+<div class="chat-window " id="chatBox" data-product-id="{{ product.id|default:'0' }}">
+    <div class="chat-header">
+        <div>
+            <strong>Shan Zee</strong>
+            <div class="small opacity-75">
+                <i class="bi bi-circle-fill text-success" style="font-size:.5rem;"></i>
+                Online now
+            </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" id="closeChat"></button>
+    </div>
+
+    <div class="chat-body" id="chatBody">
+        <div class="chat-bubble them">
+            Hi! Looking for something specific, or need help with an order?
+        </div>
+    </div>
+
+    <form class="chat-footer" id="chatForm">
+        <input type="text" id="chatInput" placeholder="Type a message...">
+        <button type="submit" class="btn btn-brass btn-sm" id="sendMsg">
+            <i class="bi bi-send"></i>
+        </button>
+    </form>
+</div>
+
+{% if not request.user.is_authenticated %}
+<!-- ============ LOGIN MODAL ============ -->
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title font-display" id="loginModalLabel">Welcome Back</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="loginForm">
+          {% csrf_token %}
+ 
+          <div id="loginError" class="alert alert-danger d-none"></div>
+ 
+          <div class="mb-3">
+            <label class="form-label fw-medium">Email Address</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+              <input type="email" name="username" class="form-control" placeholder="you@email.com" required>
+            </div>
+          </div>
+ 
+          <div class="mb-3">
+            <label class="form-label fw-medium">Password</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+              <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
+              <button type="button" class="input-group-text" onclick="togglePassword('password', this)">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+ 
+          <button type="submit" class="btn btn-brass w-100 py-2" id="loginBtn">Login</button>
+ 
+          {% load socialaccount %}
+          <a href="{% provider_login_url 'google' %}" class="btn btn-outline-danger w-100 mt-3">
+            <i class="fa-brands fa-google me-2"></i>Continue with Google
+          </a>
+ 
+          <div class="text-center mt-3">
+            <span style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#registerModal" data-bs-dismiss="modal" class="text-decoration-underline">
+              Don't have an account? Create one
+            </span>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<!-- ============ REGISTER MODAL ============ -->
+<div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title font-display" id="registerModalLabel">Create Account</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="registerForm">
+          {% csrf_token %}
+ 
+          <div id="registerError" class="alert alert-danger d-none"></div>
+          <div id="registerSuccess" class="alert alert-success d-none"></div>
+ 
+          <div class="mb-3">
+            <label class="form-label fw-medium">Full Name</label>
+            <input type="text" name="full_name" class="form-control" required>
+          </div>
+ 
+          <div class="mb-3">
+            <label class="form-label fw-medium">Email</label>
+            <input type="email" name="email" class="form-control" required>
+          </div>
+ 
+          <div class="mb-3">
+            <label class="form-label fw-medium">Mobile</label>
+            <input type="text" name="mobile" class="form-control">
+          </div>
+ 
+          <div class="mb-3">
+            <label class="form-label fw-medium">Password</label>
+            <div class="input-group">
+              <input type="password" id="password1" name="password1" class="form-control" required>
+              <span class="input-group-text" style="cursor:pointer;" onclick="togglePassword('password1', this)">
+                <i class="fa-solid fa-eye"></i>
+              </span>
+            </div>
+          </div>
+ 
+          <div class="mb-3">
+            <label class="form-label fw-medium">Confirm Password</label>
+            <div class="input-group">
+              <input type="password" id="password2" name="password2" class="form-control" required>
+              <span class="input-group-text" style="cursor:pointer;" onclick="togglePassword('password2', this)">
+                <i class="fa-solid fa-eye"></i>
+              </span>
+            </div>
+          </div>
+ 
+          <button type="submit" class="btn btn-brass w-100" id="registerBtn">Register</button>
+ 
+          <div class="text-center mt-3">
+            <span style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal" class="text-decoration-underline">
+              Already have an account? Login
+            </span>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'js/cart.js' %}"></script>
+<script src="{% static 'js/app.js' %}"></script>
+<script>
+  // Works for both the no-arg login-field call and the (inputId, iconEl) register-field calls
+  function togglePassword(inputId, iconEl) {
+    const input = document.getElementById(inputId || "password");
+    const icon = iconEl ? iconEl.querySelector("i") : document.getElementById("eyeIcon");
+    if (!input || !icon) return;
+ 
+    if (input.type === "password") {
+      input.type = "text";
+      icon.classList.replace("fa-eye", "fa-eye-slash");
+    } else {
+      input.type = "password";
+      icon.classList.replace("fa-eye-slash", "fa-eye");
+    }
+  }
+ 
+  const loginForm = document.getElementById("loginForm");
+  if (loginForm) {
+    loginForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+ 
+      const btn = document.getElementById("loginBtn");
+      const errorDiv = document.getElementById("loginError");
+      const originalBtnText = btn.innerHTML;
+ 
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Logging in...`;
+      errorDiv.classList.add("d-none");
+ 
+      const formData = new FormData(this);
+ 
+      try {
+        const response = await fetch("{% url 'login_api' %}", {
+          method: "POST",
+          body: formData,
+          headers: {
+            "X-CSRFToken": this.querySelector('[name=csrfmiddlewaretoken]').value
+          }
+        });
+ 
+        const data = await response.json();
+ 
+        if (data.success) {
+          btn.innerHTML = `<i class="fa-solid fa-check me-2"></i>Success`;
+          window.location.href = data.redirect;
+        } else {
+          errorDiv.textContent = data.message;
+          errorDiv.classList.remove("d-none");
+          btn.disabled = false;
+          btn.innerHTML = originalBtnText;
+        }
+      } catch (error) {
+        errorDiv.textContent = "Server error. Please try again.";
+        errorDiv.classList.remove("d-none");
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
+      }
+    });
+  }
+ 
+  const registerForm = document.getElementById("registerForm");
+  if (registerForm) {
+    registerForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+ 
+      const btn = document.getElementById("registerBtn");
+      const errorDiv = document.getElementById("registerError");
+      const successDiv = document.getElementById("registerSuccess");
+      const originalBtnText = btn.innerHTML;
+ 
+      errorDiv.classList.add("d-none");
+      successDiv.classList.add("d-none");
+ 
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Creating...`;
+ 
+      const formData = new FormData(this);
+ 
+      try {
+        const response = await fetch("{% url 'register_api' %}", {
+          method: "POST",
+          body: formData,
+          headers: {
+            "X-CSRFToken": this.querySelector('[name=csrfmiddlewaretoken]').value
+          }
+        });
+ 
+        const data = await response.json();
+ 
+        if (data.success) {
+          successDiv.textContent = data.message;
+          successDiv.classList.remove("d-none");
+          this.reset();
+ 
+          setTimeout(() => {
+            bootstrap.Modal.getInstance(document.getElementById("registerModal"))?.hide();
+            // Registration doesn't log the user in server-side yet — send them
+            // straight to login so they're not left staring at a closed modal.
+            const loginModal = new bootstrap.Modal(document.getElementById("loginModal"));
+            loginModal.show();
+          }, 1500);
+        } else {
+          errorDiv.textContent = data.message;
+          errorDiv.classList.remove("d-none");
+        }
+      } catch (err) {
+        errorDiv.textContent = "Something went wrong.";
+        errorDiv.classList.remove("d-none");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
+      }
+    });
+  }
+</script>
+<script>
+
+(function () {
+  const chatBox = document.getElementById("chatBox");
+  const closeChat = document.getElementById("closeChat");
+  const chatForm = document.getElementById("chatForm");
+  const chatInput = document.getElementById("chatInput");
+  const chatBody = document.getElementById("chatBody");
+
+  // "0" means "no specific product" — a general support thread
+  const productId = chatBox.dataset.productId || "0";
+
+  let CURRENT_THREAD_ID = null;
+  let chatSocket = null;
+  let messagesLoaded = false;
+
+  function appendMessage(sender, text) {
+    const div = document.createElement("div");
+    div.className = `chat-bubble ${sender === "user" ? "me" : "them"}`;
+    div.textContent = text;
+    chatBody.appendChild(div);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+
+  function connectSocket(threadId) {
+    if (chatSocket) chatSocket.close();
+
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    chatSocket = new WebSocket(
+      `${protocol}://${window.location.host}/ws/chat/${threadId || 0}/${productId}/`
+    );
+
+    chatSocket.onopen = () => console.log("Chat socket connected");
+
+    chatSocket.onmessage = function (e) {
+      const data = JSON.parse(e.data);
+
+      if (data.type === "thread_created") {
+        CURRENT_THREAD_ID = data.thread_id;
+        return;
+      }
+      appendMessage(data.sender === "user" ? "user" : "admin", data.message);
+    };
+
+    chatSocket.onerror = (e) => console.error("Chat socket error", e);
+    chatSocket.onclose = () => console.log("Chat socket closed");
+  }
+
+  function loadMessages() {
+    const getMessagesBaseUrl = "{% url 'get_messages' 0 %}";
+    const url = getMessagesBaseUrl.replace("0", productId);
+
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        chatBody.innerHTML = "";
+        CURRENT_THREAD_ID = data.thread_id;
+        connectSocket(CURRENT_THREAD_ID);
+        data.messages.forEach(m => {
+          appendMessage(m.sender === "user" ? "user" : "admin", m.message);
+        });
+      })
+      .catch(err => console.error("Failed to load chat history", err));
+  }
+
+  function sendMessage() {
+    debugger
+    const text = chatInput.value.trim();
+    if (!text) return;
+    if (!chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+      console.warn("Chat socket not connected");
+      return;
+    }
+    chatSocket.send(JSON.stringify({ message: text }));
+    //appendMessage("user", text);
+    chatInput.value = "";
+  }
+
+  document.getElementById("chatForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    sendMessage();
+  });
+
+  document.getElementById("chatToggle").addEventListener("click", function () {
+    debugger
+      chatBox.classList.toggle("show");
+      if (chatBox.classList.contains("show") && !messagesLoaded) {
+        messagesLoaded = true;
+        loadMessages();
+      }
+    
+  });
+
+  closeChat.addEventListener("click", function () {
+    chatBox.classList.toggle("show");
+  });
+})();
+</script>
+{% endif %}
+
+<script>
+ document.getElementById("searchInput").addEventListener("keydown", function (e) {
+  console.log("value "+this.value.trim());
+    if (e.key === "Enter") {
+        e.preventDefault();
+
+        const query = this.value.trim();
+
+        if (!query) return;
+
+        const searchUrl = "{% url 'home:search-products' %}";
+        window.location.href = `${searchUrl}?q=${encodeURIComponent(query)}`;
+    }
+});
+  window.Wishlist = {
+      toggle(id) {
+          const btn = document.querySelector(`[data-wishlist-btn="${id}"]`);
+          const icon = btn.querySelector("i");
+          let url = "/wishlisttoggle/" + id + "/";
+          fetch(url, {
+              method: "GET",
+              headers: {
+                  "X-Requested-With": "XMLHttpRequest"
+              }
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.status === "added") {
+                  btn.classList.add("active");
+                  icon.classList.remove("bi-heart");
+                  icon.classList.add("bi-heart-fill");
+                  window.showToast?.("Added to wishlist.");
+              }
+              else if (data.status === "removed") {
+                  btn.classList.remove("active");
+                  icon.classList.remove("bi-heart-fill");
+                  icon.classList.add("bi-heart");
+                  window.showToast?.("Removed from wishlist.");
+              }
+          })
+          .catch(err => {
+              console.error(err);
+              window.showToast?.("Something went wrong.");
+          });
+      }
+  };
+</script>
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

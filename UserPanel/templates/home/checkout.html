@@ -1,0 +1,454 @@
+{% extends "base2.html" %}
+{% block content %}
+
+
+
+  <!-- ============ HEADER ============ -->
+  <header class="site-header">
+    <div class="container-xl py-3 d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-4">
+         <div class="container-xl">
+      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
+        <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+        <li class="breadcrumb-item"><a href="cart.html">Cart</a></li>
+        <li class="breadcrumb-item active">Checkout</li>
+      </ol></nav>
+      <h1 class="font-display mb-0">Checkout</h1>
+    </div>
+      </div>
+      <div class="checkout-steps d-none d-md-flex align-items-center gap-2 small text-muted-custom">
+        <span class="step done"><i class="bi bi-check-circle-fill text-success"></i> Cart</span>
+        <i class="bi bi-chevron-right"></i>
+        <span class="step active fw-semibold" style="color:var(--ink);">Checkout</span>
+        <i class="bi bi-chevron-right"></i>
+        <span class="step">Confirmation</span>
+      </div>
+      <a href="cart.html" class="btn-icon" aria-label="Back to cart"><i class="bi bi-arrow-left"></i></a>
+    </div>
+  </header>
+
+  <!-- ============ CHECKOUT ============ -->
+  <section class="py-5">
+    <div class="container-xl">
+      <form id="checkoutForm" class="row g-4 needs-validation" novalidate>
+
+        <div class="col-lg-8 d-flex flex-column gap-4">
+
+          <!-- Shipping address -->
+          <div class="checkout-panel p-4">
+            <h5 class="font-display mb-3"><i class="bi bi-truck me-2"></i>Shipping Address</h5>
+            <div class="row g-3">
+                <div class="col-12">
+                <select class="form-select" id="addressSelect">
+                <option value="">Select Address (or fill in a new one below)</option>
+                {% for address in addresses %}
+                <option value="{{ address.id }}"
+                        data-full-name="{{ address.full_name }}"
+                        data-phone="{{ address.phone }}"
+                        data-street="{{ address.street_address }}"
+                        data-city="{{ address.city }}"
+                        data-state="{{ address.state|default:'' }}"
+                        data-postal-code="{{ address.postal_code|default:'' }}"
+                        data-country="{{ address.country|default:'' }}"
+                        {% if address.is_default %}selected{% endif %}>
+                {{ address.full_name }}
+                -
+                {{ address.city }}
+                </option>
+                {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small">Full Name</label>
+                <input
+                    type="text"
+                    class="form-control"
+                    id="shippingFullName"
+                    name="shipping_full_name"
+                    value="{{ defaultaddresses.first.full_name }}"
+                    required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small">Phone</label>
+                <input type="tel"
+                       class="form-control"
+                       id="shippingPhone"
+                       value="{{ defaultaddresses.first.phone }}"
+                       name="shipping_phone"
+                       inputmode="numeric"
+                       pattern="[0-9]{10,}"
+                       title="Digits only, at least 10 numbers"
+                       required>
+              </div>
+              <div class="col-12">
+                <label class="form-label small">Street Address</label>
+                <input type="text"
+                       class="form-control"
+                       id="shippingStreetAddress"
+                       value="{{ defaultaddresses.first.street_address }}"
+                       name="shipping_street_address"
+                       required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">City</label>
+                <input type="text"
+                       class="form-control"
+                       id="shippingCity"
+                       value="{{ defaultaddresses.first.city }}"
+                       name="shipping_city"
+                       required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">State / Province</label>
+                <input type="text"
+                       class="form-control"
+                       id="shippingState"
+                       value="{{ defaultaddresses.first.state }}"
+                       name="shipping_state"
+                       required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">Postal Code</label>
+                <input type="text"
+                       class="form-control"
+                       id="shippingPostalCode"
+                       value="{{ defaultaddresses.first.postal_code }}"
+                       name="shipping_postal_code"
+                       inputmode="numeric"
+                       autocomplete="postal-code"
+                       required>
+                <div class="invalid-feedback">Postal code is required.</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small">Country</label>
+                <select class="form-select" id="shippingCountry" name="shipping_country" required>
+                  <option value="">Select country</option>
+                  <option {% if defaultaddresses.first.country == "United States" %}selected{% endif %}>United States</option>
+                  <option {% if defaultaddresses.first.country == "Pakistan" %}selected{% endif %}>Pakistan</option>
+                  <option {% if defaultaddresses.first.country == "United Kingdom" %}selected{% endif %}>United Kingdom</option>
+                  <option {% if defaultaddresses.first.country == "Canada" %}selected{% endif %}>Canada</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Billing address -->
+          <div class="checkout-panel p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="font-display mb-0"><i class="bi bi-receipt me-2"></i>Billing Address</h5>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="sameAsShipping" checked>
+                <label class="form-check-label small" for="sameAsShipping">Same as shipping</label>
+              </div>
+            </div>
+            <div class="row g-3" id="billingFields" style="display:none;">
+              <div class="col-12">
+                <div class="alert alert-warning small mb-0">
+                  Note: the current place-order API only stores a single address and uses it
+                  for both shipping and billing — a separate billing address isn't persisted yet.
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small">Full Name</label>
+                <input type="text" class="form-control" name="billing_full_name">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small">Phone</label>
+                <input type="tel" class="form-control" name="billing_phone">
+              </div>
+              <div class="col-12">
+                <label class="form-label small">Street Address</label>
+                <input type="text" class="form-control" name="billing_street_address">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">City</label>
+                <input type="text" class="form-control" name="billing_city">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">State / Province</label>
+                <input type="text" class="form-control" name="billing_state">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">Postal Code</label>
+                <input type="text" class="form-control" name="billing_postal_code">
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment method -->
+          <div class="checkout-panel p-4">
+            <h5 class="font-display mb-3"><i class="bi bi-credit-card me-2"></i>Payment Method</h5>
+            <div class="d-flex flex-column gap-2">
+              <label class="payment-option d-flex align-items-center gap-3 p-3">
+                <input type="radio" name="payment_method" value="COD" checked>
+                <i class="bi bi-cash-stack fs-4"></i>
+                <div><div class="fw-semibold">Cash on Delivery</div><small class="text-muted-custom">Pay when your order arrives</small></div>
+              </label>
+              <label class="payment-option d-flex align-items-center gap-3 p-3">
+                <input type="radio" name="payment_method" value="card">
+                <i class="bi bi-credit-card-2-front fs-4"></i>
+                <div><div class="fw-semibold">Card Payment</div><small class="text-muted-custom">Visa, Mastercard, Amex</small></div>
+              </label>
+              <label class="payment-option d-flex align-items-center gap-3 p-3">
+                <input type="radio" name="payment_method" value="wallet">
+                <i class="bi bi-wallet2 fs-4"></i>
+                <div><div class="fw-semibold">AUGUST Wallet</div><small class="text-muted-custom">Balance available: <span id="walletBalance">$42.00</span></small></div>
+              </label>
+            </div>
+            <div class="small text-muted-custom mt-2">
+              <i class="bi bi-info-circle me-1"></i>Currently all orders are placed as Cash on Delivery on the backend — card/wallet selection here isn't wired up to payment processing yet.
+            </div>
+
+            <div id="cardFields" class="row g-3 mt-2" style="display:none;">
+              <div class="col-md-6">
+                <label class="form-label small">Card Number</label>
+                <input type="text" class="form-control" placeholder="•••• •••• •••• ••••">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small">Expiry</label>
+                <input type="text" class="form-control" placeholder="MM/YY">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small">CVC</label>
+                <input type="text" class="form-control" placeholder="•••">
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="checkout-panel p-4">
+            <h5 class="font-display mb-3"><i class="bi bi-sticky me-2"></i>Order Notes (optional)</h5>
+            <textarea class="form-control" name="notes" id="orderNotes" rows="3" placeholder="Delivery instructions, gift notes, etc."></textarea>
+            <div class="small text-muted-custom mt-1">
+              <i class="bi bi-info-circle me-1"></i>Not persisted by the current PlaceOrderSerializer — extend it with a "notes" field to save this.
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Order summary -->
+        <div class="col-lg-4">
+          <div class="summary-card p-4">
+            <h5 class="font-display mb-3">Order Summary</h5>
+
+            <div class="d-flex flex-column gap-3 mb-3">
+
+              {% for cart in items.cart_items %}
+              <div class="d-flex gap-2 align-items-center">
+
+                  <img
+                      src="{% if cart.product.images.first %}{{ cart.product.images.first.image.url }}{% endif %}"
+                      class="checkout-thumb" width="100px"
+                      alt="{{ cart.product.name }}">
+
+                  <div class="flex-grow-1">
+
+                      <div class="small fw-semibold">
+                          {{ cart.product.name }}
+                      </div>
+
+                      {% if cart.variant %}
+                      <div class="small text-muted">
+                          SKU: {{ cart.variant.sku }}
+                      </div>
+                      {% endif %}
+
+                      <div class="small text-muted-custom">
+                          Qty {{ cart.quantity }}
+                      </div>
+
+                  </div>
+
+                  <div class="text-end">
+
+                      {% if cart.product.has_discount %}
+                          <div class="small fw-semibold">
+                              ${{ cart.product.final_price|floatformat:2 }}
+                          </div>
+
+                          <small class="text-decoration-line-through text-muted">
+                              ${{ cart.variant.price|floatformat:2 }}
+                          </small>
+                      {% else %}
+                          <div class="small fw-semibold">
+                              ${{ cart.variant.price|floatformat:2 }}
+                          </div>
+                      {% endif %}
+
+                  </div>
+
+              </div>
+              {% endfor %}
+
+              </div>
+
+            <hr>
+            <div class="summary-row d-flex justify-content-between">
+              <span>Subtotal</span><span>${{ items.subtotal|floatformat:2 }}</span>
+            </div>
+            <div class="summary-row d-flex justify-content-between">
+              <span>Shipping</span><span>${{ items.shipping_total|floatformat:2 }}</span>
+            </div>
+            <div class="summary-row d-flex justify-content-between text-success"
+                  {% if items.total_off_price == 0 %}
+                  style="display:none"
+                  {% endif %}>
+              <span>Discount</span><span>-${{ items.total_off_price|floatformat:2 }}</span>
+            </div>
+            <hr>
+            <div class="summary-row d-flex justify-content-between fw-semibold fs-5">
+              <span>Total</span><span>${{ items.final_total|floatformat:2 }}</span>
+            </div>
+            <div class="alert alert-light mt-3">
+                <i class="bi bi-truck"></i>
+                Estimated Delivery
+                <strong>
+                    {{ items.estimated_date|date:"d M Y" }}
+                </strong>
+            </div>
+            <button type="submit" class="btn btn-brass w-100 mt-4" id="placeOrderBtn">Place Order</button>
+
+            <div class="d-flex align-items-center gap-2 mt-3 text-muted-custom small">
+              <i class="bi bi-shield-check"></i> Secure checkout · 256-bit SSL
+            </div>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </section>
+
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    function showAlert(message, type) {
+      if (typeof window.showAlert === "function" && window.showAlert !== showAlert) {
+        window.showAlert(message, type);
+        return;
+      }
+      alert(message);
+    }
+
+    // Pulls the first field error out of a DRF error response, e.g. {"phone": ["..."]}
+    function firstErrorMessage(errors) {
+      if (!errors || typeof errors !== "object") return null;
+      const firstKey = Object.keys(errors)[0];
+      if (!firstKey) return null;
+      const val = errors[firstKey];
+      if (Array.isArray(val)) return val[0];
+      if (typeof val === "object") return firstErrorMessage(val);
+      return val;
+    }
+
+    // ---------- Address select → autofill shipping fields ----------
+    const addressSelect = document.getElementById("addressSelect");
+    addressSelect.addEventListener("change", function () {
+      const opt = this.options[this.selectedIndex];
+      if (!opt.value) return;
+      document.getElementById("shippingFullName").value = opt.dataset.fullName || "";
+      document.getElementById("shippingPhone").value = opt.dataset.phone || "";
+      document.getElementById("shippingStreetAddress").value = opt.dataset.street || "";
+      document.getElementById("shippingCity").value = opt.dataset.city || "";
+      document.getElementById("shippingState").value = opt.dataset.state || "";
+      document.getElementById("shippingPostalCode").value = opt.dataset.postalCode || "";
+      const countrySelect = document.getElementById("shippingCountry");
+      if (opt.dataset.country) {
+        [...countrySelect.options].forEach(o => { if (o.text === opt.dataset.country) countrySelect.value = o.value; });
+      }
+    });
+
+    // Same-as-shipping toggle
+    const sameAsShipping = document.getElementById("sameAsShipping");
+    const billingFields = document.getElementById("billingFields");
+    sameAsShipping.addEventListener("change", () => {
+      billingFields.style.display = sameAsShipping.checked ? "none" : "flex";
+    });
+
+    // Payment method → show/hide card fields
+    document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+      radio.addEventListener("change", () => {
+        document.getElementById("cardFields").style.display =
+          document.querySelector('input[name="payment_method"]:checked').value === "card" ? "flex" : "none";
+      });
+    });
+
+    // ---------- Place Order ----------
+    document.getElementById("checkoutForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      if (!this.checkValidity()) {
+        this.classList.add("was-validated");
+        showAlert("Please fill in all required shipping details, including postal code.", "warning");
+        return;
+      }
+
+      const placeOrderBtn = document.getElementById("placeOrderBtn");
+      const originalLabel = placeOrderBtn.textContent;
+      placeOrderBtn.disabled = true;
+      placeOrderBtn.textContent = "Placing Order…";
+
+      try {
+        let addressId = addressSelect.value;
+
+        // No saved address chosen — create one from the manually entered shipping fields
+        // via AddressAPIView, then use the id it returns.
+        if (!addressId) {
+          const addressPayload = {
+            address_type: "shipping",
+            full_name: document.getElementById("shippingFullName").value,
+            phone: document.getElementById("shippingPhone").value,
+            street_address: document.getElementById("shippingStreetAddress").value,
+            city: document.getElementById("shippingCity").value,
+            state: document.getElementById("shippingState").value,
+            postal_code: document.getElementById("shippingPostalCode").value,
+            country: document.getElementById("shippingCountry").value
+          };
+
+          const addressRes = await fetch("{% url 'add_address' %}", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify(addressPayload)
+          });
+          const addressData = await addressRes.json();
+
+          if (!addressRes.ok) {
+            showAlert(firstErrorMessage(addressData) || "Please check your address details.", "danger");
+            return;
+          }
+          addressId = addressData.address.id;
+        }
+
+        // Place the order. checkout_items are read server-side from the session
+        // (populated earlier by SaveCheckoutSession on the cart page), so we only
+        // need to send the address id here.
+        const orderRes = await fetch("{% url 'place_order' %}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+          },
+          body: JSON.stringify({ address_id: addressId })
+        });
+        const orderData = await orderRes.json();
+
+        if (!orderRes.ok) {
+          showAlert(firstErrorMessage(orderData) || "Unable to place order.", "danger");
+          return;
+        }
+
+        // Adjust to your actual order-confirmation URL name/pattern.
+        window.location.href = `{% url 'OrderConfirmation' %}?order_id=${orderData.order_id}`;
+
+      } catch (err) {
+        showAlert("Something went wrong placing your order. Please try again.", "danger");
+      } finally {
+        placeOrderBtn.disabled = false;
+        placeOrderBtn.textContent = originalLabel;
+      }
+    });
+  </script>
+{% endblock %}

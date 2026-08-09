@@ -1,0 +1,503 @@
+{% extends "base2.html" %}
+{% load static %}
+{% block content %}
+
+  <!-- ============ PAGE HEADER ============ -->
+  <section class="py-4 border-bottom" style="border-color:var(--border) !important;">
+    <div class="container-xl">
+      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
+        <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'home:Orders' %}">My Orders</a></li>
+        <li class="breadcrumb-item active">{{ order.order_number }}</li>
+      </ol></nav>
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h1 class="font-display mb-0">Order {{ order.order_number }}</h1>
+
+        {% if order.status == "pending" %}
+          <span class="status-badge status-pending"><i class="bi bi-circle-fill"></i> Pending</span>
+        {% elif order.status == "submited" %}
+          <span class="status-badge status-pending"><i class="bi bi-circle-fill"></i> Submitted</span>
+        {% elif order.status == "processing" %}
+          <span class="status-badge status-processing"><i class="bi bi-circle-fill"></i> Processing</span>
+        {% elif order.status == "shipped" %}
+          <span class="status-badge status-shipped"><i class="bi bi-circle-fill"></i> Shipped</span>
+        {% elif order.status == "delivered" %}
+          <span class="status-badge status-delivered"><i class="bi bi-circle-fill"></i> Delivered</span>
+        {% elif order.status == "cancelled" %}
+          <span class="status-badge status-cancelled"><i class="bi bi-circle-fill"></i> Cancelled</span>
+        {% elif order.status == "returned" %}
+          <span class="status-badge status-cancelled"><i class="bi bi-circle-fill"></i> Returned</span>
+        {% elif order.status == "failed" %}
+          <span class="status-badge status-cancelled"><i class="bi bi-circle-fill"></i> Payment Failed</span>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-5">
+    <div class="container-xl">
+      <div class="row g-4">
+
+        <!-- Account sidebar -->
+        <div class="col-lg-3">
+          <div class="account-sidebar p-3">
+            <a href="{% url 'home:user-profile' %}" class="account-nav-link"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+            <a href="{% url 'home:Orders' %}" class="account-nav-link active"><i class="bi bi-box-seam me-2"></i>Orders</a>
+            <a href="{% url 'home:user-wallet' %}" class="account-nav-link"><i class="bi bi-wallet2 me-2"></i>Wallet</a>
+            <a href="{% url 'home:user-address' %}" class="account-nav-link"><i class="bi bi-geo-alt me-2"></i>Addresses</a>
+            <a href="{% url 'home:Wishlist' %}" class="account-nav-link"><i class="bi bi-heart me-2"></i>Wishlist</a>
+            <a href="{% url 'home:Contact' %}" class="account-nav-link"><i class="bi bi-life-preserver me-2"></i>Support</a>
+          </div>
+        </div>
+
+        <div class="col-lg-9">
+
+          <!-- ============ Status tracker ============ -->
+          {% if order.status == "cancelled" or order.status == "returned" or order.status == "failed" %}
+            <div class="p-3 mb-4 border rounded d-flex align-items-center gap-2
+                        {% if order.status == 'failed' %}text-danger{% else %}text-muted-custom{% endif %}"
+                 style="border-color:var(--border) !important;">
+              <i class="bi bi-exclamation-circle fs-5"></i>
+              <div>
+                {% if order.status == "cancelled" %}This order was cancelled.
+                {% elif order.status == "returned" %}This order was returned.
+                {% else %}Payment for this order failed.{% endif %}
+              </div>
+            </div>
+          {% else %}
+            <div class="order-tracker d-flex justify-content-between mb-4 px-2 text-center">
+              <div class="flex-fill">
+                <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center
+                            {% if order.status %}bg-brass text-white{% else %}bg-light text-muted{% endif %}"
+                     style="width:32px;height:32px;">
+                  <i class="bi bi-check-lg"></i>
+                </div>
+                <div class="small mt-1">Placed</div>
+              </div>
+              <div class="flex-fill">
+                <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center
+                            {% if order.status == 'processing' or order.status == 'shipped' or order.status == 'delivered' %}bg-brass text-white{% else %}bg-light text-muted{% endif %}"
+                     style="width:32px;height:32px;">
+                  <i class="bi bi-gear"></i>
+                </div>
+                <div class="small mt-1">Processing</div>
+              </div>
+              <div class="flex-fill">
+                <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center
+                            {% if order.status == 'shipped' or order.status == 'delivered' %}bg-brass text-white{% else %}bg-light text-muted{% endif %}"
+                     style="width:32px;height:32px;">
+                  <i class="bi bi-truck"></i>
+                </div>
+                <div class="small mt-1">Shipped</div>
+              </div>
+              <div class="flex-fill">
+                <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center
+                            {% if order.status == 'delivered' %}bg-brass text-white{% else %}bg-light text-muted{% endif %}"
+                     style="width:32px;height:32px;">
+                  <i class="bi bi-box-seam"></i>
+                </div>
+                <div class="small mt-1">Delivered</div>
+              </div>
+            </div>
+          {% endif %}
+
+          <!-- ============ Order summary card ============ -->
+          <div class="p-4 mb-4 border rounded" style="border-color:var(--border) !important;">
+            <div class="row g-3">
+              <div class="col-sm-4">
+                <div class="small text-muted-custom">Placed On</div>
+                <div class="fw-semibold">{{ order.placed_at|date:"M d, Y - H:i" }}</div>
+              </div>
+              <div class="col-sm-4">
+                <div class="small text-muted-custom">Payment Method</div>
+                <div class="fw-semibold">{{ order.get_payment_method_display }}</div>
+              </div>
+              <div class="col-sm-4">
+                <div class="small text-muted-custom">Payment Status</div>
+                <div class="fw-semibold">{{ order.payment_status|title }}</div>
+              </div>
+              {% if order.transaction_id %}
+                <div class="col-sm-4">
+                  <div class="small text-muted-custom">Transaction ID</div>
+                  <div class="fw-semibold">{{ order.transaction_id }}</div>
+                </div>
+              {% endif %}
+              {% if order.delivered_at %}
+                <div class="col-sm-4">
+                  <div class="small text-muted-custom">Delivered On</div>
+                  <div class="fw-semibold">{{ order.delivered_at|date:"M d, Y - H:i" }}</div>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- ============ Pending / submitted requests ============ -->
+          {% if order.requests.all %}
+            <div class="p-3 mb-4 border rounded" style="border-color:var(--border) !important;">
+              <div class="fw-semibold mb-2">Request History</div>
+              <div class="d-flex flex-column gap-2">
+                {% for req in order.requests.all %}
+                  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 pb-2 {% if not forloop.last %}border-bottom{% endif %}" style="border-color:var(--border) !important;">
+                    <div>
+                      <span class="fw-semibold">{{ req.get_request_type_display }} Request</span>
+                      {% if req.reason %}<div class="small text-muted-custom">{{ req.reason }}</div>{% endif %}
+                      {% if req.preferred_action %}<div class="small text-muted-custom">Preferred action: {{ req.get_preferred_action_display }}</div>{% endif %}
+                    </div>
+                    <span class="badge border
+                      {% if req.status == 'pending' %}bg-warning-subtle text-dark
+                      {% elif req.status == 'approved' or req.status == 'completed' %}bg-success-subtle text-dark
+                      {% elif req.status == 'rejected' %}bg-danger-subtle text-dark
+                      {% else %}bg-secondary-subtle text-dark{% endif %}">
+                      {{ req.status|title }}
+                    </span>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          <!-- ============ Line items ============ -->
+          <div class="p-3 mb-4 border rounded" style="border-color:var(--border) !important;">
+            <div class="fw-semibold mb-3">Items</div>
+            <div class="d-flex flex-column gap-3">
+              {% for item in order.items.all %}
+                <div class="d-flex align-items-center gap-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}" style="border-color:var(--border) !important;">
+                  <img src="{% if item.product.images.first %}{{ item.product.images.first.image.url }}{% else %}{% static 'default-product.png' %}{% endif %}"
+                       width="64" height="64" class="border rounded" style="object-fit:cover;" alt="{{ item.product.name|default:'Product' }}">
+                  <div class="flex-grow-1">
+                    <div class="fw-semibold">{{ item.product.name|default:"Product removed" }}</div>
+                    {% if item.variant %}<div class="small text-muted-custom">{{ item.variant }}</div>{% endif %}
+                    <div class="small text-muted-custom">Qty: {{ item.quantity }} &times; Rs. {{ item.price|floatformat:2 }}</div>
+                  </div>
+                  <div class="fw-semibold">Rs. {{ item.total|floatformat:2 }}</div>
+                </div>
+              {% endfor %}
+            </div>
+
+            <div class="mt-3 pt-3 border-top" style="border-color:var(--border) !important;">
+              <div class="d-flex justify-content-between small text-muted-custom mb-1">
+                <span>Subtotal</span><span>Rs. {{ order.subtotal|floatformat:2 }}</span>
+              </div>
+              <div class="d-flex justify-content-between small text-muted-custom mb-1">
+                <span>Shipping</span><span>Rs. {{ order.shipping_charges|floatformat:2 }}</span>
+              </div>
+              <div class="d-flex justify-content-between fw-semibold fs-5 mt-2">
+                <span>Total</span><span>Rs. {{ order.total_amount|floatformat:2 }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ Addresses ============ -->
+          <div class="row g-4 mb-4">
+            <div class="col-md-6">
+              <div class="p-3 border rounded h-100" style="border-color:var(--border) !important;">
+                <div class="fw-semibold mb-2"><i class="bi bi-truck me-1"></i> Shipping Address</div>
+                {% if order.shipping_address %}
+                  <div class="small text-muted-custom">
+                    {{ order.shipping_address.street_address }}<br>
+                    {{ order.shipping_address.city }}, {{ order.shipping_address.state }}<br>
+                    {{ order.shipping_address.country }}
+                  </div>
+                {% else %}
+                  <div class="small text-muted-custom">No address on file</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="p-3 border rounded h-100" style="border-color:var(--border) !important;">
+                <div class="fw-semibold mb-2"><i class="bi bi-receipt me-1"></i> Billing Address</div>
+                {% if order.billing_address %}
+                  <div class="small text-muted-custom">
+                    {{ order.billing_address.street_address }}<br>
+                    {{ order.billing_address.city }}, {{ order.billing_address.state }}<br>
+                    {{ order.billing_address.country }}
+                  </div>
+                {% else %}
+                  <div class="small text-muted-custom">No address on file</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          {% if order.notes %}
+            <div class="p-3 mb-4 border rounded" style="border-color:var(--border) !important;">
+              <div class="fw-semibold mb-2">Notes</div>
+              <div class="small text-muted-custom">{{ order.notes }}</div>
+            </div>
+          {% endif %}
+
+          <!-- ============ QR code + actions ============ -->
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+              {% if order.qr_code %}
+                <img src="{{ order.qr_code.url }}" width="64" height="64" alt="Order QR code" class="border rounded p-1">
+              {% endif %}
+              <a href="{% url 'home:Orders' %}" class="btn btn-outline-ink"><i class="bi bi-arrow-left me-1"></i> Back to Orders</a>
+            </div>
+
+            {% if not order.has_pending_request %}
+              <div class="d-flex gap-2">
+                {% if order.status == "pending" or order.status == "processing" %}
+                  <button type="button" class="btn btn-outline-ink"
+                          onclick="openCancelReturnModal({{ order.id }}, 'cancel')">Cancel Order</button>
+                {% endif %}
+                {% if order.status == "delivered" %}
+                  <button type="button" class="btn btn-outline-ink"
+                          onclick="openCancelReturnModal({{ order.id }}, 'return')">Return / Refund</button>
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Cancel / Return Modal (same as MyOrders) ============ -->
+  <div class="modal fade" id="cancelReturnModal" tabindex="-1" aria-labelledby="cancelReturnModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header" style="padding: 6px 17px;">
+          <h5 class="modal-title" id="cancelReturnModalLabel">Order Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <form id="cancelReturnForm">
+
+            <div class="mb-3 d-none" id="existingRequestsSection">
+              <label class="form-label fw-semibold">Previous Requests</label>
+              <div id="existingRequestsList" class="d-flex flex-column gap-2"></div>
+            </div>
+
+            <div class="mb-3">
+              <label for="requestType" class="form-label fw-semibold">Request Type</label>
+              <select class="form-select" id="requestType" required>
+                <option value="" selected disabled>Select type</option>
+                <option value="cancel">Cancel Order</option>
+                <option value="return">Return Order</option>
+              </select>
+            </div>
+            <input type="hidden" id="cancelOrderId"/>
+
+            <div class="mb-3" id="returnItems">
+              <label class="form-label fw-semibold">Select Items</label>
+              <div class="list-group"></div>
+            </div>
+
+            <div class="mb-3" id="requestReasonCon">
+              <label for="requestReason" class="form-label fw-semibold">Reason</label>
+              <textarea class="form-control" id="requestReason" rows="3" placeholder="Enter reason for cancel/return"></textarea>
+            </div>
+
+            <div class="mb-3" id="preferredActionsCon">
+              <label class="form-label fw-semibold">Preferred Action</label>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="preferredAction" id="refund" value="refund">
+                <label class="form-check-label" for="refund">Refund</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="preferredAction" id="replacement" value="replacement">
+                <label class="form-check-label" for="replacement">Replacement</label>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="requestAttachment" class="form-label fw-semibold">Attachment (optional)</label>
+              <input class="form-control" type="file" id="requestAttachment" accept="image/*,application/pdf">
+            </div>
+
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" form="cancelReturnForm" class="btn btn-danger">Submit Request</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="floating-stack">
+    <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+    <a href="https://wa.me/10000000000" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'assets/js/app.js' %}"></script>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    function showAlert(message, type) {
+      if (typeof window.showAlert === "function" && window.showAlert !== showAlert) {
+        window.showAlert(message, type);
+        return;
+      }
+      alert(message);
+    }
+
+      
+
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let cookie of cookies) {
+          cookie = cookie.trim();
+          if (cookie.startsWith(name + "=")) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    const csrftoken = getCookie("csrftoken");
+
+    function toggleRequestFields() {
+      const requestTypeEl = document.getElementById("requestType");
+      const isCancel = requestTypeEl.value === "cancel";
+      document.getElementById("requestReasonCon").classList.toggle("d-none", isCancel);
+      document.getElementById("preferredActionsCon").classList.toggle("d-none", isCancel);
+    }
+    document.getElementById("requestType").addEventListener("change", toggleRequestFields);
+
+    function openCancelReturnModal(orderId, type) {
+      const orderDetailBaseUrl = "{% url 'OrderDetailApi' 0 %}";
+      const url = orderDetailBaseUrl.replace("0", orderId);
+
+      fetch(url, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Order not found");
+          return res.json();
+        })
+        .then(data => {
+          document.getElementById("cancelReturnModalLabel").innerText = `Order #${data.order_number} Details`;
+          document.getElementById("requestType").value = type;
+          document.getElementById("cancelOrderId").value = data.id;
+
+          const itemsContainer = document.getElementById("returnItems").querySelector(".list-group");
+          itemsContainer.innerHTML = "";
+          data.items.forEach(item => {
+            const totalPrice = parseFloat(item.price) * parseInt(item.quantity);
+            const html = `
+              <label class="list-group-item d-flex align-items-center">
+                <input class="form-check-input me-3" type="checkbox" name="items[]" checked value="${item.id}">
+                <img src="${item.product_image || '/static/default-product.png'}" width="50" class="border rounded me-3">
+                <div class="flex-grow-1">
+                  <div class="fw-semibold">${item.product_name}</div>
+                  <small class="text-muted">Qty: ${item.quantity}</small>
+                </div>
+                <div class="fw-semibold">Rs. ${totalPrice.toFixed(2)}</div>
+              </label>`;
+            itemsContainer.insertAdjacentHTML("beforeend", html);
+          });
+
+          const requestsSection = document.getElementById("existingRequestsSection");
+          const requestsList = document.getElementById("existingRequestsList");
+          requestsList.innerHTML = "";
+          const existingRequests = data.requests || [];
+
+          if (existingRequests.length > 0) {
+            existingRequests.forEach(req => {
+              const badgeClass = req.status === "pending" ? "bg-warning-subtle text-dark"
+                : (req.status === "approved" || req.status === "completed") ? "bg-success-subtle text-dark"
+                : req.status === "rejected" ? "bg-danger-subtle text-dark"
+                : "bg-secondary-subtle text-dark";
+              const label = req.request_type === "cancel" ? "Cancellation" : "Return";
+              requestsList.insertAdjacentHTML("beforeend", `
+                <div class="border rounded p-2 small">
+                  <span class="badge ${badgeClass} border me-2">${req.status}</span>
+                  <strong>${label}</strong> request${req.reason ? ` &mdash; ${req.reason}` : ""}
+                </div>`);
+            });
+            requestsSection.classList.remove("d-none");
+          } else {
+            requestsSection.classList.add("d-none");
+          }
+
+          const hasPendingRequest = existingRequests.some(r => r.status === "pending");
+          const submitBtn = document.querySelector('button[form="cancelReturnForm"]');
+          const requestTypeSelect = document.getElementById("requestType");
+          submitBtn.disabled = hasPendingRequest;
+          requestTypeSelect.disabled = hasPendingRequest;
+          if (hasPendingRequest) {
+            showAlert("A request for this order is already pending review.", "warning");
+          }
+
+          toggleRequestFields();
+          new bootstrap.Modal(document.getElementById("cancelReturnModal")).show();
+        })
+        .catch(err => {
+          console.error(err);
+          showAlert("Failed to load order details", "warning");
+        });
+    }
+
+    document.getElementById("cancelReturnForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const requestTypeEl = document.getElementById("requestType");
+      const requestType = requestTypeEl.value;
+      if (!requestType) {
+        showAlert("Please select request type", "warning");
+        return;
+      }
+
+      const items = Array.from(this.querySelectorAll("input[name='items[]']:checked")).map(i => i.value);
+      if (items.length === 0) {
+        showAlert("Please select at least one item", "warning");
+        return;
+      }
+
+      const reason = document.getElementById("requestReason").value;
+      const preferredAction = this.querySelector("input[name='preferredAction']:checked")?.value;
+
+      if (requestType !== "cancel") {
+        if (!reason || !preferredAction) {
+          showAlert("Please fill reason and select preferred action", "warning");
+          return;
+        }
+      }
+
+      const formData = new FormData();
+      formData.append("order_id", document.getElementById("cancelOrderId").value);
+      formData.append("request_type", requestType);
+      items.forEach(id => formData.append("items[]", id));
+      formData.append("reason", reason);
+      formData.append("preferred_action", preferredAction || "");
+
+      const attachmentInput = document.getElementById("requestAttachment");
+      if (attachmentInput.files.length > 0) {
+        formData.append("attachment", attachmentInput.files[0]);
+      }
+
+      const cancelReturnUrl = "{% url 'order-request' %}";
+      fetch(cancelReturnUrl, {
+        method: "POST",
+        headers: { "X-CSRFToken": csrftoken, "Authorization": `Bearer ${localStorage.getItem("access_token")}` },
+        body: formData
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showAlert("Request submitted successfully", "warning");
+            new bootstrap.Modal(document.getElementById("cancelReturnModal")).hide();
+            window.location.reload();
+          } else {
+            showAlert("Failed to submit request: " + (data.error || "Unknown error"), "warning");
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showAlert("Failed to submit request", "warning");
+        });
+    });
+  </script>
+{% endblock %}

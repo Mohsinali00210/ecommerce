@@ -1,0 +1,187 @@
+{% extends "base2.html" %}
+{% load static %}
+
+{% block content %}
+
+<!-- ===== Hero Section ===== -->
+<section class="hero-section">
+  <div class="container">
+    <div id="heroSlider" class="carousel slide hero-carousel" data-bs-ride="carousel">
+      <div class="carousel-inner">
+        {% for slide in hero_slides|default:default_hero_slides %}
+        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+          <div class="hero-inner">
+            <div class="hero-text">
+              <span class="hero-eyebrow">{{ slide.eyebrow|default:"NEW COLLECTION 2026" }}</span>
+              <h1>{{ slide.title_line1|default:"Discover Style," }}<br>
+                <span class="accent-text">{{ slide.title_line2|default:"Shop with Confidence" }}</span>
+              </h1>
+              <p>{{ slide.subtitle|default:"Trendy products, premium quality and the best shopping experience — all in one place." }}</p>
+              <a href="{{ slide.cta_url|default:'#' }}" class="btn btn-hero">
+                Shop Now <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+            <div class="hero-image">
+              <img src="{{ slide.image|default:'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&q=80' }}" alt="{{ slide.title_line1|default:'ShanZee collection' }}">
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="hero-controls">
+        <div class="hero-dots">
+          {% for slide in hero_slides|default:default_hero_slides %}
+          <button type="button" data-bs-target="#heroSlider" data-bs-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}"><span>{{ forloop.counter|stringformat:"02d" }}</span></button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Category Strip ===== -->
+<section class="category-strip">
+  <div class="container">
+    <div class="category-scroll">
+      {% for cat in home_categories|default:default_categories %}
+      <a href="{% url 'category' cat.slug %}" class="category-item">
+        <span class="category-icon-wrap">
+          {% if cat.image %}<img src="{{ cat.image }}" alt="{{ cat.name }}">{% else %}<i class="bi {{ cat.icon|default:'bi-tag' }}"></i>{% endif %}
+        </span>
+        <span class="category-name">{{ cat.name }}</span>
+      </a>
+      {% endfor %}
+      <button type="button" class="category-nav-btn" aria-label="See more categories"><i class="bi bi-chevron-right"></i></button>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Trust Perks ===== -->
+<section class="trust-perks">
+  <div class="container">
+    <div class="row g-3">
+      <div class="col-6 col-md-3">
+        <div class="perk-card">
+          <i class="bi bi-truck"></i>
+          <div><b>Free Shipping</b><span>On orders over PKR 3,500</span></div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="perk-card">
+          <i class="bi bi-cash-coin"></i>
+          <div><b>Cash on Delivery</b><span>Pay when you receive</span></div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="perk-card">
+          <i class="bi bi-arrow-repeat"></i>
+          <div><b>7 Days Returns</b><span>Hassle free returns</span></div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="perk-card">
+          <i class="bi bi-shield-check"></i>
+          <div><b>100% Secure Payment</b><span>Secure shopping guarantee</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Featured Products ===== -->
+<section class="featured-products">
+  <div class="container">
+    <div class="section-heading d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <h2>Featured Products <i class="bi bi-stars accent-text"></i></h2>
+      <ul class="nav product-tabs" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-featured" type="button">Featured</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-new" type="button">New Arrivals</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-best" type="button">Best Sellers</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-sale" type="button">On Sale</button></li>
+      </ul>
+      <div class="product-scroll-nav d-none d-md-flex">
+        <button type="button" class="scroll-btn" data-dir="-1"><i class="bi bi-arrow-left"></i></button>
+        <button type="button" class="scroll-btn" data-dir="1"><i class="bi bi-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="tab-featured">
+        <div class="product-grid">
+          {% for product in featured_products|default:default_products %}
+          {% include "store/partials/product_card.html" with product=product %}
+          {% endfor %}
+        </div>
+      </div>
+      <div class="tab-pane fade" id="tab-new">
+        <div class="product-grid">
+          {% for product in new_products|default:default_products %}
+          {% include "store/partials/product_card.html" with product=product %}
+          {% endfor %}
+        </div>
+      </div>
+      <div class="tab-pane fade" id="tab-best">
+        <div class="product-grid">
+          {% for product in bestseller_products|default:default_products %}
+          {% include "store/partials/product_card.html" with product=product %}
+          {% endfor %}
+        </div>
+      </div>
+      <div class="tab-pane fade" id="tab-sale">
+        <div class="product-grid">
+          {% for product in sale_products|default:default_products %}
+          {% include "store/partials/product_card.html" with product=product %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Promo Banner ===== -->
+<section class="promo-banner">
+  <div class="container">
+    <div class="promo-card">
+      <div class="promo-text">
+        <span class="hero-eyebrow light">LIMITED TIME</span>
+        <h3>End of Season Sale — up to <span class="accent-text">40% off</span></h3>
+        <p>On bags, shoes &amp; accessories. Offer ends soon.</p>
+        <a href="{% url 'deals' %}" class="btn btn-hero btn-sm-hero">Shop the Sale</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Bottom Trust Bar ===== -->
+<section class="bottom-trust-bar">
+  <div class="container">
+    <div class="row text-center text-md-start gy-4">
+      <div class="col-6 col-md-3 trust-item">
+        <i class="bi bi-shield-check"></i>
+        <div><b>Premium Quality</b><span>Top quality products</span></div>
+      </div>
+      <div class="col-6 col-md-3 trust-item">
+        <i class="bi bi-patch-check"></i>
+        <div><b>Trusted Store</b><span>Thousands of happy customers</span></div>
+      </div>
+      <div class="col-6 col-md-3 trust-item">
+        <i class="bi bi-lock"></i>
+        <div><b>Secure Checkout</b><span>100% safe &amp; secure</span></div>
+      </div>
+      <div class="col-6 col-md-3 trust-item">
+        <i class="bi bi-headset"></i>
+        <div><b>24/7 Support</b><span>We're here to help you</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Fallback demo data so the template renders standalone if the view doesn't pass context.
+  // Remove once real context (hero_slides, categories, products) is wired from views.py
+</script>
+{% endblock %}

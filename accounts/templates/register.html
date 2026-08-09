@@ -1,202 +1,106 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - MyShop</title>
+{% extends "base2.html" %}
+{% load static %}
+{% block content %}
 
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <section class="py-5">
+    <div class="container-xl">
+      <div class="row justify-content-center">
+        <div class="col-lg-10 col-xl-9">
+          <div class="border rounded-4 overflow-hidden d-flex flex-column flex-md-row" style="border-color:var(--border) !important;">
 
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-    <style>
-        body {
-            height: 100vh;
-            background: #f5f6f8;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .register-card {
-            width: 100%;
-            max-width: 950px;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-            display: flex;
-            background: #fff;
-        }
-
-        .register-left {
-            flex: 1;
-            background: #f1f3f5;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            padding: 40px;
-            color: #333;
-        }
-
-        .register-left i {
-            font-size: 4rem;
-            color: #555;
-        }
-
-        .register-left p {
-            color: #666;
-            text-align: center;
-        }
-
-        .register-right {
-            flex: 1;
-            padding: 40px;
-        }
-
-        .form-control {
-            border-radius: 8px;
-        }
-
-        .form-control:focus {
-            box-shadow: none;
-            border-color: #999;
-        }
-
-        .btn-primary {
-            background: #333;
-            border: none;
-        }
-
-        .btn-primary:hover {
-            background: #111;
-        }
-
-        .btn-google {
-            background: #fff;
-            border: 1px solid #ddd;
-            color: #444;
-        }
-
-        .btn-google:hover {
-            background: #f1f1f1;
-        }
-
-        .toggle-password {
-            cursor: pointer;
-        }
-
-        a {
-            color: #555;
-            text-decoration: none;
-        }
-
-        a:hover {
-            color: #000;
-        }
-    </style>
-</head>
-
-<body>
-
-<div class="register-card">
-
-    <!-- LEFT SIDE -->
-    <div class="register-left d-none d-md-flex">
-        {% load static %}
-        <img src="{% static 'images/logo.png' %}" width="90" alt="Logo">
-        <h4>Create Account</h4>
-        {% comment %} <p>Join MyShop and start managing your business بسهولة</p> {% endcomment %}
-    </div>
-
-    <!-- RIGHT SIDE -->
-    <div class="register-right">
-
-        <h4 class="mb-4 text-center fw-semibold">Register</h4>
-
-        {% if error %}
-            <div class="alert alert-danger">{{ error }}</div>
-        {% endif %}
-
-        <form method="POST" id="registerForm">
-            {% csrf_token %}
-
-            <div class="mb-3">
-                <label class="form-label small text-muted">Full Name</label>
-                <input type="text" class="form-control" name="full_name" required value="{{ data.full_name }}">
+            <!-- LEFT PANEL -->
+            <div class="d-none d-md-flex flex-column align-items-center justify-content-center text-center gap-3 p-5"
+                 style="flex:1;background:var(--pine,#1f3d2f);color:#fff;">
+              <img src="{% static 'images/logo.png' %}" width="80" alt="Shan Zee">
+              <h3 class="font-display mb-0">Create Account</h3>
+              <p class="opacity-75 small mb-0">Join Shan Zee to track orders, save favorites, and check out faster next time.</p>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label small text-muted">Email</label>
-                <input type="email" class="form-control" name="email" required value="{{ data.email }}">
-            </div>
+            <!-- RIGHT PANEL -->
+            <div class="p-5" style="flex:1;">
+              <h4 class="font-display text-center mb-4">Register</h4>
 
-            <div class="mb-3">
-                <label class="form-label small text-muted">Mobile (optional)</label>
-                <input type="text" class="form-control" name="mobile" value="{{ data.mobile }}">
-            </div>
+              {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+              {% endif %}
 
-            <div class="mb-3">
-                <label class="form-label small text-muted">Password</label>
-                <div class="input-group">
+              <form method="POST" id="registerForm">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                  <label class="form-label small text-muted-custom">Full Name</label>
+                  <input type="text" class="form-control" name="full_name" required value="{{ data.full_name }}">
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small text-muted-custom">Email</label>
+                  <input type="email" class="form-control" name="email" required value="{{ data.email }}">
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small text-muted-custom">Mobile (optional)</label>
+                  <input type="text" class="form-control" name="mobile" value="{{ data.mobile }}">
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small text-muted-custom">Password</label>
+                  <div class="input-group">
                     <input type="password" id="password1" class="form-control" name="password1" required>
-                    <span class="input-group-text toggle-password" onclick="togglePassword('password1', this)">
-                        <i class="fa-solid fa-eye"></i>
+                    <span class="input-group-text" style="cursor:pointer;" onclick="togglePassword('password1', this)">
+                      <i class="bi bi-eye"></i>
                     </span>
+                  </div>
                 </div>
-            </div>
 
-            <div class="mb-3">
-                <label class="form-label small text-muted">Confirm Password</label>
-                <div class="input-group">
+                <div class="mb-3">
+                  <label class="form-label small text-muted-custom">Confirm Password</label>
+                  <div class="input-group">
                     <input type="password" id="password2" class="form-control" name="password2" required>
-                    <span class="input-group-text toggle-password" onclick="togglePassword('password2', this)">
-                        <i class="fa-solid fa-eye"></i>
+                    <span class="input-group-text" style="cursor:pointer;" onclick="togglePassword('password2', this)">
+                      <i class="bi bi-eye"></i>
                     </span>
+                  </div>
                 </div>
+
+                <button type="submit" class="btn btn-brass w-100" id="registerBtn">Register</button>
+              </form>
+
+              {% load socialaccount %}
+              <a href="{% provider_login_url 'google' %}" class="btn btn-outline-ink w-100 mt-3">
+                <i class="bi bi-google me-2"></i> Continue with Google
+              </a>
+
+              <p class="text-center mt-3">
+                Already have an account? <a href="{% url 'login' %}" class="text-decoration-underline">Login</a>
+              </p>
             </div>
 
-            <button type="submit" class="btn btn-primary w-100" id="registerBtn">
-                Register
-            </button>
-        </form>
-
-        {% load socialaccount %}
-        <a href="{% provider_login_url 'google' %}" class="btn btn-google w-100 mt-3">
-            <i class="fa-brands fa-google me-2"></i> Continue with Google
-        </a>
-
-        <p class="text-center mt-3">
-            Already have an account? <a href="{% url 'login' %}">Login</a>
-        </p>
-
+          </div>
+        </div>
+      </div>
     </div>
-</div>
+  </section>
 
-<script>
-    function togglePassword(id, el) {
-        const input = document.getElementById(id);
-        const icon = el.querySelector("i");
+{% endblock %}
 
-        if (input.type === "password") {
-            input.type = "text";
-            icon.classList.replace("fa-eye", "fa-eye-slash");
-        } else {
-            input.type = "password";
-            icon.classList.replace("fa-eye-slash", "fa-eye");
-        }
+{% block extra_js %}
+  <script>
+    function togglePassword(inputId, iconEl) {
+      const input = document.getElementById(inputId);
+      const icon = iconEl.querySelector("i");
+      if (input.type === "password") {
+        input.type = "text";
+        icon.classList.replace("bi-eye", "bi-eye-slash");
+      } else {
+        input.type = "password";
+        icon.classList.replace("bi-eye-slash", "bi-eye");
+      }
     }
 
     document.getElementById("registerForm").addEventListener("submit", function () {
-        const btn = document.getElementById("registerBtn");
-        btn.innerHTML = `<span class="spinner-border"></span> Creating...`;
-        btn.disabled = true;
+      const btn = document.getElementById("registerBtn");
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Creating...`;
+      btn.disabled = true;
     });
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+  </script>
+{% endblock %}

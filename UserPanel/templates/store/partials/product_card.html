@@ -1,0 +1,65 @@
+{% load static %}
+<div class="product-card">
+  <div class="product-media">
+    {% if product.badge %}<span class="badge-tag {{ product.badge_type|default:'new' }}">{{ product.badge }}</span>{% endif %}
+    {% if product.discount_percent %}<span class="badge-discount">-{{ product.discount_percent }}%</span>{% endif %}
+
+    <a href="{% url 'product_detail' product.slug|default:'demo' %}" class="product-image-link">
+      <img src="{{ product.image|default:'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=500&q=80' }}" alt="{{ product.name|default:'Product' }}" class="product-image">
+    </a>
+
+    <div class="product-quick-actions">
+      <button type="button" class="quick-action-btn wishlist-btn" data-product-id="{{ product.id|default:'0' }}" aria-label="Add to wishlist">
+        <i class="bi bi-heart"></i>
+      </button>
+      <button type="button" class="quick-action-btn compare-btn" data-product-id="{{ product.id|default:'0' }}" aria-label="Add to compare">
+        <i class="bi bi-arrow-left-right"></i>
+      </button>
+      <button type="button" class="quick-action-btn quickview-btn" data-bs-toggle="modal" data-bs-target="#quickViewModal" data-product-id="{{ product.id|default:'0' }}" aria-label="Quick view">
+        <i class="bi bi-eye"></i>
+      </button>
+    </div>
+
+    {% if product.free_shipping %}<span class="badge-free-shipping"><i class="bi bi-truck"></i> Free Shipping</span>{% endif %}
+
+    {% if product.stock_status == "low" %}
+      <span class="stock-indicator low"><i class="bi bi-exclamation-circle"></i> Only {{ product.stock_count|default:3 }} left</span>
+    {% elif product.stock_status == "out" %}
+      <span class="stock-indicator out">Out of Stock</span>
+    {% endif %}
+  </div>
+
+  <div class="product-info">
+    <a href="{% url 'product_detail' product.slug|default:'demo' %}" class="product-title">{{ product.name|default:"Product Name" }}</a>
+
+    {% if product.rating %}
+    <div class="product-rating">
+      {% for i in "12345" %}
+        {% if forloop.counter <= product.rating %}<i class="bi bi-star-fill"></i>{% else %}<i class="bi bi-star"></i>{% endif %}
+      {% endfor %}
+      <span>({{ product.review_count|default:0 }})</span>
+    </div>
+    {% endif %}
+
+    <div class="product-price">
+      <span class="current-price">PKR {{ product.price|default:"0" }}</span>
+      {% if product.original_price %}<span class="original-price">PKR {{ product.original_price }}</span>{% endif %}
+    </div>
+
+    {% if product.colors %}
+    <div class="product-colors">
+      {% for color in product.colors %}
+      <span class="color-swatch" style="background:{{ color }};"></span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form action="{% url 'cart_add' %}" method="post" class="add-to-cart-form">
+      {% csrf_token %}
+      <input type="hidden" name="product_id" value="{{ product.id|default:'0' }}">
+      <button type="submit" class="btn btn-add-to-cart" {% if product.stock_status == "out" %}disabled{% endif %}>
+        <i class="bi bi-bag-plus"></i> Add to Cart
+      </button>
+    </form>
+  </div>
+</div>

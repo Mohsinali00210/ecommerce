@@ -118,7 +118,7 @@ def ProductDetails(request, id):
     ).exists()
     wishlist_ids = []
     if request.user.is_authenticated:           
-        wishlist_ids = Wishlist.objects.filter(
+        wishlist_ids = WishToBuy.objects.filter(
             user=request.user
         ).values_list("product_id", flat=True)
     context = {
@@ -144,8 +144,7 @@ def ProductDetails(request, id):
 
 class AddToCartAPIView(APIView):
     authentication_classes = [SessionAuthentication]
-
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         data = request.data
@@ -741,7 +740,32 @@ class AddressAPIView(APIView):
 
 
 
+from django.contrib.auth.decorators import login_required
 
+@login_required
+def OrderConfirmation(request):
+    """
+    /order-confirmation/?order_id=<id>
+ 
+    Shown right after PlaceOrderAPIView succeeds — the frontend redirects here
+    with the id it got back from that call.
+    """
+    order_id = request.GET.get("order_id")
+ 
+    order = get_object_or_404(
+        Order.objects.select_related("shipping_address", "billing_address", "user").prefetch_related(
+            "items__product__images",
+            "items__variant",
+        ),
+        id=order_id,
+        user=request.user,
+    )
+ 
+    context = {
+        "order": order,
+        "order_items": order.items.all(),
+    }
+    return render(request, "Web/OrderConfirmation.html", context)
 
 class PlaceOrderAPIView(APIView):
     authentication_classes = [SessionAuthentication]
@@ -889,13 +913,13 @@ class ProductReviewCreateAPIView(CreateAPIView):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-from products.models import Wishlist
+from .models import WishToBuy
 
 @login_required
 def toggle_wishlist(request, product_id):
     product = Product.objects.get(id=product_id)
 
-    wishlist_item, created = Wishlist.objects.get_or_create(
+    wishlist_item, created = WishToBuy.objects.get_or_create(
         user=request.user,
         product=product
     )
@@ -903,7 +927,7 @@ def toggle_wishlist(request, product_id):
     if not created:
         wishlist_item.delete()
         return JsonResponse({"status": "removed"})
-
+    print("wishlist_item ",wishlist_item)
     return JsonResponse({"status": "added"})
 
 
@@ -1180,30 +1204,32 @@ def send_message(request):
             "message": msg.message
         })
 
+
+@login_required
 def get_messages(request, product_id):
     user = request.user
 
-    try:
-        thread = ChatThread.objects.get(user=user,product_id=product_id)
-    except ChatThread.DoesNotExist:
-        return JsonResponse({"messages": []})
+    product_id = None if str(product_id) == "0" else int(product_id)
 
-    messages = thread.messages.all().order_by("created_at")
+    thread, created = ChatThread.objects.get_or_create(
+        user=user,
+        product_id=product_id,
+    )
 
-    data = [
-        {
-            "sender": m.sender_type,
-            "message": m.message,
-            "time": m.created_at.strftime("%H:%M")
-        }
-        for m in messages
-    ]
+    messages = thread.messages.order_by("created_at")
 
     return JsonResponse({
         "thread_id": thread.id,
-        "messages": data
+        "created": created,
+        "messages": [
+            {
+                "sender": m.sender_type,
+                "message": m.message,
+                "time": m.created_at.strftime("%H:%M"),
+            }
+            for m in messages
+        ]
     })
-
 def get_cat(request):
     categories = Category.objects.annotate(
         product_count=Count(
@@ -1264,3 +1290,62 @@ def wish_to_buy(request):
                 "status": "error",
                 "message": str(e)
             }, status=500)
+
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+from Web.models import NewsletterSubscriber
+
+@require_POST
+def newsletter_subscribe(request):
+    email = request.POST.get("email", "").strip().lower()
+
+    if not email:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Email is required."
+            },
+            status=400
+        )
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Enter a valid email address."
+            },
+            status=400
+        )
+
+    subscriber, created = NewsletterSubscriber.objects.get_or_create(
+        email=email
+    )
+
+    if created:
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "You're subscribed."
+            }
+        )
+
+    if not subscriber.is_active:
+        subscriber.is_active = True
+        subscriber.unsubscribed_at = None
+        subscriber.save(update_fields=["is_active", "unsubscribed_at"])
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Welcome back! You're re-subscribed."
+            }
+        )
+
+    return JsonResponse(
+        {
+            "success": True,
+            "message": "You're already subscribed."
+        }
+    )

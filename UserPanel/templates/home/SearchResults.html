@@ -1,0 +1,224 @@
+{% extends "base2.html" %}
+{% load static %}
+{% block content %}
+
+  <!-- ============ PAGE HEADER ============ -->
+  <section class="py-4 border-bottom" style="border-color:var(--border) !important;">
+    <div class="container-xl">
+      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
+        <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
+        <li class="breadcrumb-item active">Search</li>
+      </ol></nav>
+      <h1 class="font-display mb-0">
+        {% if query %}Results for &ldquo;{{ query }}&rdquo;{% else %}Shop All{% endif %}
+      </h1>
+      <div class="small text-muted-custom mt-1">{{ result_count }} product{{ result_count|pluralize }} found</div>
+    </div>
+  </section>
+
+  <section class="py-5">
+    <div class="container-xl">
+      <div class="row g-4">
+
+        <!-- ============ FILTER SIDEBAR ============ -->
+        <div class="col-lg-3">
+          <form method="get" id="filterForm">
+            <input type="text" name="q" value="{{ query }}" class="form-control mb-3" placeholder="Search products&hellip;">
+
+            <!-- Price range -->
+            <div class="mb-4">
+              <div class="fw-semibold mb-2">Price</div>
+              <div class="d-flex align-items-center gap-2">
+                <input type="number" name="min_price" value="{{ min_price }}" class="form-control form-control-sm"
+                       placeholder="Rs. {{ price_bounds.min_price|floatformat:0 }}" min="0" step="1">
+                <span class="text-muted-custom">&ndash;</span>
+                <input type="number" name="max_price" value="{{ max_price }}" class="form-control form-control-sm"
+                       placeholder="Rs. {{ price_bounds.max_price|floatformat:0 }}" min="0" step="1">
+              </div>
+            </div>
+
+            <!-- Category -->
+            {% if category_facets %}
+              <div class="mb-4">
+                <div class="fw-semibold mb-2">Category</div>
+                {% for cat in category_facets %}
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="category" value="{{ cat.id }}"
+                           id="cat-{{ cat.id }}" {% if cat.id|stringformat:"s" in selected_category_ids %}checked{% endif %}>
+                    <label class="form-check-label small" for="cat-{{ cat.id }}">
+                      {{ cat.name }} <span class="text-muted-custom">({{ cat.count }})</span>
+                    </label>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <!-- Brand -->
+            {% if brand_facets %}
+              <div class="mb-4">
+                <div class="fw-semibold mb-2">Brand</div>
+                {% for brand in brand_facets %}
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="brand" value="{{ brand.id }}"
+                           id="brand-{{ brand.id }}" {% if brand.id|stringformat:"s" in selected_brand_ids %}checked{% endif %}>
+                    <label class="form-check-label small" for="brand-{{ brand.id }}">
+                      {{ brand.name }} <span class="text-muted-custom">({{ brand.count }})</span>
+                    </label>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <!-- Tags -->
+            {% if tag_facets %}
+              <div class="mb-4">
+                <div class="fw-semibold mb-2">Tags</div>
+                <div class="d-flex flex-wrap gap-1">
+                  {% for tag in tag_facets %}
+                    <label class="border rounded-pill px-2 py-1 small
+                                  {% if tag.slug in selected_tag_slugs %}bg-brass text-white{% endif %}"
+                           style="cursor:pointer;">
+                      <input type="checkbox" name="tag" value="{{ tag.slug }}" class="d-none tag-checkbox"
+                             {% if tag.slug in selected_tag_slugs %}checked{% endif %}>
+                      {{ tag.name }} ({{ tag.count }})
+                    </label>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+
+            <!-- Dynamic variant-option facets (Color, Size, etc.) -->
+            {% for option_name, values in option_facets.items %}
+              <div class="mb-4">
+                <div class="fw-semibold mb-2">{{ option_name }}</div>
+                {% for entry in values %}
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="opt_{{ option_name }}" value="{{ entry.value }}"
+                           id="opt-{{ option_name }}-{{ forloop.counter }}"
+                           {% if entry.selected %}checked{% endif %}>
+                    <label class="form-check-label small" for="opt-{{ option_name }}-{{ forloop.counter }}">
+                      {{ entry.value }} <span class="text-muted-custom">({{ entry.count }})</span>
+                    </label>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+
+            <button type="submit" class="btn btn-brass w-100">Apply Filters</button>
+            {% if query or min_price or max_price or selected_category_ids or selected_brand_ids or selected_tag_slugs or selected_options %}
+              <a href="{% url 'home:search-products' %}" class="btn btn-outline-ink w-100 mt-2">Clear All</a>
+            {% endif %}
+          </form>
+        </div>
+
+        <!-- ============ RESULTS ============ -->
+        <div class="col-lg-9">
+
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div class="small text-muted-custom">Showing {{ products.start_index }}&ndash;{{ products.end_index }} of {{ result_count }}</div>
+            <form method="get" class="d-flex align-items-center gap-2" id="sortForm">
+              <input type="hidden" name="q" value="{{ query }}">
+              {% for c in selected_category_ids %}<input type="hidden" name="category" value="{{ c }}">{% endfor %}
+              {% for b in selected_brand_ids %}<input type="hidden" name="brand" value="{{ b }}">{% endfor %}
+              {% for t in selected_tag_slugs %}<input type="hidden" name="tag" value="{{ t }}">{% endfor %}
+              {% for opt_name, opt_values in selected_options.items %}
+                {% for v in opt_values %}<input type="hidden" name="opt_{{ opt_name }}" value="{{ v }}">{% endfor %}
+              {% endfor %}
+              <label class="small text-muted-custom mb-0" for="sortSelect">Sort by</label>
+              <select class="form-select form-select-sm" id="sortSelect" name="sort" onchange="this.form.submit()" style="width:auto;">
+                {% for key, label in sort_options.items %}
+                  <option value="{{ key }}" {% if key == sort %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </div>
+
+          {% if not products %}
+            <div class="text-center py-5">
+              <i class="bi bi-search" style="font-size:3rem;color:var(--text-muted);"></i>
+              <h5 class="font-display mt-3">No products matched your search</h5>
+              <p class="text-muted-custom">Try clearing a filter or using a different keyword.</p>
+              <a href="{% url 'home:search-products' %}" class="btn btn-brass mt-2">Clear Filters</a>
+            </div>
+          {% else %}
+            <div class="row g-3">
+              {% for product in products %}
+                {% comment %} <div class="col-6 col-md-4 col-lg-4">
+                  <div class="product-card reveal in">
+                    <div class="product-media">
+                      <a href="{% url 'product-detail' product.slug %}">
+                        <img class="img-primary"
+                             src="{% if product.images.first %}{{ product.images.first.image.url }}{% else %}{% static 'default-product.png' %}{% endif %}"
+                             alt="{{ product.name }}">
+                      </a>
+                      <div class="badge-stack">
+                        {% if product.mark_as_new %}<span class="badge-tag">New</span>{% endif %}
+                        {% if product.compare_at_price and product.compare_at_price > product.price %}
+                          <span class="badge-tag badge-sale">Sale</span>
+                        {% endif %}
+                        {% if product.stock_status == "out_of_stock" %}
+                          <span class="badge-tag" style="background:var(--text-muted);">Out of Stock</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="ticket-divider"></div>
+                    <div class="product-info">
+                      <div class="cat">{{ product.category.first.name|default:"" }}</div>
+                      <div class="name">{{ product.name }}</div>
+                      <div class="price-row mt-1">
+                        <span class="price-now">Rs. {{ product.price|floatformat:2 }}</span>
+                        {% if product.compare_at_price and product.compare_at_price > product.price %}
+                          <span class="price-was">Rs. {{ product.compare_at_price|floatformat:2 }}</span>
+                        {% endif %}
+                      </div>
+                      <a href="{% url 'product-detail' product.slug %}" class="btn btn-brass w-100 mt-3">View Product</a>
+                    </div>
+                  </div>
+                </div> {% endcomment %}
+                            {% include "home/partials/product_card.html" with product=product %}
+
+              {% endfor %}
+            </div>
+
+            <!-- ============ Pagination ============ -->
+            {% if products.paginator.num_pages > 1 %}
+              <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                  {% if products.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?{{ base_querystring }}&page={{ products.previous_page_number }}">Prev</a></li>
+                  {% endif %}
+                  {% for num in products.paginator.page_range %}
+                    <li class="page-item {% if num == products.number %}active{% endif %}">
+                      <a class="page-link" href="?{{ base_querystring }}&page={{ num }}">{{ num }}</a>
+                    </li>
+                  {% endfor %}
+                  {% if products.has_next %}
+                    <li class="page-item"><a class="page-link" href="?{{ base_querystring }}&page={{ products.next_page_number }}">Next</a></li>
+                  {% endif %}
+                </ul>
+              </nav>
+            {% endif %}
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="floating-stack">
+    <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+    <a href="https://wa.me/10000000000" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'assets/js/app.js' %}"></script>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    // Checkboxes auto-submit the filter form so users don't have to hunt for "Apply"
+    document.querySelectorAll('#filterForm input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener("change", () => document.getElementById("filterForm").submit());
+    });
+  </script>
+{% endblock %}

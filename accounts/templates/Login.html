@@ -1,189 +1,90 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - MyShop</title>
+{% extends "base2.html" %}
+{% load static %}
+{% block content %}
 
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <section class="py-5">
+    <div class="container-xl">
+      <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+          <div class="border rounded-4 overflow-hidden d-flex flex-column flex-md-row" style="border-color:var(--border) !important;">
 
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-    <style>
-        body {
-            height: 100vh;
-            background: #f5f6f8;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .login-card {
-            width: 100%;
-            max-width: 900px;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-            display: flex;
-            background: #fff;
-        }
-
-        .login-left {
-            flex: 1;
-            background: #f1f3f5;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            padding: 40px;
-        }
-
-        .login-left img {
-            opacity: 0.9;
-        }
-
-        .login-left h3 {
-            font-weight: 600;
-        }
-
-        .login-left p {
-            color: #666;
-        }
-
-        .login-right {
-            flex: 1;
-            padding: 40px;
-        }
-
-        .form-control {
-            border-radius: 8px;
-        }
-
-        .form-control:focus {
-            box-shadow: none;
-            border-color: #999;
-        }
-
-        .btn-primary {
-            background: #333;
-            border: none;
-        }
-
-        .btn-primary:hover {
-            background: #111;
-        }
-
-        .btn-google {
-            background: #fff;
-            border: 1px solid #ddd;
-            color: #444;
-        }
-
-        .btn-google:hover {
-            background: #f1f1f1;
-        }
-
-        .toggle-password {
-            cursor: pointer;
-        }
-
-        .spinner-border {
-            width: 1rem;
-            height: 1rem;
-        }
-
-        a {
-            color: #555;
-            text-decoration: none;
-        }
-
-        a:hover {
-            color: #000;
-        }
-    </style>
-</head>
-
-<body>
-
-<div class="login-card">
-
-    <!-- LEFT SIDE -->
-    <div class="login-left d-none d-md-flex">
-        {% load static %}
-        <img src="{% static 'images/logo.png' %}" width="90" alt="Logo">
-        <h3>Welcome Back</h3>
-        {% comment %} <p class="text-center">Access your dashboard and manage everything بسهولة</p> {% endcomment %}
-    </div>
-
-    <!-- RIGHT SIDE -->
-    <div class="login-right">
-
-        <h4 class="mb-4 text-center fw-semibold">Login</h4>
-
-        <form method="POST" id="loginForm">
-            {% csrf_token %}
-
-            {% if error %}
-                <div class="alert alert-danger">{{ error }}</div>
-            {% endif %}
-
-            <div class="mb-3">
-                <label class="form-label small text-muted">Username</label>
-                <input type="text" name="username" class="form-control" placeholder="Enter username" required>
+            <!-- LEFT PANEL -->
+            <div class="d-none d-md-flex flex-column align-items-center justify-content-center text-center gap-3 p-5"
+                 style="flex:1;background:var(--pine,#1f3d2f);color:#fff;">
+              <img src="{% static 'images/logo.png' %}" width="80" alt="Shan Zee">
+              <h3 class="font-display mb-0">Welcome Back</h3>
+              <p class="opacity-75 small mb-0">Sign in to track orders, manage your wallet, and pick up your wishlist right where you left off.</p>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label small text-muted">Password</label>
-                <div class="input-group">
-                    <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
-                    <span class="input-group-text toggle-password" onclick="togglePassword()">
-                        <i class="fa-solid fa-eye"></i>
-                    </span>
+            <!-- RIGHT PANEL -->
+            <div class="p-5" style="flex:1;">
+              <h4 class="font-display text-center mb-4">Login</h4>
+
+              <form method="POST" id="loginForm">
+                {% csrf_token %}
+
+                {% if error %}
+                  <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+
+                <div class="mb-3">
+                  <label class="form-label small text-muted-custom">Email Address</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-transparent"><i class="bi bi-envelope"></i></span>
+                    <input type="email" name="username" class="form-control" placeholder="you@email.com" required>
+                  </div>
                 </div>
+
+                <div class="mb-3">
+                  <label class="form-label small text-muted-custom">Password</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-transparent"><i class="bi bi-lock"></i></span>
+                    <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
+                    <span class="input-group-text" style="cursor:pointer;" onclick="togglePassword('password', this)">
+                      <i class="bi bi-eye"></i>
+                    </span>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-brass w-100" id="loginBtn">Login</button>
+
+                {% load socialaccount %}
+                <a href="{% provider_login_url 'google' %}" class="btn btn-outline-ink w-100 mt-3">
+                  <i class="bi bi-google me-2"></i> Continue with Google
+                </a>
+
+                <div class="text-center mt-3">
+                  <a href="{% url 'register' %}" class="text-decoration-underline">Create an account</a>
+                </div>
+              </form>
             </div>
 
-            <button type="submit" class="btn btn-primary w-100" id="loginBtn">
-                Login
-            </button>
-
-            {% load socialaccount %}
-            <a href="{% provider_login_url 'google' %}" class="btn btn-google w-100 mt-3">
-                <i class="fa-brands fa-google me-2"></i> Continue with Google
-            </a>
-
-            <div class="text-center mt-3">
-                <a href="{% url 'register' %}">Create an account</a>
-            </div>
-        </form>
-
+          </div>
+        </div>
+      </div>
     </div>
-</div>
+  </section>
 
-<script>
-    function togglePassword() {
-        const input = document.getElementById("password");
-        const icon = event.target;
+{% endblock %}
 
-        if (input.type === "password") {
-            input.type = "text";
-            icon.classList.replace("fa-eye", "fa-eye-slash");
-        } else {
-            input.type = "password";
-            icon.classList.replace("fa-eye-slash", "fa-eye");
-        }
+{% block extra_js %}
+  <script>
+    function togglePassword(inputId, iconEl) {
+      const input = document.getElementById(inputId);
+      const icon = iconEl.querySelector("i");
+      if (input.type === "password") {
+        input.type = "text";
+        icon.classList.replace("bi-eye", "bi-eye-slash");
+      } else {
+        input.type = "password";
+        icon.classList.replace("bi-eye-slash", "bi-eye");
+      }
     }
 
     document.getElementById("loginForm").addEventListener("submit", function () {
-        const btn = document.getElementById("loginBtn");
-        btn.innerHTML = `<span class="spinner-border"></span> Logging in...`;
-        btn.disabled = true;
+      const btn = document.getElementById("loginBtn");
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Logging in...`;
+      btn.disabled = true;
     });
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+  </script>
+{% endblock %}

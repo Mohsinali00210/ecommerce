@@ -1,0 +1,342 @@
+{% extends "base2.html" %}
+{% load static %}
+{% block content %}
+
+  <!-- ============ PAGE HEADER ============ -->
+  <section class="py-4 border-bottom" style="border-color:var(--border) !important;">
+    <div class="container-xl d-flex justify-content-between align-items-end flex-wrap gap-2">
+      <div>
+        <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
+          <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
+          <li class="breadcrumb-item"><a href="profile">My Account</a></li>
+          <li class="breadcrumb-item active">Addresses</li>
+        </ol></nav>
+        <h1 class="font-display mb-0">My Addresses</h1>
+      </div>
+      <button type="button" class="btn btn-brass" onclick="openAddressModal()"><i class="bi bi-plus-lg me-1"></i> Add New Address</button>
+    </div>
+  </section>
+
+  <section class="py-5">
+    <div class="container-xl">
+      <div class="row g-4">
+
+        <!-- Account sidebar -->
+        <div class="col-lg-3">
+          <div class="account-sidebar p-3">
+            <a href="{% url 'home:user-profile' %}" class="account-nav-link"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+            <a href="{% url 'home:Orders' %}" class="account-nav-link active"><i class="bi bi-box-seam me-2"></i>Orders</a>
+            <a href="{% url 'home:user-wallet' %}" class="account-nav-link"><i class="bi bi-wallet2 me-2"></i>Wallet</a>
+            <a href="{% url 'home:user-address' %}" class="account-nav-link"><i class="bi bi-geo-alt me-2"></i>Addresses</a>
+            <a href="{% url 'home:Wishlist' %}" class="account-nav-link"><i class="bi bi-heart me-2"></i>Wishlist</a>
+            <a href="{% url 'home:Contact' %}" class="account-nav-link"><i class="bi bi-life-preserver me-2"></i>Support</a>
+          </div>
+        </div>
+
+        <div class="col-lg-9">
+          {% if not addresses %}
+            <div class="text-center py-5" id="addressEmptyState">
+              <i class="bi bi-geo-alt" style="font-size:3rem;color:var(--text-muted);"></i>
+              <h5 class="font-display mt-3">No saved addresses</h5>
+              <p class="text-muted-custom">Add an address to speed up checkout.</p>
+              <button type="button" class="btn btn-brass mt-2" onclick="openAddressModal()">Add Address</button>
+            </div>
+          {% else %}
+            <div class="row g-3" id="addressGrid">
+              {% for address in addresses %}
+                <div class="col-md-6" data-address-card="{{ address.id }}">
+                  <div class="p-3 border rounded h-100 position-relative" style="border-color:var(--border) !important;">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <span class="badge border {% if address.address_type == 'billing' %}bg-secondary-subtle text-dark{% else %}bg-info-subtle text-dark{% endif %}">
+                        {{ address.get_address_type_display }}
+                      </span>
+                      {% if address.is_default %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                          <i class="bi bi-check-circle-fill me-1"></i>Default
+                        </span>
+                      {% endif %}
+                    </div>
+
+                    <div class="fw-semibold">{{ address.full_name }}</div>
+                    <div class="small text-muted-custom">{{ address.phone }}</div>
+                    <div class="small mt-2">
+                      {{ address.street_address }}<br>
+                      {{ address.city }}{% if address.state %}, {{ address.state }}{% endif %}<br>
+                      {{ address.country }} &mdash; {{ address.postal_code }}
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3 pt-3 border-top" style="border-color:var(--border) !important;">
+                      <button type="button" class="btn btn-sm btn-outline-ink" onclick="openAddressModal({{ address.id }})">
+                        <i class="bi bi-pencil me-1"></i> Edit
+                      </button>
+                      {% if not address.is_default %}
+                        <button type="button" class="btn btn-sm btn-outline-ink" onclick="setDefaultAddress({{ address.id }})">
+                          <i class="bi bi-star me-1"></i> Set Default
+                        </button>
+                      {% endif %}
+                      <button type="button" class="btn btn-sm btn-outline-danger ms-auto" onclick="deleteAddress({{ address.id }})">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Add / Edit Address Modal ============ -->
+  <div class="modal fade" id="addressModal" tabindex="-1" aria-labelledby="addressModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addressModalLabel">Add Address</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="addressForm">
+            <input type="hidden" id="addressId" name="address_id" value="">
+
+            <div class="mb-3">
+              <label for="addressType" class="form-label fw-semibold">Address Type</label>
+              <select class="form-select" id="addressType" name="address_type" required>
+                <option value="shipping">Shipping</option>
+                <option value="billing">Billing</option>
+              </select>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="fullName" class="form-label fw-semibold">Full Name</label>
+                <input type="text" class="form-control" id="fullName" name="full_name" required>
+                <div class="small text-danger d-none" data-error-for="full_name"></div>
+              </div>
+              <div class="col-md-6">
+                <label for="phone" class="form-label fw-semibold">Phone</label>
+                <input type="text" class="form-control" id="phone" name="phone" required>
+                <div class="small text-danger d-none" data-error-for="phone"></div>
+              </div>
+            </div>
+
+            <div class="mb-3 mt-3">
+              <label for="streetAddress" class="form-label fw-semibold">Street Address</label>
+              <textarea class="form-control" id="streetAddress" name="street_address" rows="2" required></textarea>
+              <div class="small text-danger d-none" data-error-for="street_address"></div>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="city" class="form-label fw-semibold">City</label>
+                <input type="text" class="form-control" id="city" name="city" required>
+                <div class="small text-danger d-none" data-error-for="city"></div>
+              </div>
+              <div class="col-md-6">
+                <label for="state" class="form-label fw-semibold">State / Province</label>
+                <input type="text" class="form-control" id="state" name="state">
+              </div>
+              <div class="col-md-6">
+                <label for="postalCode" class="form-label fw-semibold">Postal Code</label>
+                <input type="text" class="form-control" id="postalCode" name="postal_code" required>
+                <div class="small text-danger d-none" data-error-for="postal_code"></div>
+              </div>
+              <div class="col-md-6">
+                <label for="country" class="form-label fw-semibold">Country</label>
+                <input type="text" class="form-control" id="country" name="country" value="Pakistan" required>
+              </div>
+            </div>
+
+            <div class="form-check mt-3">
+              <input class="form-check-input" type="checkbox" id="isDefault" name="is_default">
+              <label class="form-check-label" for="isDefault">Set as default address</label>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" form="addressForm" class="btn btn-brass">Save Address</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="floating-stack">
+    <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+    <a href="https://wa.me/10000000000" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'assets/js/app.js' %}"></script>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    function showAlert(message, type) {
+      if (typeof window.showAlert === "function" && window.showAlert !== showAlert) {
+        window.showAlert(message, type);
+        return;
+      }
+      alert(message);
+    }
+
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== "") {
+        for (let cookie of document.cookie.split(";")) {
+          cookie = cookie.trim();
+          if (cookie.startsWith(name + "=")) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    const csrftoken = getCookie("csrftoken");
+
+    const addressModalEl = document.getElementById("addressModal");
+    const addressModal = new bootstrap.Modal(addressModalEl);
+    const addressForm = document.getElementById("addressForm");
+
+    function clearAddressFormErrors() {
+      addressForm.querySelectorAll("[data-error-for]").forEach(el => {
+        el.textContent = "";
+        el.classList.add("d-none");
+      });
+    }
+
+    function resetAddressForm() {
+      addressForm.reset();
+      document.getElementById("addressId").value = "";
+      document.getElementById("country").value = "Pakistan";
+      clearAddressFormErrors();
+    }
+
+    function openAddressModal(addressId) {
+      resetAddressForm();
+
+      if (!addressId) {
+        document.getElementById("addressModalLabel").textContent = "Add Address";
+        addressModal.show();
+        return;
+      }
+
+      document.getElementById("addressModalLabel").textContent = "Edit Address";
+      const detailBaseUrl = "{% url 'home:address-detail' 0 %}";
+      const url = detailBaseUrl.replace("0", addressId);
+
+      fetch(url)
+        .then(res => {
+          if (!res.ok) throw new Error("Address not found");
+          return res.json();
+        })
+        .then(data => {
+          document.getElementById("addressId").value = data.id;
+          document.getElementById("addressType").value = data.address_type;
+          document.getElementById("fullName").value = data.full_name;
+          document.getElementById("phone").value = data.phone;
+          document.getElementById("streetAddress").value = data.street_address;
+          document.getElementById("city").value = data.city;
+          document.getElementById("state").value = data.state;
+          document.getElementById("postalCode").value = data.postal_code;
+          document.getElementById("country").value = data.country;
+          document.getElementById("isDefault").checked = data.is_default;
+          addressModal.show();
+        })
+        .catch(err => {
+          console.error(err);
+          showAlert("Failed to load address", "warning");
+        });
+    }
+
+    addressForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      clearAddressFormErrors();
+
+      const formData = new FormData(addressForm);
+      // Unchecked checkboxes aren't included by FormData; make sure "false" is sent explicitly
+      if (!document.getElementById("isDefault").checked) {
+        formData.set("is_default", "");
+      }
+
+      fetch("{% url 'home:address-save' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": csrftoken },
+        body: formData
+      })
+        .then(res => res.json().then(data => ({ status: res.status, data })))
+        .then(({ status, data }) => {
+          if (status === 200 && data.success) {
+            showAlert(data.message, "success");
+            addressModal.hide();
+            window.location.reload();
+          } else if (data.errors) {
+            Object.entries(data.errors).forEach(([field, errors]) => {
+              const el = addressForm.querySelector(`[data-error-for="${field}"]`);
+              if (el) {
+                el.textContent = errors[0];
+                el.classList.remove("d-none");
+              }
+            });
+          } else {
+            showAlert(data.message || "Failed to save address", "warning");
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showAlert("Failed to save address", "warning");
+        });
+    });
+
+    function deleteAddress(addressId) {
+      if (!confirm("Remove this address?")) return;
+
+      const deleteBaseUrl = "{% url 'home:address-delete' 0 %}";
+      const url = deleteBaseUrl.replace("0", addressId);
+
+      fetch(url, {
+        method: "POST",
+        headers: { "X-CSRFToken": csrftoken }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            document.querySelector(`[data-address-card="${addressId}"]`)?.remove();
+            if (!document.querySelector("[data-address-card]")) {
+              window.location.reload();
+            }
+          } else {
+            showAlert(data.message || "Failed to remove address", "warning");
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showAlert("Failed to remove address", "warning");
+        });
+    }
+
+    function setDefaultAddress(addressId) {
+      const defaultBaseUrl = "{% url 'home:address-set-default' 0 %}";
+      const url = defaultBaseUrl.replace("0", addressId);
+
+      fetch(url, {
+        method: "POST",
+        headers: { "X-CSRFToken": csrftoken }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            window.location.reload();
+          } else {
+            showAlert(data.message || "Failed to set default address", "warning");
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showAlert("Failed to set default address", "warning");
+        });
+    }
+  </script>
+{% endblock %}

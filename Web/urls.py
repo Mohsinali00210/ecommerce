@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
-from .views import PromotionDetail,wish_to_buy,get_cat,get_messages,send_message,cart_drawer,get_token_for_logged_in_user,UserCartCountAPIView,product_list,UserNotificationAPIView,toggle_wishlist,ProductReviewCreateAPIView,OrderRequestAPIView,OrderDetailAPIView,Contact,MyOrders,PlaceOrderAPIView,AddressAPIView,SaveCheckoutSession,OrderSuccess,CheckoutPage,MyCart,Index,ProductDetails,AddToCartAPIView,CartDetailAPIView,RemoveCartItemAPIView,SaveCheckoutSession,CheckoutPage
+from .views import newsletter_subscribe,PromotionDetail,OrderConfirmation,wish_to_buy,get_cat,get_messages,send_message,cart_drawer,get_token_for_logged_in_user,UserCartCountAPIView,product_list,UserNotificationAPIView,toggle_wishlist,ProductReviewCreateAPIView,OrderRequestAPIView,OrderDetailAPIView,Contact,MyOrders,PlaceOrderAPIView,AddressAPIView,SaveCheckoutSession,OrderSuccess,CheckoutPage,MyCart,Index,ProductDetails,AddToCartAPIView,CartDetailAPIView,RemoveCartItemAPIView,SaveCheckoutSession,CheckoutPage
 from accounts.views import profile_view,update_profile_ajax
 urlpatterns = [
     path("", Index, name="Home"),
@@ -17,6 +17,7 @@ urlpatterns = [
     path("address/", AddressAPIView.as_view(), name="add_address"),
     path("address/<int:pk>/", AddressAPIView.as_view(), name="update_address"),
     path("place-order/", PlaceOrderAPIView.as_view(), name="place_order"),
+    path("order-confirmation/", OrderConfirmation, name="OrderConfirmation"),
     path("MyOrders/", MyOrders, name="MyOrders"),
     path("Contact/", Contact, name="Contact"),
     path("OrderDetailApi/<int:pk>/", OrderDetailAPIView.as_view(), name="OrderDetailApi"),
@@ -34,6 +35,7 @@ urlpatterns = [
     path("get_cat/", get_cat, name="get_cat"),
         path("wish-to-buy/", wish_to_buy, name="wish_to_buy"),
         path("promo/<int:id>/", PromotionDetail, name="promo"),
+        path("subscribe/", newsletter_subscribe, name="subscribe"),
 
 
 ]

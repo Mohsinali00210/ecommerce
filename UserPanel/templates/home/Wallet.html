@@ -1,0 +1,141 @@
+{% extends "base2.html" %}
+{% load static %}
+{% block content %}
+
+  <!-- ============ PAGE HEADER ============ -->
+  <section class="py-4 border-bottom" style="border-color:var(--border) !important;">
+    <div class="container-xl">
+      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
+        <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="profile">My Account</a></li>
+        <li class="breadcrumb-item active">Wallet</li>
+      </ol></nav>
+      <h1 class="font-display mb-0">My Wallet</h1>
+    </div>
+  </section>
+
+  <section class="py-5">
+    <div class="container-xl">
+      <div class="row g-4">
+
+        <!-- Account sidebar -->
+        <div class="col-lg-3">
+          <div class="account-sidebar p-3">
+            <a href="{% url 'home:user-profile' %}" class="account-nav-link"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+            <a href="{% url 'home:Orders' %}" class="account-nav-link active"><i class="bi bi-box-seam me-2"></i>Orders</a>
+            <a href="{% url 'home:user-wallet' %}" class="account-nav-link"><i class="bi bi-wallet2 me-2"></i>Wallet</a>
+            <a href="{% url 'home:user-address' %}" class="account-nav-link"><i class="bi bi-geo-alt me-2"></i>Addresses</a>
+            <a href="{% url 'home:Wishlist' %}" class="account-nav-link"><i class="bi bi-heart me-2"></i>Wishlist</a>
+            <a href="{% url 'home:Contact' %}" class="account-nav-link"><i class="bi bi-life-preserver me-2"></i>Support</a>
+          </div>
+        </div>
+
+        <div class="col-lg-9">
+
+          <!-- ============ Balance hero ============ -->
+          <div class="p-4 mb-4 border rounded" style="border-color:var(--border) !important; background:var(--pine,#1f3d2f); color:#fff;">
+            <div class="small opacity-75">Available Balance</div>
+            <div class="font-display" style="font-size:2.5rem;">Rs. {{ wallet.balance|floatformat:2 }}</div>
+          </div>
+
+          <!-- ============ Totals ============ -->
+          <div class="row g-3 mb-4">
+            <div class="col-6">
+              <div class="p-3 border rounded text-center" style="border-color:var(--border) !important;">
+                <div class="fs-5 fw-semibold text-success">+ Rs. {{ total_credit|floatformat:2 }}</div>
+                <div class="small text-muted-custom">Total Credited</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="p-3 border rounded text-center" style="border-color:var(--border) !important;">
+                <div class="fs-5 fw-semibold text-danger">- Rs. {{ total_debit|floatformat:2 }}</div>
+                <div class="small text-muted-custom">Total Debited</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ Filter tabs ============ -->
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <a href="?type=" class="btn btn-sm {% if not selected_type %}btn-brass{% else %}btn-outline-ink{% endif %}">All</a>
+            {% for value, label in transaction_types %}
+              <a href="?type={{ value }}" class="btn btn-sm {% if selected_type == value %}btn-brass{% else %}btn-outline-ink{% endif %}">{{ label }}</a>
+            {% endfor %}
+          </div>
+
+          <!-- ============ Transaction history ============ -->
+          <div class="border rounded" style="border-color:var(--border) !important;">
+            {% if not transactions %}
+              <div class="text-center py-5">
+                <i class="bi bi-wallet2" style="font-size:2.5rem;color:var(--text-muted);"></i>
+                <h6 class="font-display mt-3">No transactions yet</h6>
+                <p class="small text-muted-custom mb-0">Your wallet activity will show up here.</p>
+              </div>
+            {% else %}
+              <div class="d-flex flex-column">
+                {% for txn in transactions %}
+                  <div class="d-flex justify-content-between align-items-center p-3 {% if not forloop.last %}border-bottom{% endif %}"
+                       style="border-color:var(--border) !important;">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0
+                                  {% if txn.transaction_type == 'credit' or txn.transaction_type == 'returnorder' %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %}"
+                           style="width:40px;height:40px;">
+                        <i class="bi {% if txn.transaction_type == 'credit' %}bi-arrow-down-left{% elif txn.transaction_type == 'returnorder' %}bi-arrow-return-left{% else %}bi-arrow-up-right{% endif %}"></i>
+                      </div>
+                      <div>
+                        <div class="fw-semibold">
+                          {% if txn.transaction_type == 'credit' %}Wallet Credit
+                          {% elif txn.transaction_type == 'returnorder' %}Order Refund
+                          {% else %}Wallet Debit{% endif %}
+                        </div>
+                        {% if txn.description %}
+                          <div class="small text-muted-custom">{{ txn.description }}</div>
+                        {% endif %}
+                        <div class="small text-muted-custom">
+                          {{ txn.created_at|date:"M d, Y - H:i" }}
+                          {% if txn.order %}
+                            &middot; <a href="{% url 'order-detail' txn.order.order_number %}">Order {{ txn.order.order_number }}</a>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                    <div class="fw-semibold fs-6 {% if txn.transaction_type == 'debit' %}text-danger{% else %}text-success{% endif %}">
+                      {% if txn.transaction_type == 'debit' %}-{% else %}+{% endif %}Rs. {{ txn.amount|floatformat:2 }}
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- ============ Pagination ============ -->
+          {% if transactions.paginator.num_pages > 1 %}
+            <nav class="mt-4">
+              <ul class="pagination justify-content-center">
+                {% if transactions.has_previous %}
+                  <li class="page-item"><a class="page-link" href="?type={{ selected_type }}&page={{ transactions.previous_page_number }}">Prev</a></li>
+                {% endif %}
+                {% for num in transactions.paginator.page_range %}
+                  <li class="page-item {% if num == transactions.number %}active{% endif %}">
+                    <a class="page-link" href="?type={{ selected_type }}&page={{ num }}">{{ num }}</a>
+                  </li>
+                {% endfor %}
+                {% if transactions.has_next %}
+                  <li class="page-item"><a class="page-link" href="?type={{ selected_type }}&page={{ transactions.next_page_number }}">Next</a></li>
+                {% endif %}
+              </ul>
+            </nav>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="floating-stack">
+    <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+    <a href="https://wa.me/10000000000" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'assets/js/app.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "base2.html" %}
+{% block content %}
+
+  <!-- ============ HEADER ============ -->
+  <header class="site-header">
+    <div class="container-xl py-3 d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-4">
+      </div>
+      <div class="checkout-steps d-none d-md-flex align-items-center gap-2 small text-muted-custom">
+        <span class="step done"><i class="bi bi-check-circle-fill text-success"></i> Cart</span>
+        <i class="bi bi-chevron-right"></i>
+        <span class="step done"><i class="bi bi-check-circle-fill text-success"></i> Checkout</span>
+        <i class="bi bi-chevron-right"></i>
+        <span class="step active fw-semibold" style="color:var(--ink);">Confirmation</span>
+      </div>
+      <a href="" class="btn-icon" aria-label="Back to home"><i class="bi bi-house"></i></a>
+    </div>
+  </header>
+
+  <!-- ============ CONFIRMATION ============ -->
+  <section class="py-5">
+    <div class="container-xl">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+
+          <div class="confirmation-hero text-center py-5">
+            <div class="confirmation-check mx-auto mb-4">
+              <i class="bi bi-check-lg"></i>
+            </div>
+            <div class="hero-eyebrow" style="color:var(--brass);">Order Placed</div>
+            <h1 class="font-display mb-2">Thank you, {{ order.user.full_name }}</h1>
+            <p class="text-muted-custom">
+              Your order is confirmed.
+              {% if order.user.email %}A confirmation email has been sent to <strong>{{ order.user.email }}</strong>.{% endif %}
+              Save your order number below to track it anytime.
+            </p>
+
+            <div class="order-number-pill mt-3">
+              <span class="text-muted-custom small">Order Number</span>
+              <div class="fw-semibold fs-5">{{ order.order_number }}</div>
+            </div>
+          </div>
+
+          <div class="row g-4 mt-2">
+
+            <!-- Order items -->
+            <div class="col-lg-7">
+              <div class="checkout-panel p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="font-display mb-0"><i class="bi bi-bag-check me-2"></i>Items Ordered</h5>
+                  {% include "Web/partials/order_status_badge.html" with status=order.status %}
+                </div>
+
+                <div class="d-flex flex-column gap-3">
+                  {% for item in order_items %}
+                  <div class="d-flex gap-3 align-items-center">
+                    <img
+                      src="{% if item.product and item.product.images.first %}{{ item.product.images.first.image.url }}{% endif %}"
+                      class="checkout-thumb" width="100px"
+                      alt="{{ item.product.name|default:'Product' }}">
+                    <div class="flex-grow-1">
+                      <div class="fw-semibold small">{{ item.product.name|default:"Product no longer available" }}</div>
+                      {% if item.variant %}
+                        <div class="small text-muted-custom">SKU: {{ item.variant.sku }}</div>
+                      {% endif %}
+                      <div class="small text-muted-custom">Qty {{ item.quantity }}</div>
+                    </div>
+                    <div class="small fw-semibold">${{ item.total|floatformat:2 }}</div>
+                  </div>
+                  {% empty %}
+                  <p class="text-muted-custom mb-0">No items found on this order.</p>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Summary + shipping -->
+            <div class="col-lg-5">
+              <div class="checkout-panel p-4 mb-4">
+                <h5 class="font-display mb-3"><i class="bi bi-receipt me-2"></i>Order Summary</h5>
+                <div class="summary-row d-flex justify-content-between">
+                  <span>Subtotal</span><span>${{ order.subtotal|floatformat:2 }}</span>
+                </div>
+                <div class="summary-row d-flex justify-content-between">
+                  <span>Shipping</span>
+                  <span>{% if order.shipping_charges == 0 %}Free{% else %}${{ order.shipping_charges|floatformat:2 }}{% endif %}</span>
+                </div>
+                <hr>
+                <div class="summary-row d-flex justify-content-between fw-semibold fs-5">
+                  <span>Total</span><span>${{ order.total_amount|floatformat:2 }}</span>
+                </div>
+                <div class="summary-row d-flex justify-content-between mt-2 small text-muted-custom">
+                  <span>Payment Method</span><span>{{ order.get_payment_method_display }}</span>
+                </div>
+                <div class="summary-row d-flex justify-content-between small text-muted-custom">
+                  <span>Payment Status</span><span>{{ order.get_payment_status_display }}</span>
+                </div>
+                {% if order.transaction_id %}
+                <div class="summary-row d-flex justify-content-between small text-muted-custom">
+                  <span>Transaction ID</span><span>{{ order.transaction_id }}</span>
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="checkout-panel p-4 mb-4">
+                <h5 class="font-display mb-3"><i class="bi bi-truck me-2"></i>Shipping To</h5>
+                {% if order.shipping_address %}
+                <div class="small">
+                  {{ order.shipping_address.full_name }}<br>
+                  {{ order.shipping_address.street_address }}<br>
+                  {{ order.shipping_address.city }}{% if order.shipping_address.state %}, {{ order.shipping_address.state }}{% endif %} {{ order.shipping_address.postal_code }}<br>
+                  {{ order.shipping_address.country }}
+                  {% if order.shipping_address.phone %}<br><span class="text-muted-custom">{{ order.shipping_address.phone }}</span>{% endif %}
+                </div>
+                {% else %}
+                <p class="small text-muted-custom mb-0">No shipping address on file for this order.</p>
+                {% endif %}
+              </div>
+
+              {% if order.qr_code %}
+              <div class="checkout-panel p-4 text-center">
+                <h6 class="font-display mb-2"><i class="bi bi-qr-code me-2"></i>Order QR</h6>
+                <img src="{{ order.qr_code.url }}" alt="Order QR code" class="img-fluid" style="max-width:160px;">
+                <div class="small text-muted-custom mt-2">Show this at pickup counters or for quick lookups.</div>
+              </div>
+              {% endif %}
+            </div>
+
+          </div>
+
+          {% if order.notes %}
+          <div class="checkout-panel p-4 mt-4">
+            <h6 class="font-display mb-2"><i class="bi bi-sticky me-2"></i>Order Notes</h6>
+            <p class="small text-muted-custom mb-0">{{ order.notes }}</p>
+          </div>
+          {% endif %}
+
+          <div class="d-flex flex-wrap gap-3 justify-content-center mt-5">
+            <a href=" 'OrderDetail' order.id " class="btn btn-brass px-4">Track This Order</a>
+            <a href=" 'shop' " class="btn btn-outline-ink px-4">Continue Shopping</a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+{% endblock %}

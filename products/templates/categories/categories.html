@@ -194,7 +194,13 @@
                 <input type="text" class="form-control form-control-sm" hidden id="CategoryId">
                 <label class="form-label">Category Name</label>
                 <input type="text" class="form-control form-control-sm" id="CategoryName">
-
+                    <label>Category Image</label>
+                    <input type="file"
+                        id="CategoryImage"
+                        class="form-control"
+                        accept="image/*">
+                    <image id="PreviewCategoryImage" src="" style="max-width:100px">
+                <br>
                 <label class="form-label mt-2">Status</label>
                 <select class="form-select form-select-sm" id="is_active">
                     <option value="">Select Status</option>
@@ -237,10 +243,28 @@ function saveCategory() {
     if(is_active!=''){body.is_active= is_active}
     if (parentid != '') { body.name=SubCatName; body.parent = parseInt(parentid); } 
     else { body.parent = null; }
+      const formData = new FormData();
+
+    if (parentid != '') {
+        formData.append("name", SubCatName);
+        formData.append("parent", parentid);
+    }
+    else {
+        formData.append("name", catName);
+    }
+
+    if (is_active !== '')
+        formData.append("is_active", is_active);
+
+    // Image
+    let image = $("#CategoryImage")[0].files[0];
+
+    if (image)
+        formData.append("image", image);
     fetch(url, {
         method: method,
-        headers: {  "Authorization": `Bearer ${localStorage.getItem("access_token")}`, "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        headers: {  "Authorization": `Bearer ${localStorage.getItem("access_token")}` },
+         body: formData,
     })
     .then(res => {
         // Handle different Status Codes
@@ -377,12 +401,15 @@ function clearCatgoryModal() {
     $('#CategoryName').val("");
     $('#is_active').val('');
     $('#parent').val(""); 
+    $('#CategoryImage').val("");
+     $('#PreviewCategoryImage').attr('src', ""); 
 }
 function fillCatgoryModal(item) {
    
     clearCatgoryModal();
     $('#CategoryId').val(item.id);
     $('#CategoryName').val(item.name);
+    $('#PreviewCategoryImage').attr('src', item.image);
     $('#is_active').val(item.is_active?1:0);
 }
 

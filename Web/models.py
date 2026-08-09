@@ -328,8 +328,17 @@ class ChatMessage(BaseAuditModel):
 class WishToBuy(BaseAuditModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     product = models.ForeignKey("products.Product", on_delete=models.CASCADE)
-    variant = models.ForeignKey("products.ProductVariant", on_delete=models.CASCADE)
+    variant = models.ForeignKey("products.ProductVariant", on_delete=models.CASCADE,null=True, blank=True)
 
 
     def __str__(self):
         return f"{self.user} wants {self.product}"
+
+class NewsletterSubscriber(models.Model):
+    email = models.EmailField(unique=True)
+    is_active = models.BooleanField(default=True)
+    subscribed_at = models.DateTimeField(auto_now_add=True)
+    unsubscribed_at = models.DateTimeField(null=True, blank=True)
+ 
+    def __str__(self):
+        return self.email

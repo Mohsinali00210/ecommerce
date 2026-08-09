@@ -95,7 +95,7 @@ def login_view(request):
             if user.is_superuser:
                 return redirect("addProduct")  # Django admin panel
             else:
-                return redirect("Home")  # regular user home page
+                return redirect("home:home")  # regular user home page
         else:
             error = "Invalid username or password"
 

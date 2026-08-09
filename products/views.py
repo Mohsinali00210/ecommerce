@@ -32,10 +32,11 @@ class IsAdminRole(permissions.BasePermission):
 
 
 
+from rest_framework.parsers import MultiPartParser, FormParser
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     permission_classes = [IsSuperUser]
-
+    parser_classes = (MultiPartParser, FormParser)
    
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
