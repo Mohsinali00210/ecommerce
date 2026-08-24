@@ -42,7 +42,7 @@
 }
 .header-search-input:focus { box-shadow: none; }
 .header-search-btn {
-  background: var(--brass);
+  background: #000000;
   color: #fff;
   border: none;
   padding: 0 1.1rem;
@@ -91,6 +91,17 @@
 .cat-flyout-item i { width: 18px; text-align: center; color: var(--brass); }
 
 .find-deal-btn { border-radius: 4px; font-weight: 600; }
+   .btn-brass2:hover{ background:  var(--brass-deep); border-color: var(--accent-deep); color: #fff; transform: translateY(-1px); }
+  .btn-brass2 {
+      background:  var(--brass);
+      color: #ffffff;
+      border: 1px solid #185935;
+      font-weight: 600;
+      letter-spacing: .01em;
+      border-radius: var(--radius-sm);
+      padding: .65rem 1.4rem;
+      transition: all var(--dur) var(--ease);
+  }
 </style>
 </head>
 <body>
@@ -252,7 +263,7 @@
         </nav>
       </div>
 
-      <a href="{% url 'home:best-deals' %}" class="btn btn-brass btn-sm find-deal-btn">
+      <a href="{% url 'home:best-deals' %}" class="btn btn-brass2 btn-sm find-deal-btn">
         <i class="bi bi-lightning-charge-fill me-1"></i> Find Best Deal
       </a>
     </div>
@@ -499,73 +510,11 @@
 <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-{% comment %} <script src="{% static 'js/cart.js' %}"></script> {% endcomment %}
+ <script src="{% static 'js/cart.js' %}"></script> 
 <script src="{% static 'js/app.js' %}"></script>
 
 <script>
-  loadCategories();
-function loadCategories() {
-    fetch("{% url 'get_cat' %}")
-        .then(res => {
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return res.json();
-        })
-        .then(data => {
-            const cats = data.categories || [];
-            renderSearchDropdown(cats);
-            renderFlyoutPanel(cats);
-            renderMobileList(cats);
-        })
-        .catch(err => console.error("Failed to load categories:", err));
-}
-
-function renderSearchDropdown(cats) {
-    const el = document.getElementById("headerSearchCatList");
-    if (!el) return;
-
-    el.innerHTML = cats.length
-        ? cats.map(c => `
-            <li>
-                <a class="dropdown-item"
-                   href="/search-products/?category=${encodeURIComponent(c.id)}">
-                    ${c.name}
-                </a>
-            </li>
-        `).join("")
-        : `<li><a class="dropdown-item disabled" href="#">No categories</a></li>`;
-}
-
-
-function renderFlyoutPanel(cats) {
-    const el = document.getElementById("catFlyoutPanel");
-    if (!el) return;
-
-    el.innerHTML = cats.length
-        ? cats.map(c => `
-            <a class="cat-flyout-item"
-               href="/search-products/?category=${encodeURIComponent(c.id)}">
-                <i class="bi ${c.icon || 'bi-tag'}"></i>
-                ${c.name}
-            </a>
-        `).join("")
-        : `<span class="cat-flyout-item text-muted-custom">No categories</span>`;
-}
-
-
-function renderMobileList(cats) {
-    const el = document.getElementById("mobileCatList");
-    if (!el) return;
-
-    el.innerHTML = cats.length
-        ? cats.map(c => `
-            <a class="cat-flyout-item"
-               href="/search-products/?category=${encodeURIComponent(c.id)}">
-                <i class="bi ${c.icon || 'bi-tag'}"></i>
-                ${c.name}
-            </a>
-        `).join("")
-        : `<span class="cat-flyout-item text-muted-custom">No categories</span>`;
-}
+ 
 {% comment %} 
 function renderSearchDropdown(cats) {
     const el = document.getElementById("headerSearchCatList");
@@ -814,6 +763,69 @@ function renderMobileList(cats) {
 {% endif %}
 
 <script>
+   loadCategories();
+function loadCategories() {
+    fetch("{% url 'get_cat' %}")
+        .then(res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        })
+        .then(data => {
+            const cats = data.categories || [];
+            renderSearchDropdown(cats);
+            renderFlyoutPanel(cats);
+            renderMobileList(cats);
+        })
+        .catch(err => console.error("Failed to load categories:", err));
+}
+
+function renderSearchDropdown(cats) {
+    const el = document.getElementById("headerSearchCatList");
+    if (!el) return;
+
+    el.innerHTML = cats.length
+        ? cats.map(c => `
+            <li>
+                <a class="dropdown-item"
+                   href="/search-products/?category=${encodeURIComponent(c.id)}">
+                    ${c.name}
+                </a>
+            </li>
+        `).join("")
+        : `<li><a class="dropdown-item disabled" href="#">No categories</a></li>`;
+}
+
+
+function renderFlyoutPanel(cats) {
+    const el = document.getElementById("catFlyoutPanel");
+    if (!el) return;
+
+    el.innerHTML = cats.length
+        ? cats.map(c => `
+            <a class="cat-flyout-item"
+               href="/search-products/?category=${encodeURIComponent(c.id)}">
+                <i class="bi ${c.icon || 'bi-tag'}"></i>
+                ${c.name}
+            </a>
+        `).join("")
+        : `<span class="cat-flyout-item text-muted-custom">No categories</span>`;
+}
+
+
+function renderMobileList(cats) {
+    const el = document.getElementById("mobileCatList");
+    if (!el) return;
+
+    el.innerHTML = cats.length
+        ? cats.map(c => `
+            <a class="cat-flyout-item"
+               href="/search-products/?category=${encodeURIComponent(c.id)}">
+                <i class="bi ${c.icon || 'bi-tag'}"></i>
+                ${c.name}
+            </a>
+        `).join("")
+        : `<span class="cat-flyout-item text-muted-custom">No categories</span>`;
+}
  document.getElementById("searchInput").addEventListener("keydown", function (e) {
   console.log("value "+this.value.trim());
     if (e.key === "Enter") {

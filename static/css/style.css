@@ -126,8 +126,19 @@
       padding: .65rem 1.4rem;
       transition: all var(--dur) var(--ease);
   }
+    .btn-brass2 {
+      background:  var(--brass);
+      color: #ffffff;
+      border: 1px solid #185935;
+      font-weight: 600;
+      letter-spacing: .01em;
+      border-radius: var(--radius-sm);
+      padding: .65rem 1.4rem;
+      transition: all var(--dur) var(--ease);
+  }
   .btn-brass:hover{ background: #041b13; border-color: var(--accent-deep); color: #fff; transform: translateY(-1px); }
- 
+   .btn-brass2:hover{ background:  var(--brass-deep); border-color: var(--accent-deep); color: #fff; transform: translateY(-1px); }
+
   .btn-outline-ink:hover{ background: var(--text); color: var(--bg); }
   .btn-ghost{ background: transparent; border: none; color: var(--text); }
   .btn-icon{
