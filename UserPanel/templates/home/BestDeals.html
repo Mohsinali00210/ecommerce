@@ -1,0 +1,159 @@
+{% extends "base2.html" %}
+{% load static %}
+{% block content %}
+
+  <!-- ============ HERO ============ -->
+  <section class="py-5" style="background:var(--pine,#1f3d2f);color:#fff;">
+    <div class="container-xl">
+      <div class="row align-items-center g-4">
+        <div class="col-lg-6">
+          <div class="badge bg-brass text-dark mb-2"><i class="bi bi-lightning-fill me-1"></i>Limited Time</div>
+          <h1 class="font-display mb-2">Best Deals</h1>
+          <p class="opacity-75 mb-0">Hand-picked discounts across the store &mdash; grab them before they're gone.</p>
+
+          {% if hero_deal and hero_deal.available_end_date %}
+            <div class="mt-4">
+              <div class="small opacity-75 mb-1">Deal ends in</div>
+              <div id="dealCountdown" class="d-flex gap-3 font-display" style="font-size:1.5rem;"
+                   data-end="{{ hero_deal.available_end_date|date:'c' }}">
+                <div><span id="cdDays">--</span><div class="small opacity-75" style="font-size:.65rem;">DAYS</div></div>
+                <div><span id="cdHours">--</span><div class="small opacity-75" style="font-size:.65rem;">HRS</div></div>
+                <div><span id="cdMinutes">--</span><div class="small opacity-75" style="font-size:.65rem;">MIN</div></div>
+                <div><span id="cdSeconds">--</span><div class="small opacity-75" style="font-size:.65rem;">SEC</div></div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+        {% if hero_deal %}
+          <div class="col-lg-6">
+            <a href="{% url 'product-detail' hero_deal.slug %}" class="text-decoration-none">
+              <div class="d-flex align-items-center gap-3 p-3 rounded-4" style="background:rgba(255,255,255,0.08);">
+                <img src="{% if hero_deal.images.first %}{{ hero_deal.images.first.image.url }}{% else %}{% static 'default-product.png' %}{% endif %}"
+                     width="120" height="120" class="rounded-3" style="object-fit:cover;" alt="{{ hero_deal.name }}">
+                <div>
+                  <span class="badge bg-brass text-dark mb-1">-{{ hero_deal.effective_discount|floatformat:0 }}% OFF</span>
+                  <div class="text-white fw-semibold fs-5">{{ hero_deal.name }}</div>
+                  <div class="d-flex align-items-center gap-2 mt-1">
+                    <span class="fw-semibold" style="color:var(--brass,#c9a227);">Rs. {{ hero_deal.price|floatformat:2 }}</span>
+                    {% if hero_deal.compare_at_price %}
+                      <span class="text-decoration-line-through opacity-50 small">Rs. {{ hero_deal.compare_at_price|floatformat:2 }}</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-5">
+    <div class="container-xl">
+
+      <!-- ============ FILTER BAR ============ -->
+      <form method="get" class="d-flex flex-wrap align-items-center gap-2 mb-4 pb-3 border-bottom" style="border-color:var(--border) !important;">
+        <div class="d-flex flex-wrap gap-2 flex-grow-1">
+          <a href="?{% if min_price %}min_price={{ min_price }}&{% endif %}{% if max_price %}max_price={{ max_price }}&{% endif %}sort={{ sort }}"
+             class="btn btn-sm {% if not selected_category_ids %}btn-brass{% else %}btn-outline-ink{% endif %}">All</a>
+          {% for cat in category_facets %}
+            <a href="?category={{ cat.id }}&sort={{ sort }}"
+               class="btn btn-sm {% if cat.id|stringformat:'s' in selected_category_ids %}btn-brass{% else %}btn-outline-ink{% endif %}">
+              {{ cat.name }} <span class="opacity-75">({{ cat.count }})</span>
+            </a>
+          {% endfor %}
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <input type="number" name="min_price" value="{{ min_price }}" placeholder="Min Rs." class="form-control form-control-sm" style="width:100px;">
+          <span class="text-muted-custom">&ndash;</span>
+          <input type="number" name="max_price" value="{{ max_price }}" placeholder="Max Rs." class="form-control form-control-sm" style="width:100px;">
+          {% for c in selected_category_ids %}<input type="hidden" name="category" value="{{ c }}">{% endfor %}
+          <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+            {% for key, label in sort_options.items %}
+              <option value="{{ key }}" {% if key == sort %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-sm btn-outline-ink">Go</button>
+        </div>
+      </form>
+
+      <div class="small text-muted-custom mb-3">{{ result_count }} deal{{ result_count|pluralize }} live right now</div>
+
+      <!-- ============ PRODUCT GRID ============ -->
+      {% if not products %}
+        <div class="text-center py-5">
+          <i class="bi bi-tag" style="font-size:3rem;color:var(--text-muted);"></i>
+          <h5 class="font-display mt-3">No deals match those filters</h5>
+          <a href="{% url 'best-deals' %}" class="btn btn-brass mt-2">Clear Filters</a>
+        </div>
+      {% else %}
+        <div class="row g-3">
+          {% for product in products %}
+                        {% include "home/partials/product_card.html" with product=product %}
+
+          {% endfor %}
+        </div>
+
+        <!-- ============ Pagination ============ -->
+        {% if products.paginator.num_pages > 1 %}
+          <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+              {% if products.has_previous %}
+                <li class="page-item"><a class="page-link" href="?sort={{ sort }}&page={{ products.previous_page_number }}">Prev</a></li>
+              {% endif %}
+              {% for num in products.paginator.page_range %}
+                <li class="page-item {% if num == products.number %}active{% endif %}">
+                  <a class="page-link" href="?sort={{ sort }}&page={{ num }}">{{ num }}</a>
+                </li>
+              {% endfor %}
+              {% if products.has_next %}
+                <li class="page-item"><a class="page-link" href="?sort={{ sort }}&page={{ products.next_page_number }}">Next</a></li>
+              {% endif %}
+            </ul>
+          </nav>
+        {% endif %}
+      {% endif %}
+
+    </div>
+  </section>
+
+  <div class="floating-stack">
+    <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+    <a href="https://wa.me/10000000000" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'assets/js/app.js' %}"></script>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    const countdownEl = document.getElementById("dealCountdown");
+    if (countdownEl) {
+      const endTime = new Date(countdownEl.dataset.end).getTime();
+
+      function tick() {
+        const distance = endTime - Date.now();
+        if (distance <= 0) {
+          countdownEl.innerHTML = '<div class="small">This deal has ended</div>';
+          clearInterval(timer);
+          return;
+        }
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        document.getElementById("cdDays").textContent = days;
+        document.getElementById("cdHours").textContent = String(hours).padStart(2, "0");
+        document.getElementById("cdMinutes").textContent = String(minutes).padStart(2, "0");
+        document.getElementById("cdSeconds").textContent = String(seconds).padStart(2, "0");
+      }
+
+      tick();
+      const timer = setInterval(tick, 1000);
+    }
+  </script>
+{% endblock %}

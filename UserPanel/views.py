@@ -270,7 +270,7 @@ def ProductDetails(request, slug, sku=None):
         "selected_variant": selected_variant,  # None if no sku in URL or sku didn't match any variant
     }
  
-    return render(request, "home/Product_Details.html", context)
+    return render(request, "home/product_details.html", context)
 
 
 
@@ -528,7 +528,7 @@ def Wishlist(request):
         .order_by("-created_at")
     )
  
-    return render(request, "home/Wishlist.html", {
+    return render(request, "home/wishlist.html", {
         "wishlist_items": wishlist_items,
     })
  
@@ -1041,3 +1041,189 @@ def Contact(request):
 
     return render(request, "home/Contact.html", {"success": success,"error": error,"data": data})
 
+
+
+
+
+
+
+from django.core.paginator import Paginator
+from django.db.models import Case, Count, ExpressionWrapper, F, FloatField, Q, Value, When
+from django.shortcuts import render
+
+
+PAGE_SIZE = 24
+
+SORT_OPTIONS = {
+    "discount": "Biggest Discount",
+    "newest": "Newest",
+    "price_asc": "Price: Low to High",
+    "price_desc": "Price: High to Low",
+    "popularity": "Best Selling",
+}
+
+SORT_FIELD_MAP = {
+    "newest": "-created_at",
+    "price_asc": "price",
+    "price_desc": "-price",
+    "popularity": "-sold",
+}
+
+
+def best_deals(request):
+    category_ids = [c for c in request.GET.getlist("category") if c]
+    min_price = request.GET.get("min_price", "").strip()
+    max_price = request.GET.get("max_price", "").strip()
+    sort = request.GET.get("sort", "discount")
+    if sort not in SORT_OPTIONS:
+        sort = "discount"
+
+    deals_qs = Product.objects.filter(status__in=["active", "featured"]).filter(
+        Q(discount_percentage__gt=0) | Q(compare_at_price__gt=F("price"))
+    )
+
+    # Effective discount %, whichever source it comes from, so sorting/badges
+    # work consistently regardless of which field a given product actually used.
+    deals_qs = deals_qs.annotate(
+        effective_discount=Case(
+            When(discount_percentage__gt=0, then=F("discount_percentage")),
+            When(
+                compare_at_price__gt=F("price"),
+                then=ExpressionWrapper(
+                    (F("compare_at_price") - F("price")) * 100 / F("compare_at_price"),
+                    output_field=FloatField(),
+                ),
+            ),
+            default=Value(0),
+            output_field=FloatField(),
+        )
+    )
+
+    if category_ids:
+        deals_qs = deals_qs.filter(category__id__in=category_ids)
+    if min_price:
+        try:
+            deals_qs = deals_qs.filter(price__gte=float(min_price))
+        except ValueError:
+            pass
+    if max_price:
+        try:
+            deals_qs = deals_qs.filter(price__lte=float(max_price))
+        except ValueError:
+            pass
+
+    deals_qs = deals_qs.distinct()
+
+    category_facets = (
+        Category.objects.filter(products__in=deals_qs)
+        .annotate(count=Count("products", filter=Q(products__in=deals_qs), distinct=True))
+        .filter(count__gt=0)
+        .order_by("name")
+    )
+
+    hero_deal = deals_qs.order_by("-effective_discount", "-sold").first()
+
+    if sort in SORT_FIELD_MAP:
+        deals_qs = deals_qs.order_by(SORT_FIELD_MAP[sort])
+    else:
+        deals_qs = deals_qs.order_by("-effective_discount", "-sold")
+
+    deals_qs = deals_qs.select_related("brand").prefetch_related("images", "category")
+
+    paginator = Paginator(deals_qs, PAGE_SIZE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(request, "home/BestDeals.html", {
+        "products": page_obj,
+        "hero_deal": hero_deal,
+        "sort": sort,
+        "sort_options": SORT_OPTIONS,
+        "category_facets": category_facets,
+        "selected_category_ids": category_ids,
+        "min_price": min_price,
+        "max_price": max_price,
+        "result_count": paginator.count,
+    })
+
+
+
+from django.db.models import Q
+from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404, render
+
+from .models import BlogCategory, BlogPost, BTag  # adjust import path to match your app
+
+PAGE_SIZE = 9
+
+
+def blog_list(request):
+    q = request.GET.get("q", "").strip()
+    category_slug = request.GET.get("category", "")
+    tag_slug = request.GET.get("tag", "")
+
+    posts = BlogPost.objects.filter(status="published").select_related("author", "category").prefetch_related("tags")
+
+    if q:
+        posts = posts.filter(
+            Q(title__icontains=q) | Q(excerpt__icontains=q) | Q(content__icontains=q)
+        )
+    if category_slug:
+        posts = posts.filter(category__slug=category_slug)
+    if tag_slug:
+        posts = posts.filter(tags__slug=tag_slug)
+
+    posts = posts.distinct().order_by("-published_at")
+
+    featured_post = posts.first() if not q and not category_slug and not tag_slug else None
+    grid_posts = posts.exclude(pk=featured_post.pk) if featured_post else posts
+
+    paginator = Paginator(grid_posts, PAGE_SIZE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    categories = BlogCategory.objects.filter(posts__status="published").distinct().order_by("name")
+    recent_posts = BlogPost.objects.filter(status="published").order_by("-published_at")[:5]
+    popular_tags = BTag.objects.filter(blog_posts__status="published").distinct().order_by("name")[:20]
+
+    return render(request, "home/Blog.html", {
+        "featured_post": featured_post,
+        "posts": page_obj,
+        "categories": categories,
+        "recent_posts": recent_posts,
+        "popular_tags": popular_tags,
+        "query": q,
+        "selected_category": category_slug,
+        "selected_tag": tag_slug,
+        "result_count": paginator.count,
+    })
+
+
+def blog_detail(request, slug):
+    post = get_object_or_404(
+        BlogPost.objects.select_related("author", "category").prefetch_related("tags"),
+        slug=slug, status="published"
+    )
+
+    # Naive view counter — fine for a low/medium traffic blog; move to a
+    # session-based or async increment if this needs to resist refresh-spam.
+    BlogPost.objects.filter(pk=post.pk).update(views=post.views + 1)
+
+    related_posts = (
+        BlogPost.objects.filter(status="published", category=post.category)
+        .exclude(pk=post.pk)
+        .order_by("-published_at")[:3]
+    )
+    if not related_posts and post.tags.exists():
+        related_posts = (
+            BlogPost.objects.filter(status="published", tags__in=post.tags.all())
+            .exclude(pk=post.pk)
+            .distinct()
+            .order_by("-published_at")[:3]
+        )
+
+    recent_posts = BlogPost.objects.filter(status="published").exclude(pk=post.pk).order_by("-published_at")[:5]
+
+    return render(request, "home/BlogDetail.html", {
+        "post": post,
+        "related_posts": related_posts,
+        "recent_posts": recent_posts,
+    })

@@ -862,3 +862,86 @@ class PictureSerializer(serializers.ModelSerializer):
     class Meta:
         model = Picture
         fields = "__all__"
+
+
+
+
+from django.utils import timezone
+from rest_framework import serializers
+
+from UserPanel.models import BlogCategory, BlogPost, BTag  # adjust to Tag's actual app label
+
+
+class BlogCategorySerializer(serializers.ModelSerializer):
+    post_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BlogCategory
+        fields = ["id", "name", "slug", "post_count"]
+        read_only_fields = ["slug"]
+
+    def get_post_count(self, obj):
+        return obj.posts.count()
+
+
+class BlogPostSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source="category.name", read_only=True, default=None)
+
+    # Read-only, human-readable tag names for display/edit-prefill in the admin table.
+    tags = serializers.SerializerMethodField(read_only=True)
+    # Write-only: admin types "leather, winter, care-guide" -> split client-side into a list.
+    tag_names = serializers.ListField(child=serializers.CharField(), write_only=True, required=False)
+
+    class Meta:
+        model = BlogPost
+        fields = [
+            "id", "title", "slug", "author", "category", "category_name",
+            "tags", "tag_names", "featured_image", "excerpt", "content",
+            "status", "published_at", "read_time_minutes", "views",
+            "meta_title", "meta_description", 
+        ]
+        read_only_fields = ["slug", "views", "published_at", "author", "created_at", "updated_at"]
+
+    def get_tags(self, obj):
+        return list(obj.tags.values_list("name", flat=True))
+
+    def _set_tags(self, instance, tag_names):
+        if tag_names is None:
+            return
+        tag_objs = []
+        for name in tag_names:
+            name = name.strip()
+            if not name:
+                continue
+            tag_obj, _ = BTag.objects.get_or_create(name=name)
+            tag_objs.append(tag_obj)
+        instance.tags.set(tag_objs)
+
+    def create(self, validated_data):
+        tag_names = validated_data.pop("tag_names", None)
+
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            validated_data["author"] = request.user
+
+        if validated_data.get("status") == "published":
+            validated_data["published_at"] = timezone.now()
+
+        instance = super().create(validated_data)
+        self._set_tags(instance, tag_names)
+        return instance
+
+    def update(self, instance, validated_data):
+        tag_names = validated_data.pop("tag_names", None)
+        was_published = instance.status == "published"
+
+        instance = super().update(instance, validated_data)
+
+        # Only stamp published_at the first time it goes live — re-saving an
+        # already-published post shouldn't bump its publish date.
+        if instance.status == "published" and not was_published:
+            instance.published_at = timezone.now()
+            instance.save(update_fields=["published_at"])
+
+        self._set_tags(instance, tag_names)
+        return instance

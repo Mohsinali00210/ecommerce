@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+
+{% block title %}Blog Posts{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="bi bi-journal-text"></i> Blog Posts
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#blogCategoryModal" onclick="getBlogCategories();">
+                <i class="bi bi-tags"></i> Categories
+            </button>
+            <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#addBlogPostModal" onclick="clearBlogPostModal();">
+                <i class="bi bi-plus-lg"></i> New Post
+            </button>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <table class="table table-sm table-bordered align-middle mb-4">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:70px;">Image</th>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Views</th>
+                    <th>Published</th>
+                    <th style="width:140px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="blogPostBody">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ============ ADD / EDIT POST MODAL ============ -->
+<div class="modal fade" id="addBlogPostModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="blogPostModalTitle">
+                    <i class="bi bi-journal-plus"></i> New Post
+                </h6>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <input type="hidden" id="PostId">
+
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Title</label>
+                        <input type="text" class="form-control form-control-sm" id="PostTitle">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <select class="form-select form-select-sm" id="PostStatus">
+                            <option value="draft">Draft</option>
+                            <option value="published">Published</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Category</label>
+                        <select class="form-select form-select-sm" id="PostCategory">
+                            <option value="">Select category</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Read Time (minutes)</label>
+                        <input type="number" min="1" class="form-control form-control-sm" id="PostReadTime" value="3">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Tags <span class="text-muted small">(comma separated)</span></label>
+                        <input type="text" class="form-control form-control-sm" id="PostTags" placeholder="e.g. leather, winter, care-guide">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Excerpt <span class="text-muted small">(shown on the blog list card)</span></label>
+                        <textarea class="form-control form-control-sm" id="PostExcerpt" rows="2"></textarea>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Content</label>
+                        <textarea class="form-control form-control-sm" id="PostContent" rows="8"></textarea>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Featured Image</label>
+                        <input type="file" id="PostImage" class="form-control form-control-sm" accept="image/*" onchange="previewBlogPostImage(this)">
+                        <img id="PreviewPostImage" src="" class="mt-2 rounded border d-none" style="max-width:140px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-dark btn-sm w-100" onclick="saveBlogPost()">
+                    <i class="bi bi-check-lg"></i> Save Post
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ CATEGORY QUICK MANAGER MODAL ============ -->
+<div class="modal fade" id="blogCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title"><i class="bi bi-tags"></i> Blog Categories</h6>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="BlogCategoryId">
+                <div class="input-group input-group-sm mb-3">
+                    <input type="text" id="newBlogCategoryName" class="form-control" placeholder="Category name...">
+                    <button class="btn btn-primary" onclick="saveBlogCategory()">
+                        <i class="bi bi-plus-circle"></i> Add
+                    </button>
+                </div>
+                <table class="table table-sm table-hover border">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Posts</th>
+                            <th style="width:80px;" class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="blogCategoryBody"></tbody>
+                </table>
+            </div>
+            <div class="modal-footer bg-light">
+                <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+var links = $(".sidebar a");
+links.each(function () { $(this).removeClass('active'); });
+$("#BlogLink").addClass('active');
+
+const BLOG_POST_API_URL = `${window.location.origin}/Adminpanel/Products/api/v1/posts/`;
+const BLOG_CATEGORY_API_URL = `${window.location.origin}/Adminpanel/Products/api/v1/postscat/`;
+
+let categoryCache = [];
+
+// ============ POSTS ============
+
+function getBlogPosts() {
+    fetch(BLOG_POST_API_URL, {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+        let innerHtml = "";
+
+        data.forEach(function (item) {
+            const statusBadge = item.status === "published"
+                ? `<span class="badge bg-success">Published</span>`
+                : `<span class="badge bg-secondary">Draft</span>`;
+
+            innerHtml += `
+                <tr>
+                    <td><img src="${item.featured_image || ''}" width="48" height="48" class="rounded border" style="object-fit:cover;"></td>
+                    <td>${item.title}</td>
+                    <td>${item.category_name || '<span class="text-muted">&mdash;</span>'}</td>
+                    <td>${statusBadge}</td>
+                    <td>${item.views || 0}</td>
+                    <td>${item.published_at ? new Date(item.published_at).toLocaleDateString() : '<span class="text-muted">&mdash;</span>'}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" onclick='fillBlogPostModal(${JSON.stringify(item)})' data-bs-toggle="modal" data-bs-target="#addBlogPostModal">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteBlogPost(${item.id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+        });
+
+        if (data.length === 0) {
+            innerHtml = `<tr><td colspan="7" class="text-center text-muted">No posts yet.</td></tr>`;
+        }
+
+        $("#blogPostBody").html(innerHtml);
+    })
+    .catch(err => {
+        showAlert("Failed to load posts", "danger");
+        console.error(err);
+    });
+}
+
+function clearBlogPostModal() {
+    $('#PostId').val("");
+    $('#PostTitle').val("");
+    $('#PostStatus').val("draft");
+    $('#PostCategory').val("");
+    $('#PostReadTime').val("3");
+    $('#PostTags').val("");
+    $('#PostExcerpt').val("");
+    $('#PostContent').val("");
+    $('#PostImage').val("");
+    $('#PreviewPostImage').attr('src', "").addClass('d-none');
+    $('#blogPostModalTitle').html('<i class="bi bi-journal-plus"></i> New Post');
+}
+
+function fillBlogPostModal(item) {
+    clearBlogPostModal();
+    $('#PostId').val(item.id);
+    $('#PostTitle').val(item.title);
+    $('#PostStatus').val(item.status);
+    $('#PostCategory').val(item.category);
+    $('#PostReadTime').val(item.read_time_minutes || 3);
+    $('#PostTags').val((item.tags || []).join(", "));
+    $('#PostExcerpt').val(item.excerpt);
+    $('#PostContent').val(item.content);
+    if (item.featured_image) {
+        $('#PreviewPostImage').attr('src', item.featured_image).removeClass('d-none');
+    }
+    $('#blogPostModalTitle').html('<i class="bi bi-pencil-square"></i> Edit Post');
+}
+
+function previewBlogPostImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => $('#PreviewPostImage').attr('src', e.target.result).removeClass('d-none');
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function saveBlogPost() {
+    const postId = $('#PostId').val();
+    const url = postId === '' ? BLOG_POST_API_URL : `${BLOG_POST_API_URL}${postId}/`;
+    const method = postId === '' ? "POST" : "PATCH";
+
+    const formData = new FormData();
+    formData.append("title", $('#PostTitle').val());
+    formData.append("status", $('#PostStatus').val());
+    formData.append("read_time_minutes", $('#PostReadTime').val());
+    formData.append("excerpt", $('#PostExcerpt').val());
+    formData.append("content", $('#PostContent').val());
+
+    const category = $('#PostCategory').val();
+    if (category) formData.append("category", category);
+
+    const tags = $('#PostTags').val().split(",").map(t => t.trim()).filter(Boolean);
+    tags.forEach(t => formData.append("tag_names", t));
+
+    const image = $('#PostImage')[0].files[0];
+    if (image) formData.append("featured_image", image);
+
+    if (!$('#PostTitle').val()) {
+        showAlert("Title is required", "warning");
+        return;
+    }
+
+    fetch(url, {
+        method: method,
+        headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` },
+        body: formData
+    })
+    .then(res => {
+        if (res.ok) return res.json().then(data => ({ status: 'success', data }));
+        else if (res.status === 400) return res.json().then(data => ({ status: 'validation_error', data }));
+        else if (res.status === 401) return { status: 'auth_error' };
+        else return { status: 'server_error' };
+    })
+    .then(result => {
+        if (result.status === 'success') {
+            showAlert(postId === '' ? "Post created!" : "Post updated!", "success");
+            $("#addBlogPostModal").modal('hide');
+            getBlogPosts();
+        } else if (result.status === 'validation_error') {
+            const firstField = Object.keys(result.data)[0];
+            showAlert(`${firstField}: ${result.data[firstField][0]}`, "warning");
+        } else if (result.status === 'auth_error') {
+            showAlert("Session expired. Please login again.", "danger");
+        } else {
+            showAlert("Server error.", "danger");
+        }
+    })
+    .catch(err => {
+        showAlert("Connection failed!", "danger");
+        console.error("Fetch Error:", err);
+    });
+}
+
+function deleteBlogPost(id) {
+    if (!confirm("Delete this post? This cannot be undone.")) return;
+
+    fetch(`${BLOG_POST_API_URL}${id}/`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` }
+    })
+    .then(res => {
+        if (res.ok || res.status === 204) {
+            showAlert("Post deleted.", "success");
+            getBlogPosts();
+        } else {
+            showAlert("Failed to delete post.", "danger");
+        }
+    })
+    .catch(err => {
+        showAlert("Something went wrong!", "danger");
+        console.error(err);
+    });
+}
+
+// ============ CATEGORIES ============
+
+function getBlogCategories() {
+    fetch(BLOG_CATEGORY_API_URL, {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+        categoryCache = data;
+
+        // Populate the post modal's category dropdown
+        let optionsHtml = '<option value="">Select category</option>';
+        data.forEach(cat => { optionsHtml += `<option value="${cat.id}">${cat.name}</option>`; });
+        $('#PostCategory').html(optionsHtml);
+
+        // Populate the category manager table
+        let rowsHtml = "";
+        data.forEach(cat => {
+            rowsHtml += `
+                <tr>
+                    <td>${cat.name}</td>
+                    <td>${cat.post_count || 0}</td>
+                    <td class="text-end">
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteBlogCategory(${cat.id})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>`;
+        });
+        if (data.length === 0) {
+            rowsHtml = `<tr><td colspan="3" class="text-center text-muted">No categories yet.</td></tr>`;
+        }
+        $('#blogCategoryBody').html(rowsHtml);
+    })
+    .catch(err => {
+        showAlert("Failed to load categories", "danger");
+        console.error(err);
+    });
+}
+
+function saveBlogCategory() {
+    const name = $('#newBlogCategoryName').val().trim();
+    if (!name) {
+        showAlert("Category name is required", "warning");
+        return;
+    }
+
+    fetch(BLOG_CATEGORY_API_URL, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name: name })
+    })
+    .then(res => {
+        if (res.ok) return res.json().then(data => ({ status: 'success', data }));
+        else if (res.status === 400) return res.json().then(data => ({ status: 'validation_error', data }));
+        else return { status: 'server_error' };
+    })
+    .then(result => {
+        if (result.status === 'success') {
+            $('#newBlogCategoryName').val("");
+            showAlert("Category added!", "success");
+            getBlogCategories();
+        } else if (result.status === 'validation_error') {
+            const firstField = Object.keys(result.data)[0];
+            showAlert(`${firstField}: ${result.data[firstField][0]}`, "warning");
+        } else {
+            showAlert("Server error.", "danger");
+        }
+    })
+    .catch(err => {
+        showAlert("Connection failed!", "danger");
+        console.error(err);
+    });
+}
+
+function deleteBlogCategory(id) {
+    if (!confirm("Delete this category? Posts in it will keep their other data but lose this category.")) return;
+
+    fetch(`${BLOG_CATEGORY_API_URL}${id}/`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` }
+    })
+    .then(res => {
+        if (res.ok || res.status === 204) {
+            showAlert("Category deleted.", "success");
+            getBlogCategories();
+        } else {
+            showAlert("Failed to delete category.", "danger");
+        }
+    })
+    .catch(err => {
+        showAlert("Something went wrong!", "danger");
+        console.error(err);
+    });
+}
+
+// ============ INIT ============
+getBlogCategories();
+getBlogPosts();
+
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}

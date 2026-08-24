@@ -1,0 +1,175 @@
+{% extends "base2.html" %}
+{% load static %}
+{% block content %}
+
+  <!-- ============ PAGE HEADER ============ -->
+  <section class="py-4 border-bottom" style="border-color:var(--border) !important;">
+    <div class="container-xl">
+      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
+        <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
+        <li class="breadcrumb-item active">Blog</li>
+      </ol></nav>
+      <h1 class="font-display mb-0">The Journal</h1>
+      <p class="text-muted-custom mb-0 mt-1">Style notes, product stories, and things worth reading.</p>
+    </div>
+  </section>
+
+  <section class="py-5">
+    <div class="container-xl">
+      <div class="row g-4">
+
+        <!-- ============ MAIN COLUMN ============ -->
+        <div class="col-lg-8">
+
+          {% if featured_post %}
+            <a href="{% url 'home:blog-detail' featured_post.slug %}" class="text-decoration-none">
+              <div class="border rounded-4 overflow-hidden mb-4 position-relative" style="border-color:var(--border) !important;">
+                <img src="{{ featured_post.featured_image.url }}" alt="{{ featured_post.title }}" class="w-100" style="max-height:360px;object-fit:cover;">
+                <div class="p-4">
+                  {% if featured_post.category %}
+                    <span class="badge bg-brass text-dark mb-2">{{ featured_post.category.name }}</span>
+                  {% endif %}
+                  <h2 class="font-display">{{ featured_post.title }}</h2>
+                  <p class="text-muted-custom mb-2">{{ featured_post.excerpt|truncatewords:30 }}</p>
+                  <div class="small text-muted-custom">
+                    {{ featured_post.author.full_name|default:"Shan Zee Team" }} &middot;
+                    {{ featured_post.published_at|date:"M d, Y" }} &middot;
+                    {{ featured_post.read_time_minutes }} min read
+                  </div>
+                </div>
+              </div>
+            </a>
+          {% endif %}
+
+          <!-- ============ SEARCH ============ -->
+          <form method="get" class="d-flex gap-2 mb-4">
+            <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search articles&hellip;">
+            {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
+            {% if selected_tag %}<input type="hidden" name="tag" value="{{ selected_tag }}">{% endif %}
+            <button type="submit" class="btn btn-brass px-4"><i class="bi bi-search"></i></button>
+          </form>
+
+          {% if selected_category or selected_tag or query %}
+            <div class="d-flex align-items-center gap-2 mb-3 small text-muted-custom">
+              Filtering by
+              {% if query %}<span class="badge bg-secondary-subtle text-dark border">"{{ query }}"</span>{% endif %}
+              {% if selected_category %}<span class="badge bg-secondary-subtle text-dark border">{{ selected_category }}</span>{% endif %}
+              {% if selected_tag %}<span class="badge bg-secondary-subtle text-dark border">#{{ selected_tag }}</span>{% endif %}
+              <a href="{% url 'home:blog' %}" class="text-decoration-underline">Clear</a>
+            </div>
+          {% endif %}
+
+          <!-- ============ POST GRID ============ -->
+          {% if not posts %}
+            <div class="text-center py-5">
+              <i class="bi bi-journal-text" style="font-size:2.5rem;color:var(--text-muted);"></i>
+              <h5 class="font-display mt-3">No articles found</h5>
+              <a href="{% url 'home:blog' %}" class="btn btn-outline-ink mt-2">View All Articles</a>
+            </div>
+          {% else %}
+            <div class="row g-4">
+              {% for post in posts %}
+                <div class="col-md-6">
+                  <a href="{% url 'home:blog-detail' post.slug %}" class="text-decoration-none">
+                    <div class="border rounded-3 overflow-hidden h-100" style="border-color:var(--border) !important;">
+                      <img src="{{ post.featured_image.url }}" alt="{{ post.title }}" class="w-100" style="height:180px;object-fit:cover;">
+                      <div class="p-3">
+                        {% if post.category %}
+                          <div class="small text-muted-custom mb-1">{{ post.category.name }}</div>
+                        {% endif %}
+                        <div class="fw-semibold mb-1">{{ post.title }}</div>
+                        <p class="small text-muted-custom mb-2">{{ post.excerpt|truncatewords:16 }}</p>
+                        <div class="small text-muted-custom">
+                          {{ post.published_at|date:"M d, Y" }} &middot; {{ post.read_time_minutes }} min read
+                        </div>
+                      </div>
+                    </div>
+                  </a>
+                </div>
+              {% endfor %}
+            </div>
+
+            <!-- ============ Pagination ============ -->
+            {% if posts.paginator.num_pages > 1 %}
+              <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                  {% if posts.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?q={{ query }}&category={{ selected_category }}&tag={{ selected_tag }}&page={{ posts.previous_page_number }}">Prev</a></li>
+                  {% endif %}
+                  {% for num in posts.paginator.page_range %}
+                    <li class="page-item {% if num == posts.number %}active{% endif %}">
+                      <a class="page-link" href="?q={{ query }}&category={{ selected_category }}&tag={{ selected_tag }}&page={{ num }}">{{ num }}</a>
+                    </li>
+                  {% endfor %}
+                  {% if posts.has_next %}
+                    <li class="page-item"><a class="page-link" href="?q={{ query }}&category={{ selected_category }}&tag={{ selected_tag }}&page={{ posts.next_page_number }}">Next</a></li>
+                  {% endif %}
+                </ul>
+              </nav>
+            {% endif %}
+          {% endif %}
+
+        </div>
+
+        <!-- ============ SIDEBAR ============ -->
+        <div class="col-lg-4">
+
+          {% if categories %}
+            <div class="p-3 border rounded mb-3" style="border-color:var(--border) !important;">
+              <div class="fw-semibold mb-2">Categories</div>
+              <div class="d-flex flex-column gap-1">
+                {% for cat in categories %}
+                  <a href="?category={{ cat.slug }}" class="d-flex justify-content-between text-decoration-none small py-1
+                            {% if selected_category == cat.slug %}fw-semibold{% endif %}">
+                    <span>{{ cat.name }}</span>
+                    <i class="bi bi-chevron-right"></i>
+                  </a>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          {% if recent_posts %}
+            <div class="p-3 border rounded mb-3" style="border-color:var(--border) !important;">
+              <div class="fw-semibold mb-2">Recent Articles</div>
+              <div class="d-flex flex-column gap-3">
+                {% for rp in recent_posts %}
+                  <a href="{% url 'home:blog-detail' rp.slug %}" class="d-flex gap-2 text-decoration-none">
+                    <img src="{{ rp.featured_image.url }}" width="56" height="56" class="rounded-2 flex-shrink-0" style="object-fit:cover;" alt="{{ rp.title }}">
+                    <div>
+                      <div class="small fw-semibold">{{ rp.title|truncatechars:45 }}</div>
+                      <div class="small text-muted-custom">{{ rp.published_at|date:"M d, Y" }}</div>
+                    </div>
+                  </a>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          {% if popular_tags %}
+            <div class="p-3 border rounded" style="border-color:var(--border) !important;">
+              <div class="fw-semibold mb-2">Tags</div>
+              <div class="d-flex flex-wrap gap-1">
+                {% for tag in popular_tags %}
+                  <a href="?tag={{ tag.slug }}" class="border rounded-pill px-2 py-1 small text-decoration-none
+                            {% if selected_tag == tag.slug %}bg-brass text-white{% endif %}">
+                    #{{ tag.name }}
+                  </a>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="floating-stack">
+    <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+    <a href="https://wa.me/10000000000" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'assets/js/app.js' %}"></script>
+{% endblock %}

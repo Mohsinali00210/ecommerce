@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import variant_bulk_create,product_list,product_form_view,variant_add_modal,variant_edit_modal,variant_delete,image_modal,image_delete,promotion_modal,promotion_modal,promotion_delete,tag_modal,tag_remove,wish_to_buy_admin,wish_to_buy_list,picture_page,PictureViewSet,OrdersByStatus,inventory_page,VariantInventoryViewSet,ProductVariantViewSet,promotions_page,PromotionsViewSet,wishlist_page,admin_reviews_page,AdminReviewListAPIView,AdminReviewUpdateAPIView,AdminOrderRequestUpdateAPIView,support_ticket_list_view,OrderDetailAPIView,OrderUpdateStatusAPIView,OrdersListAPIView,orders,ProductPreview,editProduct,products,addProduct,CategoryViewSet,categories,ProductAttributeViewSet,attributes,AttributeTypesViewSet,BrandViewSet,brands,ProductViewSet,PromotionViewSet 
+from .views import BlogCategoryViewSet,Blog_post,BlogPostViewSet,variant_bulk_create,product_list,product_form_view,variant_add_modal,variant_edit_modal,variant_delete,image_modal,image_delete,promotion_modal,promotion_modal,promotion_delete,tag_modal,tag_remove,wish_to_buy_admin,wish_to_buy_list,picture_page,PictureViewSet,OrdersByStatus,inventory_page,VariantInventoryViewSet,ProductVariantViewSet,promotions_page,PromotionsViewSet,wishlist_page,admin_reviews_page,AdminReviewListAPIView,AdminReviewUpdateAPIView,AdminOrderRequestUpdateAPIView,support_ticket_list_view,OrderDetailAPIView,OrderUpdateStatusAPIView,OrdersListAPIView,orders,ProductPreview,editProduct,products,addProduct,CategoryViewSet,categories,ProductAttributeViewSet,attributes,AttributeTypesViewSet,BrandViewSet,brands,ProductViewSet,PromotionViewSet 
 
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet, basename='category')
@@ -13,7 +13,8 @@ router.register(r'promotionss', PromotionsViewSet, basename='promotions')
 router.register(r'product-variants', ProductVariantViewSet)
 router.register(r'inventory', VariantInventoryViewSet)
 router.register(r'pictures', PictureViewSet, basename='pictures')
-
+router.register("postscat", BlogCategoryViewSet, basename="admin-blog-cat")
+router.register("posts", BlogPostViewSet, basename="admin-blog-posts")
 
 
 urlpatterns = [
@@ -69,4 +70,7 @@ urlpatterns = [
     # Tags
     path('products/<int:product_id>/tags/add/', tag_modal, name='tag_add'),
     path('products/<int:product_id>/tags/<int:tag_id>/remove/', tag_remove, name='tag_remove'),
+
+    path("Blog-post/", Blog_post,name='Blog-post'),
+
 ]

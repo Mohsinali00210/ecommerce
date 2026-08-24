@@ -38,6 +38,7 @@ class Role(models.Model):
 
 class User(AbstractBaseUser, PermissionsMixin):
     full_name = models.CharField(max_length=255, null=True, blank=True)
+    username = models.CharField(max_length=255, null=True, blank=True)
     email = models.EmailField(unique=True, null=True, blank=True)
     mobile = models.CharField(max_length=15, unique=True, null=True, blank=True)
     dob = models.DateField(null=True, blank=True)

@@ -724,7 +724,7 @@ body{
   </div>
 </section>
 <!-- ============ FLASH SALE ============ -->
-<section id="sale" class="py-5">
+{% comment %} <section id="sale" class="py-5">
   <div class="container-xl">
     <div class="promo-card rust reveal">
       <div class="row align-items-center g-4">
@@ -747,7 +747,7 @@ body{
       </div>
     </div>
   </div>
-</section>
+</section> {% endcomment %}
 
 {% comment %} <!-- ============ CATEGORIES ============ -->
 <section class="py-4">
@@ -888,6 +888,7 @@ body{
 
 {% block extra_js %}
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
 

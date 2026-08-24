@@ -1402,3 +1402,39 @@ def tag_remove(request, product_id, tag_id):
     product.tags.remove(tag_id)
     messages.success(request, "Tag removed.")
     return redirect('product_edit', pk=product_id)
+
+from rest_framework import parsers, permissions, viewsets
+
+from UserPanel.models import BlogCategory, BlogPost
+from .serializers import BlogCategorySerializer, BlogPostSerializer
+
+
+class IsAdminOrStaff(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and (request.user.is_staff or request.user.is_superuser)
+        )
+
+
+class BlogCategoryViewSet(viewsets.ModelViewSet):
+    queryset = BlogCategory.objects.all().order_by("name")
+    serializer_class = BlogCategorySerializer
+    permission_classes = [IsAdminOrStaff]
+
+
+class BlogPostViewSet(viewsets.ModelViewSet):
+    queryset = (
+        BlogPost.objects.all()
+        .select_related("category", "author")
+        .prefetch_related("tags")
+        .order_by("-created_at")
+    )
+    serializer_class = BlogPostSerializer
+    permission_classes = [IsAdminOrStaff]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
+
+
+def Blog_post(request):
+    return render(request, "Other/BlogPostsAdmin.html")
