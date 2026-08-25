@@ -156,9 +156,9 @@
   /* ---------- UI sync ---------- */
   function renderBadges(){
     document.querySelectorAll("[data-cart-count]").forEach(el=>{
-      const n = window.Cart.count();
-      el.textContent = n;
-      el.style.display = n > 0 ? "flex" : "none";
+      // const n = window.Cart.count();
+      // el.textContent = n;
+      // el.style.display = n > 0 ? "flex" : "none";
     });
     document.querySelectorAll("[data-wishlist-count]").forEach(el=>{
       const n = Store.get(LS.wishlist).length;

@@ -112,7 +112,7 @@ def login_api(request):
 
         return JsonResponse({
             "success": True,
-            "redirect": "/addProduct/" if user.is_superuser else "/"
+            "redirect": "/Adminpanel/Products/products/add/" if user.is_superuser else "/"
         })
 
     return JsonResponse({

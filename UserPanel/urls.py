@@ -26,7 +26,7 @@ urlpatterns = [
         path("Contact/", views.Contact, name="Contact"),
         path("blog-detail/<slug:slug>/", views.blog_detail, name="blog-detail"),
         path("blog/", views.blog_list, name="blog"),
-
+        path("notifications/",views.user_notifications,name="notifications"),
 ]
 
 # In your project urls.py:

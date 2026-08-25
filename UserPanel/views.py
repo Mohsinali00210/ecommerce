@@ -1227,3 +1227,80 @@ def blog_detail(request, slug):
         "related_posts": related_posts,
         "recent_posts": recent_posts,
     })
+
+from django.db.models import Q, OuterRef, Subquery, Value, BooleanField
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+from rest_framework.views import APIView
+from .serializer import NotificationSerializer
+from django.http import JsonResponse
+from django.db.models import Q, OuterRef, Subquery, Value, BooleanField
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+
+
+def user_notifications(request):
+
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            "success": False,
+            "message": "Authentication required",
+            "notifications": []
+        }, status=401)
+
+    user = request.user
+
+    recipient_subquery = NotificationRecipient.objects.filter(
+        notification=OuterRef("pk"),
+        user=user
+    ).values("is_read")[:1]
+
+    now = timezone.now()
+
+    notifications = (
+        Notification.objects
+        .filter(is_active=True)
+        .filter(
+            Q(is_general=True) |
+            Q(order__user=user)
+        )
+        .filter(
+            ~Q(
+                notification_type="promotion"
+            )
+            |
+            Q(
+                notification_type="promotion",
+                promotion__is_active=True,
+                promotion__end_date__gte=now
+            )
+        )
+        .annotate(
+            is_read=Coalesce(
+                Subquery(
+                    recipient_subquery,
+                    output_field=BooleanField()
+                ),
+                Value(False)
+            )
+        )
+        .order_by("-created_at")
+    )
+
+    data = []
+
+    for notification in notifications:
+        data.append({
+            "id": notification.id,
+            "title": notification.title,
+            "message": notification.message,
+            "notification_type": notification.notification_type,
+            "is_read": notification.is_read,
+            "created_at": notification.created_at.isoformat()
+                if notification.created_at else None,
+        })
+
+    return JsonResponse({
+        "success": True,
+        "notifications": data
+    })

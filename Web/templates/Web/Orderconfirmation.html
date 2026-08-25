@@ -136,8 +136,8 @@
           {% endif %}
 
           <div class="d-flex flex-wrap gap-3 justify-content-center mt-5">
-            <a href=" 'OrderDetail' order.id " class="btn btn-brass px-4">Track This Order</a>
-            <a href=" 'shop' " class="btn btn-outline-ink px-4">Continue Shopping</a>
+            <a href="{% url 'home:order-detail' order.order_number %}  " class="btn btn-brass px-4">Track This Order</a>
+            <a href="{% url 'home:home' %}" class="btn btn-outline-ink px-4">Continue Shopping</a>
           </div>
 
         </div>
