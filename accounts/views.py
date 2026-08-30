@@ -171,38 +171,164 @@ from django.http import JsonResponse
 from django.contrib.auth.hashers import make_password
 from django.views.decorators.http import require_POST
 
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+
 @require_POST
 def register_api(request):
 
-    full_name = request.POST.get("full_name")
-    email = request.POST.get("email")
-    mobile = request.POST.get("mobile")
-    password1 = request.POST.get("password1")
-    password2 = request.POST.get("password2")
+    full_name = request.POST.get("full_name", "").strip()
+    email = request.POST.get("email", "").strip().lower()
+    mobile = request.POST.get("mobile", "").strip()
+    password1 = request.POST.get("password1", "")
+    password2 = request.POST.get("password2", "")
 
-    if not full_name or not email or not password1:
+
+    # -----------------------------------------
+    # FULL NAME
+    # -----------------------------------------
+
+    if not full_name:
+
         return JsonResponse({
             "success": False,
-            "message": "Full name, email and password are required."
+            "field": "full_name",
+            "message": "Full name is required."
         })
 
-    if password1 != password2:
+
+    if len(full_name) < 2:
+
         return JsonResponse({
             "success": False,
-            "message": "Passwords do not match."
+            "field": "full_name",
+            "message": "Full name must contain at least 2 characters."
         })
 
-    if User.objects.filter(email=email).exists():
+
+    # -----------------------------------------
+    # EMAIL
+    # -----------------------------------------
+
+    if not email:
+
         return JsonResponse({
             "success": False,
+            "field": "email",
+            "message": "Email is required."
+        })
+
+
+    try:
+        validate_email(email)
+
+    except ValidationError:
+
+        return JsonResponse({
+            "success": False,
+            "field": "email",
+            "message": "Please enter a valid email address."
+        })
+
+
+    if User.objects.filter(email__iexact=email).exists():
+
+        return JsonResponse({
+            "success": False,
+            "field": "email",
             "message": "Email is already registered."
         })
 
-    if mobile and User.objects.filter(mobile=mobile).exists():
+
+    # -----------------------------------------
+    # MOBILE
+    # -----------------------------------------
+
+    if mobile:
+
+        if not mobile.isdigit():
+
+            return JsonResponse({
+                "success": False,
+                "field": "mobile",
+                "message": "Mobile number must contain digits only."
+            })
+
+
+        if len(mobile) != 11:
+
+            return JsonResponse({
+                "success": False,
+                "field": "mobile",
+                "message": "Mobile number must be exactly 11 digits."
+            })
+
+
+        if not mobile.startswith("03"):
+
+            return JsonResponse({
+                "success": False,
+                "field": "mobile",
+                "message": "Mobile number must start with 03. Example: 03001234567."
+            })
+
+
+        if User.objects.filter(mobile=mobile).exists():
+
+            return JsonResponse({
+                "success": False,
+                "field": "mobile",
+                "message": "Mobile number is already registered."
+            })
+
+
+    # -----------------------------------------
+    # PASSWORD
+    # -----------------------------------------
+
+    if not password1:
+
         return JsonResponse({
             "success": False,
-            "message": "Mobile number is already registered."
+            "field": "password1",
+            "message": "Password is required."
         })
+
+
+    if len(password1) < 8:
+
+        return JsonResponse({
+            "success": False,
+            "field": "password1",
+            "message": "Password must contain at least 8 characters."
+        })
+
+
+    # -----------------------------------------
+    # CONFIRM PASSWORD
+    # -----------------------------------------
+
+    if not password2:
+
+        return JsonResponse({
+            "success": False,
+            "field": "password2",
+            "message": "Please confirm your password."
+        })
+
+
+    if password1 != password2:
+
+        return JsonResponse({
+            "success": False,
+            "field": "password2",
+            "message": "Passwords do not match."
+        })
+
+
+    # -----------------------------------------
+    # CREATE USER
+    # -----------------------------------------
 
     User.objects.create(
         full_name=full_name,
@@ -210,11 +336,18 @@ def register_api(request):
         mobile=mobile,
         password=make_password(password1)
     )
+    login( request, user, backend="django.contrib.auth.backends.ModelBackend" )
+
+    # -----------------------------------------
+    # SUCCESS
+    # -----------------------------------------
 
     return JsonResponse({
         "success": True,
-        "message": "Account created successfully."
+        "message": "Account created successfully.",
+        "redirect_url": "/login/"
     })
+
 from django.contrib.auth import logout
 
 def logout_view(request):
@@ -331,3 +464,10 @@ def update_profile_ajax(request):
     user.save()
 
     return JsonResponse({"status": "success", "message": "Profile updated successfully."})
+
+
+def manual_account_login_required(request):
+    return render(
+        request,
+        "account/manual_account_login_required.html"
+    )

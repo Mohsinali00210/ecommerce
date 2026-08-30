@@ -3,7 +3,7 @@ from .views import (
     EmailRegisterView,
     VerifyEmailView,
     ResendVerificationEmailView,
-    login_view,register_view, logout_view,users_page,login_api,register_api
+    login_view,register_view, logout_view,users_page,login_api,register_api,manual_account_login_required
 )
 from .auth_views import EmailVerifiedTokenObtainPairView
 
@@ -24,5 +24,5 @@ urlpatterns = [
     path("registerapi/", register_api, name="register_api"),
     path("logout/", logout_view, name="logout"),
     path("users-page/", users_page, name="users-page"),
-
+    path("manual-login-required/",manual_account_login_required,name="manual-account-login-required"),
 ]

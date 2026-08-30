@@ -1,0 +1,240 @@
+{% extends "base2.html" %}
+{% load static %}
+{% block content %}
+
+  <!-- ============ PAGE HEADER ============ -->
+  <section class="py-4 border-bottom" style="border-color:var(--border) !important;">
+    <div class="container-xl d-flex justify-content-between align-items-end flex-wrap gap-2">
+      <div>
+        <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
+          <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
+          <li class="breadcrumb-item"><a href="profile">My Account</a></li>
+          <li class="breadcrumb-item active">Notifications</li>
+        </ol></nav>
+        <h1 class="font-display mb-0">Notifications</h1>
+      </div>
+      {% if unread_count %}
+        <button type="button" class="btn btn-outline-ink btn-sm" onclick="markAllRead()">
+          <i class="bi bi-check2-all me-1"></i> Mark all as read
+        </button>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="py-5">
+    <div class="container-xl">
+      <div class="row g-4">
+
+        <!-- Account sidebar -->
+        <div class="col-lg-3">
+          <div class="account-sidebar p-3">
+            <a href="{% url 'home:user-profile' %}" class="account-nav-link"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+            <a href="{% url 'home:Orders' %}" class="account-nav-link active"><i class="bi bi-box-seam me-2"></i>Orders</a>
+            <a href="{% url 'home:user-wallet' %}" class="account-nav-link"><i class="bi bi-wallet2 me-2"></i>Wallet</a>
+            <a href="{% url 'home:user-address' %}" class="account-nav-link"><i class="bi bi-geo-alt me-2"></i>Addresses</a>
+            <a href="{% url 'home:Wishlist' %}" class="account-nav-link"><i class="bi bi-heart me-2"></i>Wishlist</a>
+            <a href="{% url 'home:Contact' %}" class="account-nav-link"><i class="bi bi-life-preserver me-2"></i>Support</a>
+          </div>
+        </div>
+
+        <div class="col-lg-9">
+
+          <!-- ============ FILTER BAR ============ -->
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div class="d-flex flex-wrap gap-2">
+              <a href="?read=" class="btn btn-sm {% if not selected_read %}btn-brass{% else %}btn-outline-ink{% endif %}">All</a>
+              <a href="?read=unread" class="btn btn-sm {% if selected_read == 'unread' %}btn-brass{% else %}btn-outline-ink{% endif %}">Unread</a>
+              <a href="?read=read" class="btn btn-sm {% if selected_read == 'read' %}btn-brass{% else %}btn-outline-ink{% endif %}">Read</a>
+            </div>
+            <form method="get" class="d-flex align-items-center gap-2">
+              <input type="hidden" name="read" value="{{ selected_read }}">
+              <select name="type" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+                <option value="">All Types</option>
+                {% for value, label in notification_types %}
+                  <option value="{{ value }}" {% if value == selected_type %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </div>
+
+          <!-- ============ LIST ============ -->
+          {% if not recipients %}
+            <div class="text-center py-5">
+              <i class="bi bi-bell-slash" style="font-size:2.5rem;color:var(--text-muted);"></i>
+              <h5 class="font-display mt-3">No notifications here</h5>
+              <p class="small text-muted-custom mb-0">You're all caught up.</p>
+            </div>
+          {% else %}
+            <div class="border rounded" style="border-color:var(--border) !important;">
+              {% for r in recipients %}
+                {% with n=r.notification %}
+                  <div class="d-flex align-items-start gap-3 p-3 {% if not forloop.last %}border-bottom{% endif %} {% if not r.is_read %}bg-light{% endif %}"
+                       style="border-color:var(--border) !important; cursor:pointer;"
+                       onclick="openNotificationModal(this)"
+                       data-recipient-id="{{ r.id }}"
+                       data-is-read="{{ r.is_read|yesno:'1,0' }}"
+                       data-title="{{ n.title }}"
+                       data-message="{{ n.message }}"
+                       data-type="{{ n.get_notification_type_display }}"
+                       data-created="{{ n.created_at|date:'M d, Y - H:i' }}"
+                       data-order-url="{% if n.order %}{% url 'home:order-detail' n.order.order_number %}{% endif %}"
+                       data-order-number="{{ n.order.order_number|default:'' }}"
+                       data-promotion-url="{% if n.promotion %}{% url 'best-deals' %}{% endif %}">
+
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0
+                                {% if n.notification_type == 'order_delivered' %}bg-success-subtle text-success
+                                {% elif n.notification_type == 'order_canceled' %}bg-danger-subtle text-danger
+                                {% elif n.notification_type == 'promotion' %}bg-warning-subtle text-dark
+                                {% else %}bg-info-subtle text-dark{% endif %}"
+                         style="width:42px;height:42px;">
+                      <i class="bi
+                        {% if n.notification_type == 'order_placed' %}bi-bag-check
+                        {% elif n.notification_type == 'order_dispatched' %}bi-truck
+                        {% elif n.notification_type == 'order_delivered' %}bi-box-seam-fill
+                        {% elif n.notification_type == 'order_canceled' %}bi-x-circle
+                        {% elif n.notification_type == 'order_status' %}bi-arrow-repeat
+                        {% elif n.notification_type == 'promotion' %}bi-megaphone
+                        {% else %}bi-bell{% endif %}"></i>
+                    </div>
+
+                    <div class="flex-grow-1">
+                      <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="{% if not r.is_read %}fw-semibold{% endif %}">{{ n.title }}</div>
+                        {% if not r.is_read %}<span class="rounded-circle bg-danger flex-shrink-0 mt-1" style="width:8px;height:8px;"></span>{% endif %}
+                      </div>
+                      <div class="small text-muted-custom">{{ n.message|truncatechars:110 }}</div>
+                      <div class="small text-muted-custom mt-1">
+                        {{ n.get_notification_type_display }} &middot; {{ n.created_at|timesince }} ago
+                      </div>
+                    </div>
+                  </div>
+                {% endwith %}
+              {% endfor %}
+            </div>
+
+            <!-- ============ Pagination ============ -->
+            {% if recipients.paginator.num_pages > 1 %}
+              <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                  {% if recipients.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?read={{ selected_read }}&type={{ selected_type }}&page={{ recipients.previous_page_number }}">Prev</a></li>
+                  {% endif %}
+                  {% for num in recipients.paginator.page_range %}
+                    <li class="page-item {% if num == recipients.number %}active{% endif %}">
+                      <a class="page-link" href="?read={{ selected_read }}&type={{ selected_type }}&page={{ num }}">{{ num }}</a>
+                    </li>
+                  {% endfor %}
+                  {% if recipients.has_next %}
+                    <li class="page-item"><a class="page-link" href="?read={{ selected_read }}&type={{ selected_type }}&page={{ recipients.next_page_number }}">Next</a></li>
+                  {% endif %}
+                </ul>
+              </nav>
+            {% endif %}
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Notification Detail Modal ============ -->
+  <div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="notificationModalLabel">Notification</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <span id="modalType" class="badge bg-secondary-subtle text-dark border mb-2"></span>
+          <h5 id="modalTitle" class="font-display"></h5>
+          <div class="small text-muted-custom mb-3" id="modalCreated"></div>
+          <p id="modalMessage" class="mb-0"></p>
+        </div>
+        <div class="modal-footer">
+          <a id="modalActionLink" href="#" class="btn btn-brass d-none">View Details</a>
+          <button type="button" class="btn btn-outline-ink" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="floating-stack">
+    <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+    <a href="https://wa.me/10000000000" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  </div>
+
+  <script src="{% static 'assets/js/app.js' %}"></script>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== "") {
+        for (let cookie of document.cookie.split(";")) {
+          cookie = cookie.trim();
+          if (cookie.startsWith(name + "=")) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    const csrftoken = getCookie("csrftoken");
+
+    const notificationModal = new bootstrap.Modal(document.getElementById("notificationModal"));
+
+    function openNotificationModal(el) {
+      const data = el.dataset;
+
+      document.getElementById("modalType").textContent = data.type;
+      document.getElementById("modalTitle").textContent = data.title;
+      document.getElementById("modalCreated").textContent = data.created;
+      document.getElementById("modalMessage").textContent = data.message;
+
+      const actionLink = document.getElementById("modalActionLink");
+      if (data.orderUrl) {
+        actionLink.href = data.orderUrl;
+        actionLink.textContent = `View Order ${data.orderNumber}`;
+        actionLink.classList.remove("d-none");
+      } else if (data.promotionUrl) {
+        actionLink.href = data.promotionUrl;
+        actionLink.textContent = "View Offer";
+        actionLink.classList.remove("d-none");
+      } else {
+        actionLink.classList.add("d-none");
+      }
+
+      notificationModal.show();
+
+      // Mark as read the first time it's opened
+      if (data.isRead === "0") {
+        data.isRead = "1";
+        el.classList.remove("bg-light");
+        const dot = el.querySelector(".bg-danger");
+        if (dot) dot.remove();
+        el.querySelector(".fw-semibold")?.classList.remove("fw-semibold");
+
+        const markUrl = "{% url 'home:mark-notification-read' 0 %}".replace("0", data.recipientId);
+        fetch(markUrl, {
+          method: "POST",
+          headers: { "X-CSRFToken": csrftoken }
+        }).catch(err => console.error("Failed to mark notification read", err));
+      }
+    }
+
+    function markAllRead() {
+      fetch("{% url 'home:mark-all-notifications-read' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": csrftoken }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) window.location.reload();
+        })
+        .catch(err => console.error("Failed to mark all as read", err));
+    }
+  </script>
+{% endblock %}

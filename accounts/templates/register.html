@@ -1,106 +1,792 @@
 {% extends "base2.html" %}
 {% load static %}
+
 {% block content %}
 
-  <section class="py-5">
-    <div class="container-xl">
-      <div class="row justify-content-center">
-        <div class="col-lg-10 col-xl-9">
-          <div class="border rounded-4 overflow-hidden d-flex flex-column flex-md-row" style="border-color:var(--border) !important;">
+<section class="py-5">
+  <div class="container-xl">
+    <div class="row justify-content-center">
+      <div class="col-lg-10 col-xl-9">
 
-            <!-- LEFT PANEL -->
-            <div class="d-none d-md-flex flex-column align-items-center justify-content-center text-center gap-3 p-5"
-                 style="flex:1;background:var(--pine,#1f3d2f);color:#fff;">
-              <img src="{% static 'images/logo.png' %}" width="80" alt="Shan Zee">
-              <h3 class="font-display mb-0">Create Account</h3>
-              <p class="opacity-75 small mb-0">Join Shan Zee to track orders, save favorites, and check out faster next time.</p>
-            </div>
+        <div class="border rounded-4 overflow-hidden d-flex flex-column flex-md-row"
+             style="border-color:var(--border) !important;">
 
-            <!-- RIGHT PANEL -->
-            <div class="p-5" style="flex:1;">
-              <h4 class="font-display text-center mb-4">Register</h4>
+          <!-- LEFT PANEL -->
+          <div class="d-none d-md-flex flex-column align-items-center justify-content-center text-center gap-3 p-5"
+               style="flex:1;background:var(--pine,#1f3d2f);color:#fff;">
 
-              {% if error %}
-                <div class="alert alert-danger">{{ error }}</div>
-              {% endif %}
+            <img src="{% static 'images/logo.png' %}"
+                 width="80"
+                 alt="Shan Zee">
 
-              <form method="POST" id="registerForm">
-                {% csrf_token %}
+            <h3 class="font-display mb-0">
+              Create Account
+            </h3>
 
-                <div class="mb-3">
-                  <label class="form-label small text-muted-custom">Full Name</label>
-                  <input type="text" class="form-control" name="full_name" required value="{{ data.full_name }}">
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label small text-muted-custom">Email</label>
-                  <input type="email" class="form-control" name="email" required value="{{ data.email }}">
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label small text-muted-custom">Mobile (optional)</label>
-                  <input type="text" class="form-control" name="mobile" value="{{ data.mobile }}">
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label small text-muted-custom">Password</label>
-                  <div class="input-group">
-                    <input type="password" id="password1" class="form-control" name="password1" required>
-                    <span class="input-group-text" style="cursor:pointer;" onclick="togglePassword('password1', this)">
-                      <i class="bi bi-eye"></i>
-                    </span>
-                  </div>
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label small text-muted-custom">Confirm Password</label>
-                  <div class="input-group">
-                    <input type="password" id="password2" class="form-control" name="password2" required>
-                    <span class="input-group-text" style="cursor:pointer;" onclick="togglePassword('password2', this)">
-                      <i class="bi bi-eye"></i>
-                    </span>
-                  </div>
-                </div>
-
-                <button type="submit" class="btn btn-brass w-100" id="registerBtn">Register</button>
-              </form>
-
-              {% load socialaccount %}
-              <a href="{% provider_login_url 'google' %}" class="btn btn-outline-ink w-100 mt-3">
-                <i class="bi bi-google me-2"></i> Continue with Google
-              </a>
-
-              <p class="text-center mt-3">
-                Already have an account? <a href="{% url 'login' %}" class="text-decoration-underline">Login</a>
-              </p>
-            </div>
+            <p class="opacity-75 small mb-0">
+              Join Shan Zee to track orders, save favorites,
+              and check out faster next time.
+            </p>
 
           </div>
+
+
+          <!-- RIGHT PANEL -->
+          <div class="p-5" style="flex:1;">
+
+            <h4 class="font-display text-center mb-4">
+              Register
+            </h4>
+
+
+            <!-- AJAX RESPONSE MESSAGE -->
+            <div id="registerMessage"
+                 class="alert d-none"
+                 role="alert">
+            </div>
+
+
+            {% if error %}
+              <div class="alert alert-danger">
+                {{ error }}
+              </div>
+            {% endif %}
+
+
+            <form method="POST"
+                  id="registerForm" >
+
+              {% csrf_token %}
+
+
+              <!-- FULL NAME -->
+              <div class="mb-3">
+
+                <label class="form-label small text-muted-custom">
+                  Full Name
+                </label>
+
+                <input type="text"
+                       class="form-control"
+                       name="full_name"
+                       id="full_name"
+                       required
+                       value="{{ data.full_name }}">
+
+                <div class="invalid-feedback">
+                  Please enter your full name.
+                </div>
+
+              </div>
+
+
+              <!-- EMAIL -->
+              <div class="mb-3">
+
+                <label class="form-label small text-muted-custom">
+                  Email
+                </label>
+
+                <input type="email"
+                       class="form-control"
+                       name="email"
+                       id="email"
+                       required
+                       value="{{ data.email }}">
+
+                <div class="invalid-feedback" id="emailError">
+                  Please enter a valid email address.
+                </div>
+
+              </div>
+
+
+              <!-- MOBILE -->
+              <div class="mb-3">
+
+                <label class="form-label small text-muted-custom">
+                    Mobile
+                    <span class="text-muted">(11 digits)</span>
+                </label>
+
+                <input type="tel"
+                      class="form-control"
+                      name="mobile"
+                      id="mobile"
+                      inputmode="numeric"
+                      maxlength="11"
+                      placeholder="03001234567"
+                      value="{{ data.mobile }}">
+
+                <div class="form-text">
+                    Example: <strong>03001234567</strong>
+                </div>
+
+                <div class="invalid-feedback" id="mobileError">
+                </div>
+
+            </div>
+
+
+              <!-- PASSWORD -->
+              <div class="mb-3">
+
+                <label class="form-label small text-muted-custom">
+                    Password
+                </label>
+
+                <div class="input-group">
+
+                    <input type="password"
+                          id="password1"
+                          class="form-control"
+                          name="password1"
+                          minlength="8"
+                          required>
+
+                    <span class="input-group-text"
+                          style="cursor:pointer;"
+                          onclick="togglePassword('password1', this)">
+
+                        <i class="bi bi-eye"></i>
+
+                    </span>
+
+                </div>
+
+                <div class="form-text">
+                    Password must contain at least 8 characters.
+                </div>
+
+                <div class="invalid-feedback" id="password1Error">
+                </div>
+
+            </div>
+
+
+              <!-- CONFIRM PASSWORD -->
+              <div class="mb-3">
+
+                <label class="form-label small text-muted-custom">
+                    Confirm Password
+                </label>
+
+                <div class="input-group">
+
+                    <input type="password"
+                          id="password2"
+                          class="form-control"
+                          name="password2"
+                          minlength="8"
+                          required>
+
+                    <span class="input-group-text"
+                          style="cursor:pointer;"
+                          onclick="togglePassword('password2', this)">
+
+                        <i class="bi bi-eye"></i>
+
+                    </span>
+
+                </div>
+
+                <div class="invalid-feedback" id="password2Error">
+                </div>
+
+            </div>
+
+
+              <!-- REGISTER BUTTON -->
+              <button type="submit"
+                      class="btn btn-brass w-100"
+                      id="registerBtn">
+
+                Register
+
+              </button>
+
+            </form>
+
+
+            <!-- GOOGLE LOGIN -->
+            {% load socialaccount %}
+
+            <a href="{% provider_login_url 'google' %}"
+               class="btn btn-outline-ink w-100 mt-3">
+
+              <i class="bi bi-google me-2"></i>
+              Continue with Google
+
+            </a>
+
+
+            <!-- LOGIN -->
+            <p class="text-center mt-3">
+
+              Already have an account?
+
+              <a href="{% url 'login' %}"
+                 class="text-decoration-underline">
+
+                Login
+
+              </a>
+
+            </p>
+
+          </div>
+
         </div>
+
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
 {% endblock %}
 
+
 {% block extra_js %}
-  <script>
-    function togglePassword(inputId, iconEl) {
-      const input = document.getElementById(inputId);
-      const icon = iconEl.querySelector("i");
-      if (input.type === "password") {
+
+<script>
+
+/* =========================================================
+   PASSWORD SHOW / HIDE
+========================================================= */
+
+function togglePassword(inputId, iconEl) {
+
+    const input = document.getElementById(inputId);
+    const icon = iconEl.querySelector("i");
+
+    if (input.type === "password") {
+
         input.type = "text";
-        icon.classList.replace("bi-eye", "bi-eye-slash");
-      } else {
+
+        icon.classList.replace(
+            "bi-eye",
+            "bi-eye-slash"
+        );
+
+    } else {
+
         input.type = "password";
-        icon.classList.replace("bi-eye-slash", "bi-eye");
-      }
+
+        icon.classList.replace(
+            "bi-eye-slash",
+            "bi-eye"
+        );
+    }
+}
+
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const form = document.getElementById("registerForm");
+
+const btn = document.getElementById("registerBtn");
+
+const message = document.getElementById("registerMessage");
+
+const fullName = document.getElementById("full_name");
+
+const email = document.getElementById("email");
+
+const mobile = document.getElementById("mobile");
+
+const password1 = document.getElementById("password1");
+
+const password2 = document.getElementById("password2");
+
+
+/* =========================================================
+   MOBILE NUMBER
+   Pakistani format:
+   03001234567
+========================================================= */
+
+mobile.addEventListener("input", function () {
+
+    // Remove everything except numbers
+    this.value = this.value.replace(/\D/g, "");
+
+    // Limit to 11 digits
+    if (this.value.length > 11) {
+        this.value = this.value.substring(0, 11);
     }
 
-    document.getElementById("registerForm").addEventListener("submit", function () {
-      const btn = document.getElementById("registerBtn");
-      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Creating...`;
-      btn.disabled = true;
+    validateMobile();
+
+});
+
+
+function validateMobile() {
+
+    const value = mobile.value.trim();
+
+    // Mobile is optional
+    if (value === "") {
+
+        mobile.classList.remove("is-invalid");
+        mobile.classList.remove("is-valid");
+
+        return true;
+    }
+
+    // Must be exactly 11 digits
+    // Pakistani format starts with 03
+    const valid = /^03\d{9}$/.test(value);
+
+    if (valid) {
+
+        mobile.classList.remove("is-invalid");
+        mobile.classList.add("is-valid");
+
+        return true;
+
+    } else {
+
+        mobile.classList.remove("is-valid");
+        mobile.classList.add("is-invalid");
+
+        return false;
+    }
+}
+
+
+/* =========================================================
+   PASSWORD VALIDATION
+========================================================= */
+
+password1.addEventListener("input", function () {
+
+    validatePassword();
+
+    // Also check confirmation
+    if (password2.value !== "") {
+        validatePasswordMatch();
+    }
+
+});
+
+
+password2.addEventListener("input", function () {
+
+    validatePasswordMatch();
+
+});
+
+
+function validatePassword() {
+
+    const value = password1.value;
+
+    if (value.length >= 8) {
+
+        password1.classList.remove("is-invalid");
+        password1.classList.add("is-valid");
+
+        return true;
+
+    } else {
+
+        password1.classList.remove("is-valid");
+        password1.classList.add("is-invalid");
+
+        return false;
+    }
+}
+
+
+function validatePasswordMatch() {
+
+    const value1 = password1.value;
+    const value2 = password2.value;
+
+    if (
+        value2 !== "" &&
+        value1 === value2 &&
+        value1.length >= 8
+    ) {
+
+        password2.classList.remove("is-invalid");
+        password2.classList.add("is-valid");
+
+        return true;
+
+    } else {
+
+        password2.classList.remove("is-valid");
+        password2.classList.add("is-invalid");
+
+        return false;
+    }
+}
+
+
+/* =========================================================
+   EMAIL VALIDATION
+========================================================= */
+
+email.addEventListener("input", function () {
+
+    this.classList.remove("is-invalid");
+
+});
+
+
+/* =========================================================
+   FULL NAME VALIDATION
+========================================================= */
+
+fullName.addEventListener("input", function () {
+
+    if (this.value.trim().length >= 2) {
+
+        this.classList.remove("is-invalid");
+        this.classList.add("is-valid");
+
+    } else {
+
+        this.classList.remove("is-valid");
+
+    }
+
+});
+
+
+let isSubmitting = false;
+
+form.addEventListener("submit", async function (e) {
+
+    e.preventDefault();
+
+    // Prevent double submission
+    if (isSubmitting) {
+        console.log("Already submitting, ignoring...");
+        return;
+    }
+
+    /* =====================================================
+       GET VALUES
+    ===================================================== */
+
+    const fullNameValue = fullName.value.trim();
+    const emailValue = email.value.trim();
+    const mobileValue = mobile.value.trim();
+    const passwordValue = password1.value;
+    const confirmPasswordValue = password2.value;
+
+    /* =====================================================
+       CLEAR PREVIOUS VALIDATION
+    ===================================================== */
+
+    clearValidation();
+
+    /* =====================================================
+       CLIENT SIDE VALIDATION
+    ===================================================== */
+
+    let valid = true;
+
+    // Full Name
+    if (fullNameValue.length < 2) {
+        showFieldError(fullName, "Please enter your full name.");
+        valid = false;
+    }
+
+    // Email
+    if (!email.checkValidity()) {
+        showFieldError(email, "Please enter a valid email address.");
+        valid = false;
+    }
+
+    // Mobile - optional
+    if (mobileValue !== "") {
+        if (!/^03\d{9}$/.test(mobileValue)) {
+            showFieldError(mobile, "Enter a valid 11-digit number. Example: 03001234567.");
+            valid = false;
+        }
+    }
+
+    // Password
+    if (passwordValue.length < 8) {
+        showFieldError(password1, "Password must contain at least 8 characters.");
+        valid = false;
+    }
+
+    // Confirm Password
+    if (passwordValue !== confirmPasswordValue) {
+        showFieldError(password2, "Passwords do not match.");
+        valid = false;
+    }
+
+    // Stop here if validation failed
+    if (!valid) {
+        const firstError = form.querySelector(".is-invalid");
+        if (firstError) {
+            firstError.focus();
+        }
+        return;
+    }
+
+    /* =====================================================
+       CLEAR MESSAGE
+    ===================================================== */
+
+    message.classList.add("d-none");
+    message.classList.remove("alert-danger", "alert-success", "alert-warning");
+
+    /* =====================================================
+       BUTTON LOADING
+    ===================================================== */
+
+    btn.disabled = true;
+    btn.innerHTML = `
+        <span class="spinner-border spinner-border-sm me-2"></span>
+        Creating...
+    `;
+
+    // Set submitting flag
+    isSubmitting = true;
+
+    try {
+
+        const formData = new FormData(form);
+
+        /* =================================================
+           AJAX REQUEST
+        ================================================= */
+
+        const response = await fetch(
+            "{% url 'register_api' %}",
+            {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            }
+        );
+
+        /* =================================================
+           CHECK RESPONSE
+        ================================================= */
+
+        // Check if response is OK
+        if (!response.ok) {
+            // Try to get error message from response
+            const text = await response.text();
+            console.error("Server error response:", text);
+            
+            message.classList.remove("d-none");
+            message.classList.add("alert-danger");
+            message.innerHTML = `
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Server error (${response.status}). Please try again.
+            `;
+            return;
+        }
+
+        // Get response as text first
+        debugger;
+        const textResponse = await response.text();
+        console.log("Raw response:", textResponse);
+
+        // Try to parse as JSON
+        let data;
+        try {
+            data = JSON.parse(textResponse);
+        } catch (parseError) {
+            console.error("Failed to parse JSON:", parseError);
+            
+            // Check if response contains HTML (error page)
+            if (textResponse.includes("<!DOCTYPE") || textResponse.includes("<html")) {
+                message.classList.remove("d-none");
+                message.classList.add("alert-danger");
+                message.innerHTML = `
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Server returned an error page. Please check the URL endpoint.
+                `;
+                return;
+            }
+            
+            // If not HTML, show the raw response
+            message.classList.remove("d-none");
+            message.classList.add("alert-danger");
+            message.innerHTML = `
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Invalid server response: ${textResponse.substring(0, 100)}
+            `;
+            return;
+        }
+
+        console.log("Parsed response:", data);
+
+        /* =================================================
+           SUCCESS
+        ================================================= */
+
+        if (data.success == true) {
+
+            message.classList.remove("d-none");
+            message.classList.add("alert-success");
+
+            message.innerHTML = `
+                <i class="bi bi-check-circle me-2"></i>
+                ${data.message || "Account created successfully."}
+            `;
+
+            if (data.redirect_url) {
+                setTimeout(() => {
+                    window.location.href = "https://shanzee.com";
+                }, 1000);
+            }
+
+            return;
+        }
+
+        /* =================================================
+           SERVER VALIDATION ERROR
+        ================================================= */
+
+        message.classList.remove("d-none");
+        message.classList.add("alert-danger");
+
+        message.innerHTML = `
+            <i class="bi bi-exclamation-circle me-2"></i>
+            ${data.message || "Registration failed."}
+        `;
+
+        /* =================================================
+           SHOW ERROR ON CORRECT FIELD
+        ================================================= */
+
+        if (data.field) {
+
+            const field = document.getElementById(data.field);
+
+            if (field) {
+
+                showFieldError(field, data.message);
+                field.focus();
+            }
+        }
+
+
+    } catch (error) {
+
+        console.error("Registration error:", error);
+
+        message.classList.remove("d-none");
+        message.classList.add("alert-danger");
+
+        message.innerHTML = `
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            ${error.message || "Something went wrong. Please try again."}
+        `;
+
+    } finally {
+
+        isSubmitting = false;
+        btn.disabled = false;
+        btn.innerHTML = "Register";
+
+    }
+
+});
+
+
+/* =========================================================
+   SHOW FIELD ERROR
+========================================================= */
+
+function showFieldError(field, text) {
+
+    field.classList.remove("is-valid");
+
+    field.classList.add("is-invalid");
+
+
+    // Find the closest form group
+    const container =
+        field.closest(".mb-3");
+
+
+    if (!container) {
+        return;
+    }
+
+
+    const errorElement =
+        container.querySelector(".invalid-feedback");
+
+
+    if (errorElement) {
+
+        errorElement.textContent =
+            text;
+    }
+}
+
+
+/* =========================================================
+   CLEAR VALIDATION
+========================================================= */
+
+function clearValidation() {
+
+    const fields = [
+        fullName,
+        email,
+        mobile,
+        password1,
+        password2
+    ];
+
+
+    fields.forEach(field => {
+
+        field.classList.remove(
+            "is-invalid",
+            "is-valid"
+        );
+
     });
-  </script>
+
+
+    document
+        .querySelectorAll(".invalid-feedback")
+        .forEach(element => {
+
+            element.textContent = "";
+
+        });
+}
+
+
+
+/* =========================================================
+   REMOVE EMAIL ERROR
+========================================================= */
+
+email.addEventListener(
+    "input",
+    function () {
+
+        this.classList.remove(
+            "is-invalid"
+        );
+
+        message.classList.add(
+            "d-none"
+        );
+
+    }
+);
+
+</script>
+
 {% endblock %}

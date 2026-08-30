@@ -52,21 +52,54 @@ from products.models import Product, Promotion,  Wishlist
 
 PRODUCTS_PER_ROW_SECTION = 8
 
-
 def _get_or_create_cart(request):
-    """Returns the Cart for the logged-in user, or the anonymous session cart."""
-    if request.user.is_authenticated:
-        cart, _ = Cart.objects.get_or_create(user=request.user, defaults={"is_active": True})
-        return cart
+    """Return the active cart for the logged-in user or anonymous session."""
 
+    if request.user.is_authenticated:
+
+        cart = (
+            Cart.objects
+            .filter(
+                user=request.user,
+                is_active=True
+            )
+            .order_by("-id")
+            .first()
+        )
+
+        if cart:
+            return cart
+
+        return Cart.objects.create(
+            user=request.user,
+            is_active=True
+        )
+
+    # Anonymous user
     if not request.session.session_key:
         request.session.create()
-    session_key = request.session.session_key
-    cart, _ = Cart.objects.get_or_create(
-        session_key=session_key, user=None, defaults={"is_active": True}
-    )
-    return cart
 
+    session_key = request.session.session_key
+
+    cart = (
+        Cart.objects
+        .filter(
+            session_key=session_key,
+            user__isnull=True,
+            is_active=True
+        )
+        .order_by("-id")
+        .first()
+    )
+
+    if cart:
+        return cart
+
+    return Cart.objects.create(
+        session_key=session_key,
+        user=None,
+        is_active=True
+    )
 
 def _cart_count(request):
     cart = _get_or_create_cart(request)
@@ -1304,3 +1337,67 @@ def user_notifications(request):
         "success": True,
         "notifications": data
     })
+
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+
+
+PAGE_SIZE = 15
+
+
+@login_required
+def all_notifications(request):
+    type_filter = request.GET.get("type", "")
+    read_filter = request.GET.get("read", "")  # "unread" | "read" | ""
+
+    recipients = (
+        NotificationRecipient.objects
+        .filter(user=request.user)
+        .select_related("notification", "notification__order", "notification__promotion")
+        .order_by("-notification__created_at")
+    )
+
+    if type_filter:
+        recipients = recipients.filter(notification__notification_type=type_filter)
+    if read_filter == "unread":
+        recipients = recipients.filter(is_read=False)
+    elif read_filter == "read":
+        recipients = recipients.filter(is_read=True)
+
+    paginator = Paginator(recipients, PAGE_SIZE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    unread_count = NotificationRecipient.objects.filter(user=request.user, is_read=False).count()
+
+    return render(request, "home/Notifications.html", {
+        "recipients": page_obj,
+        "notification_types": Notification.NOTIFICATION_TYPES,
+        "selected_type": type_filter,
+        "selected_read": read_filter,
+        "unread_count": unread_count,
+        "result_count": paginator.count,
+    })
+
+
+@login_required
+@require_POST
+def mark_notification_read(request, recipient_id):
+    recipient = get_object_or_404(NotificationRecipient, id=recipient_id, user=request.user)
+    if not recipient.is_read:
+        recipient.is_read = True
+        recipient.seen_at = timezone.now()
+        recipient.save(update_fields=["is_read", "seen_at"])
+    return JsonResponse({"success": True})
+
+
+@login_required
+@require_POST
+def mark_all_notifications_read(request):
+    NotificationRecipient.objects.filter(user=request.user, is_read=False).update(
+        is_read=True, seen_at=timezone.now()
+    )
+    return JsonResponse({"success": True})
