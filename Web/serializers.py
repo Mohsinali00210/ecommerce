@@ -5,7 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 from .models import OrderRequest,Order, OrderItem
 from products.models import Product, ProductVariant,Promotion
-
+from django.core.exceptions import ValidationError
 class CartItemSerializer(serializers.ModelSerializer):
     product_id = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all(),source="product")
     variant_id = serializers.PrimaryKeyRelatedField(queryset=ProductVariant.objects.all(),source="variant",allow_null=True,required=False)

@@ -216,7 +216,12 @@
         const dot = el.querySelector(".bg-danger");
         if (dot) dot.remove();
         el.querySelector(".fw-semibold")?.classList.remove("fw-semibold");
-
+        window.HeaderCounts.notifications=window.HeaderCounts.notifications-1;
+        const notifBadge = document.getElementById("notificationCount");
+        if (notifBadge) {
+          notifBadge.textContent = window.HeaderCounts.notifications;
+          notifBadge.classList.toggle("d-none", window.HeaderCounts.notifications === 0);
+        }
         const markUrl = "{% url 'home:mark-notification-read' 0 %}".replace("0", data.recipientId);
         fetch(markUrl, {
           method: "POST",

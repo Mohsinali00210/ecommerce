@@ -22,6 +22,13 @@
 <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
 {% block extra_css %}{% endblock %}
 
+<script>
+  window.HeaderCounts = {
+    cart: 0,
+    wishlist: 0,
+    notifications: 0
+  };
+</script>
 <style>
 /* ===== Enhanced Header & Navigation ===== */
 
@@ -42,7 +49,7 @@
 .site-header {
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border);
-  position: sticky;
+  {% comment %} position: sticky; {% endcomment %}
   top: 0;
   z-index: 1030;
   transition: box-shadow var(--dur) var(--ease), background var(--dur) var(--ease);
@@ -141,7 +148,6 @@
   background: #000000;
   color: #fff;
   border: none;
-  {% comment %} padding: 0 1.1rem; {% endcomment %}
   height: 100%;
   display: flex;
   align-items: center;
@@ -471,7 +477,6 @@
       <button class="btn-icon d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#mobileNav" aria-label="Menu">
         <i class="bi bi-list"></i>
       </button>
-      {% comment %} <a href="{% url 'home:home' %}" class="brand-mark">Shan Zee<span class="dot">.</span></a> {% endcomment %}
       <a class="navbar-brand ms-2" href="{% url 'home:home' %}" style="font-size: 15px;">
             <img src="{% static 'images/logo.png' %}" width="70px" alt="Logo">
         </a>
@@ -642,7 +647,6 @@
   <div class="container-xl">
     <div class="row g-4">
       <div class="col-6 col-lg-4">
-        {% comment %} <div class="brand-text mb-2" style="color:#fff;">Shan Zee</div> {% endcomment %}
          <a class="navbar-brand ms-2" href="{% url 'home:home' %}" style="font-size: 15px;">
             <img src="{% static 'images/logo2.png' %}" width="70px" alt="Logo">
         </a>
@@ -736,7 +740,7 @@
   </div>
 </div>
 
-<!-- ============ REGISTER MODAL ============ -->
+<!-- ============ REGISTER MODAL (UPDATED) ============ -->
 <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -745,41 +749,94 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <form id="registerForm2">
+        <!-- Message container -->
+        <div id="registerMessage" class="alert d-none"></div>
+        
+        <form id="registerForm2" novalidate>
           {% csrf_token %}
-          <div id="registerError" class="alert alert-danger d-none"></div>
-          <div id="registerSuccess" class="alert alert-success d-none"></div>
+
+          <!-- FULL NAME -->
           <div class="mb-3">
-            <label class="form-label fw-medium">Full Name</label>
-            <input type="text" name="full_name" class="form-control" required>
+            <label class="form-label small text-muted-custom">Full Name</label>
+            <input type="text"
+                   class="form-control"
+                   name="full_name"
+                   id="full_name"
+                   required
+                   placeholder="John Doe"
+                   value="{{ data.full_name|default:'' }}">
+            <div class="invalid-feedback">Please enter your full name.</div>
           </div>
+
+          <!-- EMAIL -->
           <div class="mb-3">
-            <label class="form-label fw-medium">Email</label>
-            <input type="email" name="email" class="form-control" required>
+            <label class="form-label small text-muted-custom">Email</label>
+            <input type="email"
+                   class="form-control"
+                   name="email"
+                   id="email"
+                   required
+                   placeholder="you@email.com"
+                   value="{{ data.email|default:'' }}">
+            <div class="invalid-feedback">Please enter a valid email address.</div>
           </div>
+
+          <!-- MOBILE -->
           <div class="mb-3">
-            <label class="form-label fw-medium">Mobile</label>
-            <input type="text" name="mobile" class="form-control">
+            <label class="form-label small text-muted-custom">
+              Mobile <span class="text-muted">(11 digits)</span>
+            </label>
+            <input type="tel"
+                   class="form-control"
+                   name="mobile"
+                   id="mobile"
+                   inputmode="numeric"
+                   maxlength="11"
+                   placeholder="03001234567"
+                   value="{{ data.mobile|default:'' }}">
+            <div class="form-text">Example: <strong>03001234567</strong></div>
+            <div class="invalid-feedback" id="mobileError">Enter a valid 11-digit number.</div>
           </div>
+
+          <!-- PASSWORD -->
           <div class="mb-3">
-            <label class="form-label fw-medium">Password</label>
+            <label class="form-label small text-muted-custom">Password</label>
             <div class="input-group">
-              <input type="password" id="password1" name="password1" class="form-control" required>
+              <input type="password"
+                     id="password1"
+                     class="form-control"
+                     name="password1"
+                     minlength="8"
+                     required
+                     placeholder="Minimum 8 characters">
               <span class="input-group-text" style="cursor:pointer;" onclick="togglePassword('password1', this)">
-                <i class="fa-solid fa-eye"></i>
+                <i class="bi bi-eye"></i>
               </span>
             </div>
+            <div class="form-text">Password must contain at least 8 characters.</div>
+            <div class="invalid-feedback" id="password1Error">Password must be at least 8 characters.</div>
           </div>
+
+          <!-- CONFIRM PASSWORD -->
           <div class="mb-3">
-            <label class="form-label fw-medium">Confirm Password</label>
+            <label class="form-label small text-muted-custom">Confirm Password</label>
             <div class="input-group">
-              <input type="password" id="password2" name="password2" class="form-control" required>
+              <input type="password"
+                     id="password2"
+                     class="form-control"
+                     name="password2"
+                     minlength="8"
+                     required
+                     placeholder="Confirm your password">
               <span class="input-group-text" style="cursor:pointer;" onclick="togglePassword('password2', this)">
-                <i class="fa-solid fa-eye"></i>
+                <i class="bi bi-eye"></i>
               </span>
             </div>
+            <div class="invalid-feedback" id="password2Error">Passwords do not match.</div>
           </div>
+
           <button type="submit" class="btn btn-brass w-100" id="registerBtn">Register</button>
+          
           <div class="text-center mt-3">
             <span style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal" class="text-decoration-underline">
               Already have an account? Login
@@ -816,6 +873,7 @@
 </div>
 
 <script>
+
   (function () {
     const chatBox = document.getElementById("chatBox");
     const closeChat = document.getElementById("closeChat");
@@ -906,6 +964,37 @@
 <script src="{% static 'js/app.js' %}"></script>
 
 <script>
+ 
+ 
+  function applyHeaderCounts(data) {
+    window.HeaderCounts.cart = data.cart_count || 0;
+    window.HeaderCounts.wishlist = data.wishlist_count || 0;
+    window.HeaderCounts.notifications = data.notification_count || 0;
+ 
+    document.querySelectorAll("[data-cart-count]").forEach(el => {
+      el.textContent = window.HeaderCounts.cart;
+    });
+ 
+    document.querySelectorAll("[data-wishlist-count]").forEach(el => {
+      el.textContent = window.HeaderCounts.wishlist;
+    });
+ 
+    const notifBadge = document.getElementById("notificationCount");
+    if (notifBadge) {
+      notifBadge.textContent = window.HeaderCounts.notifications;
+      notifBadge.classList.toggle("d-none", window.HeaderCounts.notifications === 0);
+    }
+  }
+ 
+  function refreshHeaderCounts() {
+    return fetch("{% url 'home:header-counts' %}")
+      .then(res => res.json())
+      .then(applyHeaderCounts)
+      .catch(err => console.error("Failed to load header counts", err));
+  }
+  window.refreshHeaderCounts = refreshHeaderCounts;
+ 
+  document.addEventListener("DOMContentLoaded", refreshHeaderCounts);
   document.addEventListener("DOMContentLoaded", function () {
 
     // ===== MOBILE SEARCH TOGGLE =====
@@ -1066,47 +1155,248 @@
       });
     }
 
-    // ===== REGISTER FORM =====
+    // ============================================================
+    // REGISTER FORM HANDLING (UPDATED)
+    // ============================================================
+    
     const registerForm = document.getElementById("registerForm2");
     if (registerForm) {
-      registerForm.addEventListener("submit", async function (e) {
+
+      const btn = document.getElementById("registerBtn");
+      const message = document.getElementById("registerMessage");
+      const fullName = document.getElementById("full_name");
+      const email = document.getElementById("email");
+      const mobile = document.getElementById("mobile");
+      const password1 = document.getElementById("password1");
+      const password2 = document.getElementById("password2");
+
+      let isSubmitting = false;
+
+      // ===== MOBILE VALIDATION =====
+      if (mobile) {
+        mobile.addEventListener("input", function() {
+          this.value = this.value.replace(/\D/g, "").substring(0, 11);
+          validateMobile();
+        });
+      }
+
+      function validateMobile() {
+        const value = mobile.value.trim();
+        if (value === "") {
+          mobile.classList.remove("is-invalid", "is-valid");
+          return true;
+        }
+        const valid = /^03\d{9}$/.test(value);
+        mobile.classList.remove("is-invalid", "is-valid");
+        mobile.classList.add(valid ? "is-valid" : "is-invalid");
+        return valid;
+      }
+
+      // ===== PASSWORD VALIDATION =====
+      if (password1) {
+        password1.addEventListener("input", function() {
+          validatePassword();
+          if (password2.value !== "") validatePasswordMatch();
+        });
+      }
+
+      if (password2) {
+        password2.addEventListener("input", validatePasswordMatch);
+      }
+
+      function validatePassword() {
+        const valid = password1.value.length >= 8;
+        password1.classList.remove("is-invalid", "is-valid");
+        password1.classList.add(valid ? "is-valid" : "is-invalid");
+        return valid;
+      }
+
+      function validatePasswordMatch() {
+        const valid = password2.value !== "" && 
+                      password1.value === password2.value && 
+                      password1.value.length >= 8;
+        password2.classList.remove("is-invalid", "is-valid");
+        password2.classList.add(valid ? "is-valid" : "is-invalid");
+        return valid;
+      }
+
+      // ===== EMAIL VALIDATION =====
+      if (email) {
+        email.addEventListener("input", function() {
+          this.classList.remove("is-invalid");
+          message.classList.add("d-none");
+        });
+      }
+
+      // ===== FULL NAME VALIDATION =====
+      if (fullName) {
+        fullName.addEventListener("input", function() {
+          if (this.value.trim().length >= 2) {
+            this.classList.remove("is-invalid");
+            this.classList.add("is-valid");
+          } else {
+            this.classList.remove("is-valid");
+          }
+        });
+      }
+
+      // ===== FORM SUBMISSION =====
+      registerForm.addEventListener("submit", async function(e) {
         e.preventDefault();
-        const btn = document.getElementById("registerBtn");
-        const errorDiv = document.getElementById("registerError");
-        const successDiv = document.getElementById("registerSuccess");
-        const originalBtnText = btn.innerHTML;
-        errorDiv.classList.add("d-none");
-        successDiv.classList.add("d-none");
+
+        if (isSubmitting) return;
+
+        // Clear previous validation
+        clearValidation();
+        message.classList.add("d-none");
+        message.className = "alert d-none";
+
+        // Get values
+        const fullNameValue = fullName.value.trim();
+        const emailValue = email.value.trim();
+        const mobileValue = mobile.value.trim();
+        const passwordValue = password1.value;
+        const confirmPasswordValue = password2.value;
+
+        // Client-side validation
+        let valid = true;
+
+        if (fullNameValue.length < 2) {
+          showFieldError(fullName, "Please enter your full name.");
+          valid = false;
+        }
+
+        if (emailValue === "" || !email.checkValidity()) {
+          showFieldError(email, "Please enter a valid email address.");
+          valid = false;
+        }
+
+        if (mobileValue !== "" && !/^03\d{9}$/.test(mobileValue)) {
+          showFieldError(mobile, "Enter a valid 11-digit number. Example: 03001234567.");
+          valid = false;
+        }
+
+        if (passwordValue.length < 8) {
+          showFieldError(password1, "Password must contain at least 8 characters.");
+          valid = false;
+        }
+
+        if (passwordValue !== confirmPasswordValue) {
+          showFieldError(password2, "Passwords do not match.");
+          valid = false;
+        }
+
+        if (!valid) {
+          const firstError = registerForm.querySelector(".is-invalid");
+          if (firstError) firstError.focus();
+          return;
+        }
+
+        // Set submitting state
+        isSubmitting = true;
         btn.disabled = true;
         btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Creating...`;
-        const formData = new FormData(this);
+
         try {
+          const formData = new FormData(registerForm);
+          
           const response = await fetch("{% url 'register_api' %}", {
             method: "POST",
             body: formData,
-            headers: { "X-CSRFToken": this.querySelector('[name=csrfmiddlewaretoken]').value }
+            headers: {
+              "X-Requested-With": "XMLHttpRequest"
+            }
           });
-          const data = await response.json();
-          if (data.success) {
-            successDiv.textContent = data.message;
-            successDiv.classList.remove("d-none");
-            this.reset();
-            setTimeout(() => {
-              bootstrap.Modal.getInstance(document.getElementById("registerModal"))?.hide();
-              new bootstrap.Modal(document.getElementById("loginModal")).show();
-            }, 1500);
-          } else {
-            errorDiv.textContent = data.message;
-            errorDiv.classList.remove("d-none");
+
+          // Check if response is OK
+          if (!response.ok) {
+            throw new Error(`Server error (${response.status})`);
           }
-        } catch (err) {
-          errorDiv.textContent = "Something went wrong.";
-          errorDiv.classList.remove("d-none");
+
+          // Parse response
+          let data;
+          try {
+            data = await response.json();
+          } catch (parseError) {
+            throw new Error("Invalid server response");
+          }
+
+          // Handle success
+          if (data.success) {
+            message.classList.remove("d-none", "alert-danger");
+            message.classList.add("alert-success");
+            message.innerHTML = `<i class="bi bi-check-circle me-2"></i>${data.message || "Account created successfully."}`;
+            
+            if (data.redirect_url) {
+              setTimeout(() => {
+                window.location.href = "https://shanzee.com";
+              }, 1500);
+            }
+            return;
+          }
+
+          // Handle validation errors from server
+          message.classList.remove("d-none");
+          message.classList.add("alert-danger");
+          message.innerHTML = `<i class="bi bi-exclamation-circle me-2"></i>${data.message || "Registration failed."}`;
+
+          // Show field-specific errors
+          if (data.field) {
+            const fieldMap = {
+              'full_name': fullName,
+              'email': email,
+              'mobile': mobile,
+              'password1': password1,
+              'password2': password2
+            };
+            const field = fieldMap[data.field];
+            if (field) {
+              showFieldError(field, data.message);
+              field.focus();
+            }
+          }
+
+        } catch (error) {
+          console.error("Registration error:", error);
+          message.classList.remove("d-none");
+          message.classList.add("alert-danger");
+          message.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>${error.message || "Something went wrong. Please try again."}`;
         } finally {
+          isSubmitting = false;
           btn.disabled = false;
-          btn.innerHTML = originalBtnText;
+          btn.innerHTML = "Register";
         }
       });
+
+      // ===== HELPER FUNCTIONS =====
+      function showFieldError(field, text) {
+        field.classList.remove("is-valid");
+        field.classList.add("is-invalid");
+        
+        const container = field.closest(".mb-3");
+        if (container) {
+          const errorElement = container.querySelector(".invalid-feedback");
+          if (errorElement) {
+            errorElement.textContent = text;
+          }
+        }
+      }
+
+      function clearValidation() {
+        [fullName, email, mobile, password1, password2].forEach(field => {
+          if (field) {
+            field.classList.remove("is-invalid", "is-valid");
+          }
+        });
+        
+        document.querySelectorAll(".invalid-feedback").forEach(el => {
+          // Only reset the text for specific fields, keep default text for others
+          if (el.id === "mobileError") el.textContent = "Enter a valid 11-digit number.";
+          if (el.id === "password1Error") el.textContent = "Password must be at least 8 characters.";
+          if (el.id === "password2Error") el.textContent = "Passwords do not match.";
+        });
+      }
+
     }
 
     // ===== CATEGORIES =====
@@ -1174,7 +1464,7 @@
         const btn = document.querySelector(`[data-wishlist-btn="${id}"]`);
         if (!btn) return;
         const icon = btn.querySelector("i");
-        fetch(`/wishlisttoggle/${id}/`, {
+        fetch(`{% url 'toggle_wishlist' 0 %}`.replace('/0/', `/${id}/`), {
           method: "GET",
           headers: { "X-Requested-With": "XMLHttpRequest" }
         })
@@ -1185,11 +1475,22 @@
             icon.classList.remove("bi-heart");
             icon.classList.add("bi-heart-fill");
             window.showToast?.("Added to wishlist.");
+
+            window.HeaderCounts.wishlist=window.HeaderCounts.wishlist+1;
+ 
+            document.querySelectorAll("[data-wishlist-count]").forEach(el => {
+              el.textContent = window.HeaderCounts.wishlist;
+            });
           } else if (data.status === "removed") {
             btn.classList.remove("active");
             icon.classList.remove("bi-heart-fill");
             icon.classList.add("bi-heart");
             window.showToast?.("Removed from wishlist.");
+            window.HeaderCounts.wishlist=window.HeaderCounts.wishlist-1;
+ 
+            document.querySelectorAll("[data-wishlist-count]").forEach(el => {
+              el.textContent = window.HeaderCounts.wishlist;
+            });
           }
         })
         .catch(err => {

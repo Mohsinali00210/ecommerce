@@ -154,7 +154,7 @@
   .site-header{
     background: var(--bg-elevated);
     border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 1030;
+    /* position: sticky; top: 0; z-index: 1030; */
     transition: box-shadow var(--dur) var(--ease), background var(--dur) var(--ease);
   }
   .site-header.is-scrolled{ box-shadow: var(--shadow-sm); }

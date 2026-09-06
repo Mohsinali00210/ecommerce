@@ -122,7 +122,13 @@ def _unread_notification_count(request):
         user=request.user, is_read=False
     ).count()
 
-
+def header_counts(request):
+    """Single endpoint backing the navbar badges (cart, wishlist, notifications)."""
+    return JsonResponse({
+        "cart_count": _cart_count(request),
+        "wishlist_count": _wishlist_count(request),
+        "notification_count": _unread_notification_count(request),
+    })
 def home(request):
     active_products = Product.objects.filter(is_active=True)
 

@@ -1,30 +1,199 @@
-<form method="post" action="{% url 'image_add' product.id %}" enctype="multipart/form-data">
+<form
+    method="post"
+    action="{% url 'image_add' product.id %}"
+    id="imgForm"
+    enctype="multipart/form-data">
+
     {% csrf_token %}
 
+    <!-- Alert -->
+    <div id="imageFormAlert"></div>
+
     {% if form.non_field_errors %}
-        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        <div class="alert alert-danger">
+            {{ form.non_field_errors }}
+        </div>
     {% endif %}
 
     <div class="row g-2">
+
         <div class="col-12">
             <label class="form-label">Image File</label>
+
             {{ form.image }}
-            {% for error in form.image.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+
+            {% for error in form.image.errors %}
+                <div class="text-danger small">
+                    {{ error }}
+                </div>
+            {% endfor %}
         </div>
+
         <div class="col-12">
             <label class="form-label">Alt Text</label>
+
             {{ form.alt_text }}
+
+            {% for error in form.alt_text.errors %}
+                <div class="text-danger small">
+                    {{ error }}
+                </div>
+            {% endfor %}
         </div>
+
         <div class="col-12">
             <div class="form-check">
+
                 {{ form.is_primary }}
-                <label class="form-check-label">Set as primary image</label>
+
+                <label class="form-check-label">
+                    Set as primary image
+                </label>
+
             </div>
         </div>
+
     </div>
 
     <div class="mt-3 text-end">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-dark">Save Image</button>
+
+        <button
+            type="button"
+            class="btn btn-outline-secondary"
+            data-bs-dismiss="modal">
+            Cancel
+        </button>
+
+        <button
+            type="submit"
+            class="btn btn-dark"
+            id="saveImageBtn">
+            Save Image
+        </button>
+
     </div>
+
 </form>
+
+<script>
+    function showImageAlert(message, type) {
+
+    const alertBox =
+        document.getElementById("imageFormAlert");
+
+    if (!alertBox) {
+        return;
+    }
+
+    alertBox.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show"
+             role="alert">
+
+            ${message}
+
+            <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+            </button>
+
+        </div>
+    `;
+}
+document.addEventListener("submit", async function (e) {
+
+    if (!e.target.matches("#imgForm")) {
+        return;
+    }
+
+    e.preventDefault();
+
+    const form = e.target;
+    const submitBtn = form.querySelector("#saveImageBtn");
+
+    // Get alert container
+    const alertBox = form.querySelector("#imageFormAlert");
+
+    // Clear previous alert
+    alertBox.innerHTML = "";
+
+    // Save original button text
+    const originalText = submitBtn.innerHTML;
+
+    // Disable button
+    submitBtn.disabled = true;
+
+    submitBtn.innerHTML = `
+        <span class="spinner-border spinner-border-sm me-1"></span>
+        Saving...
+    `;
+
+    try {
+
+        // FormData handles image/file upload
+        const formData = new FormData(form);
+
+        const response = await fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: {
+                "X-CSRFToken": form.querySelector(
+                    '[name="csrfmiddlewaretoken"]'
+                ).value,
+
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        });
+
+        const data = await response.json();
+
+        console.log("Image response:", data);
+
+        if (data.success) {
+
+            window.location.reload();
+
+            // Optional:
+            // reloadImages();
+
+        } else {
+
+            showImageAlert(
+                data.message || "Please correct the errors.",
+                "danger"
+            );
+
+            // Replace form with Django validation HTML
+            if (data.html) {
+
+                form.outerHTML = data.html;
+
+            }
+        }
+
+    } catch (error) {
+
+        console.error("Image upload error:", error);
+
+        showImageAlert(
+            "Something went wrong while uploading the image.",
+            "danger"
+        );
+
+    } finally {
+
+        // Restore button if form still exists
+        if (
+            submitBtn &&
+            document.body.contains(submitBtn)
+        ) {
+
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+
+        }
+
+    }
+
+});
+</script>

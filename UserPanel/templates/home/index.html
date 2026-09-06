@@ -1064,12 +1064,13 @@ body{
             })
             .then(res => res.json())
             .then(data => {
-
+                 window.refreshHeaderCounts();
+                 debugger;
                 if (!buyNow) {
                     window.showToast && window.showToast(data.message);
                     return;
                 }
-
+               
                 // Buy Now
                 const selectedItems = [{
                     cart_item_id: data.item_id,
@@ -1078,7 +1079,7 @@ body{
                     quantity: qty,
                     price: 0
                 }];
-
+               
                 return fetch("{% url 'SaveCheckoutSession' %}", {
                     method: "POST",
                     headers: {
@@ -1100,7 +1101,8 @@ body{
                 if (!data) return;
 
                 if (data.success) {
-                    window.location.href = "{% url 'CheckoutPage' %}";
+                   
+                    window.location.href = "{% url 'home:MyCheckoutPage' %}";
                 } else {
                     window.showToast && window.showToast(data.message || "Unable to proceed to checkout.", "danger");
                 }

@@ -84,7 +84,7 @@
       toggle(id) {
         debugger
           let items = Store.get(LS.wishlist);
-          let url = "/wishlisttoggle/" + id + "/";
+          let url = "/web/wishlisttoggle/" + id + "/";
           console.log("product id"+id);   // or use your generated URL
           fetch(url, {
               method: "GET",

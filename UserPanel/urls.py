@@ -30,6 +30,7 @@ urlpatterns = [
         path("all-notifications/",views.all_notifications,name="all-notifications"),
         path("mark-notification-read/<int:recipient_id>/",views.mark_notification_read,name="mark-notification-read"),
         path("mark-all-notification-read/",views.mark_all_notifications_read,name="mark-all-notifications-read"),
+        path("header-counts/",views.header_counts,name="header-counts"),
 ]
 
 # In your project urls.py:

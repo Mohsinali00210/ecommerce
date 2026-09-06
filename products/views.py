@@ -1300,32 +1300,58 @@ def variant_bulk_create(request, product_id):
         'message': f'{len(created_variants)} variant(s) created successfully.',
     })
  
- 
 @login_required
 def image_modal(request, product_id):
     product = get_object_or_404(Product, pk=product_id)
- 
-    if request.method == 'POST':
-        form = ProductImageForm(request.POST, request.FILES)
+
+    if request.method == "POST":
+        form = ProductImageForm(
+            request.POST,
+            request.FILES
+        )
+
         if form.is_valid():
             instance = form.save(commit=False)
             instance.product = product
             instance.created_by = request.user
             instance.save()
-            return JsonResponse({'success': True, 'message': 'Image added successfully.'})
+
+            return JsonResponse({
+                "success": True,
+                "message": "Image added successfully.",
+                "image_id": instance.id,
+            })
+
         html = render_to_string(
-            'products/partials/image_form.html',
-            {'form': form, 'product': product}, request=request,
+            "products/partials/image_form.html",
+            {
+                "form": form,
+                "product": product,
+            },
+            request=request,
         )
-        return JsonResponse({'success': False, 'html': html})
- 
+
+        return JsonResponse({
+            "success": False,
+            "message": "Please correct the errors below.",
+            "html": html,
+        }, status=400)
+
     form = ProductImageForm()
+
     html = render_to_string(
-        'products/partials/image_form.html',
-        {'form': form, 'product': product}, request=request,
+        "products/partials/image_form.html",
+        {
+            "form": form,
+            "product": product,
+        },
+        request=request,
     )
-    return JsonResponse({'html': html})
- 
+
+    return JsonResponse({
+        "success": True,
+        "html": html,
+    })
  
 @login_required
 def image_delete(request, product_id, image_id):
@@ -1334,34 +1360,87 @@ def image_delete(request, product_id, image_id):
     messages.success(request, "Image removed.")
     return redirect('product_edit', pk=product_id)
  
- 
 @login_required
 def promotion_modal(request, product_id, promotion_id=None):
-    product = get_object_or_404(Product, pk=product_id)
-    promotion = get_object_or_404(Promotion, pk=promotion_id, products=product) if promotion_id else None
- 
-    if request.method == 'POST':
-        form = PromotionForm(request.POST, instance=promotion)
-        if form.is_valid():
-            instance = form.save(commit=False)
-            instance.created_by = request.user if promotion is None else instance.created_by
-            instance.modified_by = request.user
-            instance.save()
-            instance.products.add(product)
-            return JsonResponse({'success': True, 'message': 'Promotion saved successfully.'})
-        html = render_to_string(
-            'products/partials/promotion_form.html',
-            {'form': form, 'product': product, 'promotion': promotion}, request=request,
-        )
-        return JsonResponse({'success': False, 'html': html})
- 
-    form = PromotionForm(instance=promotion)
-    html = render_to_string(
-        'products/partials/promotion_form.html',
-        {'form': form, 'product': product, 'promotion': promotion}, request=request,
+
+    product = get_object_or_404(
+        Product,
+        pk=product_id
     )
-    return JsonResponse({'html': html})
- 
+
+    promotion = (
+        get_object_or_404(
+            Promotion,
+            pk=promotion_id,
+            products=product
+        )
+        if promotion_id
+        else None
+    )
+
+    if request.method == "POST":
+
+        form = PromotionForm(
+            request.POST,
+            instance=promotion
+        )
+
+        if form.is_valid():
+
+            instance = form.save(commit=False)
+
+            if promotion is None:
+                instance.created_by = request.user
+
+            instance.modified_by = request.user
+
+            instance.save()
+
+            instance.products.add(product)
+
+            return JsonResponse({
+                "success": True,
+                "message": "Promotion saved successfully.",
+                "promotion_id": instance.id
+            })
+
+        html = render_to_string(
+            "products/partials/promotion_form.html",
+            {
+                "form": form,
+                "product": product,
+                "promotion": promotion
+            },
+            request=request
+        )
+
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Please correct the errors below.",
+                "html": html
+            },
+            status=400
+        )
+
+    form = PromotionForm(
+        instance=promotion
+    )
+
+    html = render_to_string(
+        "products/partials/promotion_form.html",
+        {
+            "form": form,
+            "product": product,
+            "promotion": promotion
+        },
+        request=request
+    )
+
+    return JsonResponse({
+        "success": True,
+        "html": html
+    })
  
 @login_required
 def promotion_delete(request, product_id, promotion_id):
@@ -1370,31 +1449,68 @@ def promotion_delete(request, product_id, promotion_id):
     messages.success(request, "Promotion removed from this product.")
     return redirect('product_edit', pk=product_id)
  
- 
 @login_required
 def tag_modal(request, product_id):
-    product = get_object_or_404(Product, pk=product_id)
- 
-    if request.method == 'POST':
-        form = TagAddForm(request.POST)
-        if form.is_valid():
-            name = form.cleaned_data['tag_name'].strip()
-            tag, _ = Tag.objects.get_or_create(name=name)
-            product.tags.add(tag)
-            return JsonResponse({'success': True, 'message': f"Tag '{name}' added."})
-        html = render_to_string(
-            'products/partials/tag_form.html',
-            {'form': form, 'product': product}, request=request,
-        )
-        return JsonResponse({'success': False, 'html': html})
- 
-    form = TagAddForm()
-    html = render_to_string(
-        'products/partials/tag_form.html',
-        {'form': form, 'product': product}, request=request,
+
+    product = get_object_or_404(
+        Product,
+        pk=product_id
     )
-    return JsonResponse({'html': html})
- 
+
+    if request.method == "POST":
+
+        form = TagAddForm(request.POST)
+
+        if form.is_valid():
+
+            name = form.cleaned_data["tag_name"].strip()
+
+            tag, created = Tag.objects.get_or_create(
+                name=name
+            )
+
+            product.tags.add(tag)
+
+            return JsonResponse({
+                "success": True,
+                "message": f"Tag '{name}' added successfully.",
+                "tag_id": tag.id,
+                "tag_name": tag.name
+            })
+
+        html = render_to_string(
+            "products/partials/tag_form.html",
+            {
+                "form": form,
+                "product": product
+            },
+            request=request
+        )
+
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Please correct the errors.",
+                "html": html
+            },
+            status=400
+        )
+
+    form = TagAddForm()
+
+    html = render_to_string(
+        "products/partials/tag_form.html",
+        {
+            "form": form,
+            "product": product
+        },
+        request=request
+    )
+
+    return JsonResponse({
+        "success": True,
+        "html": html
+    })
  
 @login_required
 def tag_remove(request, product_id, tag_id):

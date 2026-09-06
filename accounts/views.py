@@ -330,7 +330,7 @@ def register_api(request):
     # CREATE USER
     # -----------------------------------------
 
-    User.objects.create(
+    user=User.objects.create(
         full_name=full_name,
         email=email,
         mobile=mobile,

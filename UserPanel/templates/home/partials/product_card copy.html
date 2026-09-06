@@ -1,31 +1,41 @@
 {% load static %}
-<div class="col-6 col-md-4 col-lg-3">
-  <div class="product-card reveal in"
+<div class="col col-md-4 col-lg-3 d-flex">
+  <div class="product-card reveal in h-100 d-flex flex-column w-100"
        data-id="{{ product.id }}"
        data-name="{{ product.name }}"
        data-price="{{ product.price }}"
        data-was="{{ product.compare_at_price|default:0 }}"
-       data-image="{{ product.image.url }}"
+       data-image="{{ product.images.all.0.image.url }}"
        data-cat="{{ product.category.name }}">
     <div class="product-media">
-      <a href="products:detail' slug=product.slug">
-        <img class="img-primary" src="{{ product.image.url }}" alt="{{ product.name }}">
+      <a href="{% url 'home:Product_Details' slug=product.slug %}">
+        <img class="img-primary" src="{{ product.images.all.0.image.url }}" alt="{{ product.name }}">
       </a>
-      {% if product.hover_image %}
-        <img class="img-hover" src="{{ product.hover_image.url }}" alt="{{ product.name }} alternate view">
+      {% if product.images.all.1 %}
+        <a href="{% url 'home:Product_Details' slug=product.slug %}">
+          <img class="img-hover" src="{{ product.images.all.1.image.url }}" alt="{{ product.name }} alternate view">
+        </a>
+      {% else %}
+        <a href="{% url 'home:Product_Details' slug=product.slug %}">
+          <img class="img-hover" src="{{ product.images.all.0.image.url }}" alt="{{ product.name }} alternate view">
+        </a>
       {% endif %}
 
       <div class="badge-stack">
-        {% if product.compare_at_price %}
-          {# assumes a `discount_percent` property on Product, e.g.
-             round((compare_at_price - price) / compare_at_price * 100) #}
-          <span class="badge-tag badge-sale">-{{ product.discount_percent }}%</span>
+        {% if product.has_discount %}
+            <span class="badge-tag badge-sale">
+                -{{ product.discount_percent }}%
+            </span>
         {% endif %}
-        {% if product.is_new %}
-          <span class="badge-tag badge-new">New</span>
+        {% if product.mark_as_new %}
+            <span class="badge-tag badge-new">
+                New
+            </span>
         {% endif %}
         {% if product.free_shipping %}
-          <span class="badge-tag badge-ship">Free Ship</span>
+            <span class="badge-tag badge-ship">
+                Free Ship
+            </span>
         {% endif %}
       </div>
 
@@ -34,20 +44,20 @@
                 onclick="Wishlist.toggle('{{ product.id }}')" aria-label="Add to wishlist">
           <i class="bi bi-heart"></i>
         </button>
-        <button class="btn-icon" onclick="Compare.toggle('{{ product.id }}')" aria-label="Compare">
+        {% comment %} <button class="btn-icon" onclick="Compare.toggle('{{ product.id }}')" aria-label="Compare">
           <i class="bi bi-arrow-left-right"></i>
         </button>
         <button class="btn-icon" data-bs-toggle="modal" data-bs-target="#quickViewModal"
                 onclick="loadQuickView('{{ product.id }}')" aria-label="Quick view">
           <i class="bi bi-eye"></i>
-        </button>
+        </button> {% endcomment %}
       </div>
     </div>
 
     <div class="ticket-divider"></div>
 
-    <div class="product-info">
-      <div class="cat">{{ product.category.name }}</div>
+    <div class="product-info d-flex flex-column flex-grow-1">
+      {% comment %} <div class="cat">{{ product.category.name }}</div> {% endcomment %}
       <div class="name">{{ product.name }}</div>
       <div class="rating-stars">
         {% with rating=product.rating|default:4 %}
@@ -58,20 +68,25 @@
         <span class="text-muted-custom">({{ product.review_count|default:0 }})</span>
       </div>
       <div class="price-row mt-1">
-        <span class="price-now">${{ product.price|floatformat:2 }}</span>
-        {% if product.compare_at_price %}
-          <span class="price-was">${{ product.compare_at_price|floatformat:2 }}</span>
+        {% if product.has_discount %}
+            <span class="price-now"> RS {{ product.final_price|floatformat:2 }} </span>
+            <span class="price-was"> RS {{ product.price|floatformat:2 }} </span>
+        {% else %}
+            <span class="price-now">
+                RS {{ product.price|floatformat:2 }}
+            </span>
         {% endif %}
       </div>
-      <div class="color-dots">
+      {% comment %} <div class="color-dots">
         {% for variant in product.variants.all %}
           <i style="background:{{ variant.color_hex }}" class="{% if forloop.first %}active{% endif %}"></i>
         {% endfor %}
       </div>
       <div class="stock-indicator">
         <span style="width: {{ product.stock_percent|default:50 }}%"></span>
-      </div>
-      <button class="btn btn-brass w-100 mt-3" onclick="Cart.add('{{ product.id }}',1)">
+      </div> {% endcomment %}
+      <button class="btn btn-brass w-100 mt-auto pt-3"
+              onclick="Cart.add('{{ product.id }}', {{ product.variants.all.0.id|default:'null' }}, 1)">
         <i class="bi bi-bag-plus me-1"></i> Add to Cart
       </button>
     </div>

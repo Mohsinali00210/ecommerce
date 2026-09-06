@@ -23,7 +23,7 @@ class ProductForm(BootstrapFormMixin, forms.ModelForm):
         model = Product
         fields = [
             # General
-            'name', 'qoute', 'product_type', 'sku', 'category', 'brand',
+            'name', 'qoute', 'product_type', 'sku','slug', 'category', 'brand',
             'status', 'stock_status',
             'description', 'brief_description', 'admin_comment',
             'available_start_date', 'available_end_date',
@@ -45,6 +45,21 @@ class ProductForm(BootstrapFormMixin, forms.ModelForm):
             'meta_title', 'meta_description', 'focus_keywords',
         ]
         widgets = {
+            'slug': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'readonly': 'readonly',
+                    'id': 'id_slug'
+                }
+            ),
+
+            'sku': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'id': 'id_sku',
+                    'autocomplete': 'off'
+                }
+            ),
             'category': forms.SelectMultiple(attrs={'id': 'id_category'}),
             'description': forms.Textarea(attrs={'rows': 5, 'id': 'id_description'}),
             'brief_description': forms.Textarea(attrs={'rows': 3}),

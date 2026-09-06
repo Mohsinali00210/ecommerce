@@ -52,7 +52,7 @@
                 <!-- GENERAL -->
                 <div class="tab-pane fade show active row g-3" id="tab-general">
                     <div class="col-md-4">
-                        <label class="form-label">Product Name</label>
+                        <label class="form-label" for="id_name">Product Name</label>
                         {{ form.name }}
                         {{ form.name.errors }}
                     </div>
@@ -66,18 +66,35 @@
                         {{ form.product_type }}
                         {{ form.product_type.errors }}
                     </div>
+                    
                     <div class="col-md-4">
-                        <label class="form-label">SKU</label>
+                        <label class="form-label" for="id_sku">SKU</label>
                         {{ form.sku }}
                         {{ form.sku.errors }}
+
+                        <div class="form-text">
+                            Automatically generated from product information.
+                        </div>
                     </div>
+
                     <div class="col-md-4">
-                        <label class="form-label">Category</label>
+                        <label class="form-label" for="id_slug">Slug</label>
+                        {{ form.slug }}
+                        {{ form.slug.errors }}
+
+                        <div class="form-text">
+                            Automatically generated from product name, category and brand.
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label" for="id_category">Category</label>
                         {{ form.category }}
                         {{ form.category.errors }}
                     </div>
+
                     <div class="col-md-4">
-                        <label class="form-label">Brand</label>
+                        <label class="form-label" for="id_brand">Brand</label>
                         {{ form.brand }}
                         {{ form.brand.errors }}
                     </div>
@@ -373,6 +390,131 @@ document.addEventListener('submit', function (e) {
         });
 });
 
+</script>
+<script>
+$(document).ready(function () {
+
+    function generateIdentifiers() {
+
+        // -----------------------------------------
+        // 1. PRODUCT NAME
+        // -----------------------------------------
+        const name = $('#id_name').val() || '';
+
+        // -----------------------------------------
+        // 2. BRAND
+        // -----------------------------------------
+        const brand = $('#id_brand option:selected').text() || '';
+
+        // -----------------------------------------
+        // 3. MULTIPLE CATEGORIES
+        // -----------------------------------------
+        let selectedCats = $('#id_category option:selected')
+            .map(function () {
+                return $(this)
+                    .text()
+                    .substring(0, 2)
+                    .toUpperCase()
+                    .trim();
+            })
+            .get();
+
+        // Example:
+        // Electronics + Clothing
+        // => EL-CL
+        let catPart = selectedCats.join('-');
+
+
+        // -----------------------------------------
+        // 4. GENERATE SLUG
+        // -----------------------------------------
+        let rawSlug = `${name} ${catPart} ${brand}`;
+
+        let slug = rawSlug
+            .toLowerCase()
+            .normalize("NFKD")
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-+|-+$/g, '');
+
+        $('#id_slug').val(slug);
+
+
+        // -----------------------------------------
+        // 5. GENERATE SKU
+        // -----------------------------------------
+        if (name.trim().length >= 2) {
+
+            // First 3 letters of product name
+            const namePart = name
+                .trim()
+                .substring(0, 3)
+                .toUpperCase();
+
+            // First 2 letters of brand
+            const brandPart = brand
+                .trim()
+                .substring(0, 2)
+                .toUpperCase();
+
+            // Last 4 digits of current timestamp
+            const timePart = Math.floor(Date.now() / 1000)
+                .toString()
+                .slice(-4);
+
+            // -----------------------------------------
+            // FINAL SKU
+            // -----------------------------------------
+            const skuParts = [
+                namePart,
+                catPart,
+                brandPart,
+                timePart
+            ].filter(Boolean);
+
+            const sku = skuParts.join('-');
+
+            $('#id_sku').val(sku);
+
+        } else {
+
+            $('#id_sku').val('');
+        }
+    }
+
+
+    // -----------------------------------------
+    // GENERATE WHEN PRODUCT NAME CHANGES
+    // -----------------------------------------
+    $('#id_name').on('input', function () {
+        generateIdentifiers();
+    });
+
+
+    // -----------------------------------------
+    // GENERATE WHEN CATEGORY CHANGES
+    // -----------------------------------------
+    $('#id_category').on('change', function () {
+        generateIdentifiers();
+    });
+
+
+    // -----------------------------------------
+    // GENERATE WHEN BRAND CHANGES
+    // -----------------------------------------
+    $('#id_brand').on('change', function () {
+        generateIdentifiers();
+    });
+
+
+    // -----------------------------------------
+    // INITIAL GENERATION
+    // -----------------------------------------
+    generateIdentifiers();
+
+});
 </script>
 {% endblock %}
 
