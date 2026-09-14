@@ -66,38 +66,66 @@
             </div>
           {% else %}
             <div class="order-tracker d-flex justify-content-between mb-4 px-2 text-center">
+
+              <!-- PLACED -->
               <div class="flex-fill">
                 <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center
-                            {% if order.status %}bg-brass text-white{% else %}bg-light text-muted{% endif %}"
-                     style="width:32px;height:32px;">
+                  {% if order.status == 'pending' or order.status == 'submited' or order.status == 'processing' or order.status == 'shipped' or order.status == 'delivered' %}
+                    bg-dark text-white
+                  {% else %}
+                    bg-light text-muted
+                  {% endif %}"
+                  style="width:32px;height:32px;">
                   <i class="bi bi-check-lg"></i>
                 </div>
                 <div class="small mt-1">Placed</div>
               </div>
+
+
+              <!-- PROCESSING -->
               <div class="flex-fill">
                 <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center
-                            {% if order.status == 'processing' or order.status == 'shipped' or order.status == 'delivered' %}bg-brass text-white{% else %}bg-light text-muted{% endif %}"
-                     style="width:32px;height:32px;">
+                  {% if order.status == 'processing' or order.status == 'shipped' or order.status == 'delivered' %}
+                    bg-dark text-white
+                  {% else %}
+                    bg-light text-muted
+                  {% endif %}"
+                  style="width:32px;height:32px;">
                   <i class="bi bi-gear"></i>
                 </div>
                 <div class="small mt-1">Processing</div>
               </div>
+
+
+              <!-- SHIPPED -->
               <div class="flex-fill">
                 <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center
-                            {% if order.status == 'shipped' or order.status == 'delivered' %}bg-brass text-white{% else %}bg-light text-muted{% endif %}"
-                     style="width:32px;height:32px;">
+                  {% if order.status == 'shipped' or order.status == 'delivered' %}
+                    bg-dark text-white
+                  {% else %}
+                    bg-light text-muted
+                  {% endif %}"
+                  style="width:32px;height:32px;">
                   <i class="bi bi-truck"></i>
                 </div>
                 <div class="small mt-1">Shipped</div>
               </div>
+
+
+              <!-- DELIVERED -->
               <div class="flex-fill">
                 <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center
-                            {% if order.status == 'delivered' %}bg-brass text-white{% else %}bg-light text-muted{% endif %}"
-                     style="width:32px;height:32px;">
+                  {% if order.status == 'delivered' %}
+                    bg-dark text-white
+                  {% else %}
+                    bg-light text-muted
+                  {% endif %}"
+                  style="width:32px;height:32px;">
                   <i class="bi bi-box-seam"></i>
                 </div>
                 <div class="small mt-1">Delivered</div>
               </div>
+
             </div>
           {% endif %}
 

@@ -29,6 +29,7 @@
         transition: width 0.25s ease;
         color: #fff;
         z-index: 1000;
+        overflow-y:auto;
     }
 
     .sidebar.collapsed {
@@ -306,11 +307,22 @@
     </div>
 
     <!-- Customer Support -->
-    <a href="{% url 'support_ticket_list' %}">
+    {% comment %} <a href="{% url 'support_ticket_list' %}">
+        <i class="bi bi-headset"></i>
+        <span class="menu-text">Contacts / Support</span>
+    </a> {% endcomment %}
+    <a href="{% url 'AdminTicketList' %}">
         <i class="bi bi-headset"></i>
         <span class="menu-text">Contacts / Support</span>
     </a>
-
+     <a href="{% url 'admin_messages' %}">
+        <i class="bi bi-headset"></i>
+        <span class="menu-text">product / messages</span>
+    </a>
+    <a href="{% url 'StaffQuestionList' %}">
+        <i class="bi bi-headset"></i>
+        <span class="menu-text">product / Question</span>
+    </a>
     <!-- Reviews -->
     <a href="{% url 'AdminReviewsPage' %}">
         <i class="bi bi-star"></i>
@@ -330,7 +342,7 @@
     </div>
 
     <!-- Users Section -->
-    <a href="{% url 'users-page' %}">
+    <a href="{% url 'UserList' %}">
         <i class="bi bi-people"></i>
         <span class="menu-text">Users</span>
     </a>

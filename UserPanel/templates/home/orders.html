@@ -154,8 +154,8 @@
         <!-- Orders list -->
         <div class="col-lg-9">
           <div class="d-flex flex-wrap gap-2 mb-4" id="orderStatusFilters">
-            <button class="btn btn-sm btn-outline-ink filter-btn active" data-filter="all">All</button>
-            <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="pending">Pending</button>
+            <button class="btn btn-sm btn-outline-ink filter-btn " data-filter="all">All</button>
+            <button class="btn btn-sm btn-outline-ink filter-btn active" data-filter="pending">Pending</button>
             <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="processing">Processing</button>
             <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="shipped">Shipped</button>
             <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="delivered">Delivered</button>
@@ -236,7 +236,7 @@
                       {% if not order.has_pending_request %}
                         {% if order.status == "pending" or order.status == "processing" %}
                           <button type="button" class="btn btn-sm btn-outline-ink"
-                                  onclick="openCancelReturnModal({{ order.id }}, 'cancel')">Cancel</button>
+                                  onclick="confirmCancelOrder({{ order.id }})">Cancel</button>
                         {% endif %}
 
                         {% if order.status == "delivered" %}
@@ -257,7 +257,7 @@
     </div>
   </section>
 
-  <!-- ============ Cancel / Return Modal ============ -->
+  <!-- ============ Cancel / Return Modal (only used for RETURN now) ============ -->
   <div class="modal fade" id="cancelReturnModal" tabindex="-1" aria-labelledby="cancelReturnModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
       <div class="modal-content">
@@ -275,13 +275,11 @@
               <div id="existingRequestsList" class="d-flex flex-column gap-2"></div>
             </div>
 
-            <!-- Select Request Type -->
-            <div class="mb-3">
+            <!-- Select Request Type (only return now) -->
+            <div class="mb-3 d-none">
               <label for="requestType" class="form-label fw-semibold">Request Type</label>
               <select class="form-select" id="requestType" required>
-                <option value="" selected disabled>Select type</option>
-                <option value="cancel">Cancel Order</option>
-                <option value="return">Return Order</option>
+                <option value="return" selected>Return Order</option>
               </select>
             </div>
             <input type="hidden" id="cancelOrderId"/>
@@ -295,7 +293,7 @@
             <!-- Reason -->
             <div class="mb-3" id="requestReasonCon">
               <label for="requestReason" class="form-label fw-semibold">Reason</label>
-              <textarea class="form-control" id="requestReason" rows="3" placeholder="Enter reason for cancel/return"></textarea>
+              <textarea class="form-control" id="requestReason" rows="3" placeholder="Enter reason for return"></textarea>
             </div>
 
             <!-- Preferred Action -->
@@ -391,7 +389,10 @@
     }
     document.getElementById("requestType").addEventListener("change", toggleRequestFields);
 
-    // ---------- Open modal and populate it with the order's items + past requests ----------
+    // ---------- Show/hide reason + preferred action based on request type ----------
+    // Removed toggleRequestFields for cancel since we no longer open modal for cancel.
+
+    // ---------- Open modal and populate it with the order's items + past requests (used for RETURN only) ----------
     function openCancelReturnModal(orderId, type) {
       const orderDetailBaseUrl = "{% url 'OrderDetailApi' 0 %}";
       const url = orderDetailBaseUrl.replace("0", orderId);
@@ -462,7 +463,6 @@
             showAlert("A request for this order is already pending review.", "warning");
           }
 
-          toggleRequestFields();
           new bootstrap.Modal(document.getElementById("cancelReturnModal")).show();
         })
         .catch(err => {
@@ -532,6 +532,65 @@
         });
     });
 
-    applyOrderFilter("all");
+    // ---------- Direct cancel with yes/no confirmation ----------
+    function confirmCancelOrder(orderId) {
+      const userConfirmed = confirm("Are you sure you want to cancel this order? This action cannot be undone.");
+      if (!userConfirmed) {
+        return;
+      }
+
+      // Fetch order items to include in the cancel request
+      const orderDetailBaseUrl = "{% url 'OrderDetailApi' 0 %}";
+      const url = orderDetailBaseUrl.replace("0", orderId);
+
+      fetch(url, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Order not found");
+          return res.json();
+        })
+        .then(data => {
+          // Prepare form data for cancel request
+          const formData = new FormData();
+          formData.append("order_id", data.id);
+          formData.append("request_type", "cancel");
+          // Include all items (auto-select all)
+          data.items.forEach(item => {
+            formData.append("items[]", item.id);
+          });
+          formData.append("reason", "");
+          formData.append("preferred_action", "");
+
+          const cancelReturnUrl = "{% url 'order-request' %}";
+          return fetch(cancelReturnUrl, {
+            method: "POST",
+            headers: {
+              "X-CSRFToken": csrftoken,
+              "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+            },
+            body: formData
+          });
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showAlert("Order cancellation request submitted successfully.", "success");
+            window.location.reload();
+          } else {
+            showAlert("Failed to cancel order: " + (data.error || "Unknown error"), "warning");
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showAlert("Failed to process cancellation. Please try again.", "warning");
+        });
+    }
+
+    applyOrderFilter("pending");
   </script>
 {% endblock %}

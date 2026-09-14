@@ -54,27 +54,27 @@ class VerifyEmailView(APIView):
             {"message": "Email verified successfully"},
             status=status.HTTP_200_OK
         )
-class ResendVerificationEmailView(APIView):
-    permission_classes = [AllowAny]
+# class ResendVerificationEmailView(APIView):
+#     permission_classes = [AllowAny]
 
-    def post(self, request):
-        email = request.data.get("email")
+#     def post(self, request):
+#         email = request.data.get("email")
 
-        user = get_object_or_404(User, email=email)
+#         user = get_object_or_404(User, email=email)
 
-        if user.is_email_verified:
-            return Response(
-                {"message": "Email already verified"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+#         if user.is_email_verified:
+#             return Response(
+#                 {"message": "Email already verified"},
+#                 status=status.HTTP_400_BAD_REQUEST
+#             )
 
-        user.generate_email_verification()
-        send_verification_email(user)
+#         user.generate_email_verification()
+#         send_verification_email(user)
 
-        return Response(
-            {"message": "Verification email resent"},
-            status=status.HTTP_200_OK
-        )
+#         return Response(
+#             {"message": "Verification email resent"},
+#             status=status.HTTP_200_OK
+#         )
 
 
 
@@ -471,3 +471,177 @@ def manual_account_login_required(request):
         request,
         "account/manual_account_login_required.html"
     )
+
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.shortcuts import redirect, render
+from django.utils import timezone
+
+from .utils import generate_otp, send_templated_email
+from .models import OTP  # adjust import path to match your app
+
+User = get_user_model()
+
+
+def forgot_password(request):
+    error = None
+
+    if request.method == "POST":
+        email = request.POST.get("email", "").strip().lower()
+        user = User.objects.filter(email__iexact=email).first()
+
+        if user:
+            otp = generate_otp(user, "RESET_PASSWORD")
+            send_templated_email(
+                to_email=user.email,
+                subject="Reset your Shan Zee password",
+                template_name="reset_password_otp.html",
+                context={
+                    "user": user,
+                    "code": otp.code,
+                    "valid_minutes": 5,
+                },
+            )
+
+        # Same response whether or not the email exists — don't leak which
+        # addresses are registered by responding differently for each.
+        request.session["reset_email"] = email
+        return redirect("reset-password")
+
+    return render(request, "ForgotPassword.html", {"error": error})
+
+
+def reset_password(request):
+    email = request.session.get("reset_email")
+    if not email:
+        return redirect("forgot-password")
+
+    error = None
+
+    if request.method == "POST":
+        code = request.POST.get("code", "").strip()
+        password1 = request.POST.get("password1", "")
+        password2 = request.POST.get("password2", "")
+
+        user = User.objects.filter(email__iexact=email).first()
+        otp = (
+            OTP.objects.filter(user=user, purpose="RESET_PASSWORD", code=code).order_by("-created_at").first()
+            if user else None
+        )
+
+        if not user or not otp:
+            error = "Invalid verification code."
+        elif otp.expires_at < timezone.now():
+            error = "This code has expired. Please request a new one."
+        elif len(password1) < 8:
+            error = "Password must be at least 8 characters."
+        elif password1 != password2:
+            error = "Passwords do not match."
+        else:
+            user.set_password(password1)
+            user.save(update_fields=["password"])
+            otp.delete()
+            del request.session["reset_email"]
+            messages.success(request, "Password reset successfully. Please log in.")
+            return redirect("login")
+
+    return render(request, "ResetPassword.html", {"error": error, "email": email})
+
+
+def resend_reset_otp(request):
+    """Optional: lets the reset-password page offer a 'Resend code' link
+    without sending the user back through the email-entry step."""
+    email = request.session.get("reset_email")
+    if not email:
+        return redirect("forgot-password")
+
+    user = User.objects.filter(email__iexact=email).first()
+    if user:
+        otp = generate_otp(user, "RESET_PASSWORD")
+        send_templated_email(
+            to_email=user.email,
+            subject="Your new Shan Zee verification code",
+            template_name="reset_password_otp.html",
+            context={"user": user, "code": otp.code, "valid_minutes": 5},
+        )
+
+    messages.success(request, "A new code has been sent to your email.")
+    return redirect("reset-password")
+
+
+from django.db.models import Count
+from django.utils import timezone
+from datetime import timedelta
+from django.views.decorators.http import require_POST
+from django.contrib import messages
+from django.http import HttpResponseForbidden
+from django.shortcuts import get_object_or_404, redirect, render
+
+
+@login_required
+def UserListView(request):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Staff only.")
+
+    users = (
+        User.objects
+        .annotate(
+            address_count=Count("addresses", distinct=True),
+            order_count=Count("orders", distinct=True),
+        )
+        .select_related("wallet")
+        .order_by("-date_joined")
+    )
+
+    return render(request, "UserList.html", {"users": users})
+
+
+@login_required
+@require_POST
+def block_user(request, user_id):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Staff only.")
+
+    user = get_object_or_404(User, id=user_id)
+
+    block_type = request.POST.get("block_type")
+    reason = request.POST.get("reason", "")
+
+    if block_type not in dict(User.BLOCK_TYPE_CHOICES):
+        messages.error(request, "Invalid block type.")
+        return redirect("UserList")
+
+    user.is_blocked_from_ordering = True
+    user.block_type = block_type
+    user.block_reason = reason
+
+    if block_type == "temporary":
+        try:
+            days = int(request.POST.get("duration_days", 1))
+        except (TypeError, ValueError):
+            days = 1
+        user.blocked_until = timezone.now() + timedelta(days=days)
+    else:
+        user.blocked_until = None
+
+    user.save(update_fields=["is_blocked_from_ordering", "block_type", "block_reason", "blocked_until"])
+    messages.success(request, f"{user.full_name or user.email} has been blocked ({block_type}).")
+
+    return redirect("UserList")
+
+
+@login_required
+@require_POST
+def unblock_user(request, user_id):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Staff only.")
+
+    user = get_object_or_404(User, id=user_id)
+    user.is_blocked_from_ordering = False
+    user.block_type = None
+    user.blocked_until = None
+    user.block_reason = ""
+    user.save(update_fields=["is_blocked_from_ordering", "block_type", "blocked_until", "block_reason"])
+
+    messages.success(request, f"{user.full_name or user.email} has been unblocked.")
+    return redirect("UserList")

@@ -1,90 +1,339 @@
 {% extends "base2.html" %}
 {% load static %}
+
 {% block content %}
 
-  <section class="py-5">
+<section class="py-5">
     <div class="container-xl">
-      <div class="row justify-content-center">
-        <div class="col-lg-9 col-xl-8">
-          <div class="border rounded-4 overflow-hidden d-flex flex-column flex-md-row" style="border-color:var(--border) !important;">
+        <div class="row justify-content-center">
+            <div class="col-lg-9 col-xl-8">
 
-            <!-- LEFT PANEL -->
-            <div class="d-none d-md-flex flex-column align-items-center justify-content-center text-center gap-3 p-5"
-                 style="flex:1;background:var(--pine,#1f3d2f);color:#fff;">
-              <img src="{% static 'images/logo.png' %}" width="80" alt="Shan Zee">
-              <h3 class="font-display mb-0">Welcome Back</h3>
-              <p class="opacity-75 small mb-0">Sign in to track orders, manage your wallet, and pick up your wishlist right where you left off.</p>
+                <div class="border rounded-4 overflow-hidden d-flex flex-column flex-md-row"
+                     style="border-color:var(--border) !important;">
+
+                    <!-- LEFT PANEL -->
+                    <div class="d-none d-md-flex flex-column align-items-center justify-content-center text-center gap-3 p-5"
+                         style="flex:1;background:var(--pine,#1f3d2f);color:#fff;">
+
+                        <img src="{% static 'images/logo.png' %}"
+                             width="80"
+                             alt="Shan Zee">
+
+                        <h3 class="font-display mb-0">
+                            Welcome Back
+                        </h3>
+
+                        <p class="opacity-75 small mb-0">
+                            Sign in to track orders, manage your wallet,
+                            and pick up your wishlist right where you left off.
+                        </p>
+                    </div>
+
+                    <!-- RIGHT PANEL -->
+                    <div class="p-5" style="flex:1;">
+
+                        <h4 class="font-display text-center mb-4">
+                            Login
+                        </h4>
+
+                        <!-- LOGIN MESSAGE -->
+                        <div id="loginMessage"
+                             class="alert d-none"
+                             role="alert">
+                        </div>
+
+                        <form method="POST"
+                              id="loginForm"
+                              action="{% url 'login_api' %}">
+
+                            {% csrf_token %}
+
+                            {% if error %}
+                                <div class="alert alert-danger">
+                                    {{ error }}
+                                </div>
+                            {% endif %}
+
+                            <!-- EMAIL -->
+                            <div class="mb-3">
+                                <label class="form-label small text-muted-custom">
+                                    Email Address
+                                </label>
+
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent">
+                                        <i class="bi bi-envelope"></i>
+                                    </span>
+
+                                    <input type="email"
+                                           name="username"
+                                           class="form-control"
+                                           placeholder="you@email.com"
+                                           required>
+                                </div>
+                            </div>
+
+                            <!-- PASSWORD -->
+                            <div class="mb-3">
+                                <label class="form-label small text-muted-custom">
+                                    Password
+                                </label>
+
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent">
+                                        <i class="bi bi-lock"></i>
+                                    </span>
+
+                                    <input type="password"
+                                           name="password"
+                                           id="password"
+                                           class="form-control"
+                                           placeholder="Enter password"
+                                           required>
+
+                                    <span class="input-group-text"
+                                          style="cursor:pointer;"
+                                          onclick="togglePassword('password', this)">
+
+                                        <i class="bi bi-eye"></i>
+
+                                    </span>
+                                </div>
+
+                                <div class="text-end mt-1">
+                                    <a href="{% url 'forgot-password' %}"
+                                       class="small text-decoration-underline">
+                                        Forgot password?
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- LOGIN BUTTON -->
+                            <button type="submit"
+                                    class="btn btn-brass w-100"
+                                    id="loginBtn">
+                                Login
+                            </button>
+
+                            <!-- GOOGLE LOGIN -->
+                            {% load socialaccount %}
+
+                            <a href="{% provider_login_url 'google' %}"
+                               class="btn btn-outline-ink w-100 mt-3">
+
+                                <i class="bi bi-google me-2"></i>
+                                Continue with Google
+
+                            </a>
+
+                            <!-- REGISTER -->
+                            <div class="text-center mt-3">
+                                <a href="{% url 'register' %}"
+                                   class="text-decoration-underline">
+                                    Create an account
+                                </a>
+                            </div>
+
+                        </form>
+                    </div>
+
+                </div>
             </div>
-
-            <!-- RIGHT PANEL -->
-            <div class="p-5" style="flex:1;">
-              <h4 class="font-display text-center mb-4">Login</h4>
-
-              <form method="POST" id="loginForm">
-                {% csrf_token %}
-
-                {% if error %}
-                  <div class="alert alert-danger">{{ error }}</div>
-                {% endif %}
-
-                <div class="mb-3">
-                  <label class="form-label small text-muted-custom">Email Address</label>
-                  <div class="input-group">
-                    <span class="input-group-text bg-transparent"><i class="bi bi-envelope"></i></span>
-                    <input type="email" name="username" class="form-control" placeholder="you@email.com" required>
-                  </div>
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label small text-muted-custom">Password</label>
-                  <div class="input-group">
-                    <span class="input-group-text bg-transparent"><i class="bi bi-lock"></i></span>
-                    <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
-                    <span class="input-group-text" style="cursor:pointer;" onclick="togglePassword('password', this)">
-                      <i class="bi bi-eye"></i>
-                    </span>
-                  </div>
-                </div>
-
-                <button type="submit" class="btn btn-brass w-100" id="loginBtn">Login</button>
-
-                {% load socialaccount %}
-                <a href="{% provider_login_url 'google' %}" class="btn btn-outline-ink w-100 mt-3">
-                  <i class="bi bi-google me-2"></i> Continue with Google
-                </a>
-
-                <div class="text-center mt-3">
-                  <a href="{% url 'register' %}" class="text-decoration-underline">Create an account</a>
-                </div>
-              </form>
-            </div>
-
-          </div>
         </div>
-      </div>
     </div>
-  </section>
+</section>
 
 {% endblock %}
 
+
 {% block extra_js %}
-  <script>
-    function togglePassword(inputId, iconEl) {
-      const input = document.getElementById(inputId);
-      const icon = iconEl.querySelector("i");
-      if (input.type === "password") {
-        input.type = "text";
-        icon.classList.replace("bi-eye", "bi-eye-slash");
-      } else {
-        input.type = "password";
-        icon.classList.replace("bi-eye-slash", "bi-eye");
-      }
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* =====================================================
+       PASSWORD TOGGLE
+    ===================================================== */
+
+    window.togglePassword = function (inputId, iconEl) {
+
+        const input = document.getElementById(inputId);
+        const icon = iconEl.querySelector("i");
+
+        if (!input || !icon) {
+            return;
+        }
+
+        if (input.type === "password") {
+
+            input.type = "text";
+
+            icon.classList.replace(
+                "bi-eye",
+                "bi-eye-slash"
+            );
+
+        } else {
+
+            input.type = "password";
+
+            icon.classList.replace(
+                "bi-eye-slash",
+                "bi-eye"
+            );
+        }
+    };
+
+
+    /* =====================================================
+       LOGIN
+    ===================================================== */
+
+    const loginForm = document.getElementById("loginForm");
+    const loginBtn = document.getElementById("loginBtn");
+    const loginMessage = document.getElementById("loginMessage");
+
+
+    if (!loginForm || !loginBtn || !loginMessage) {
+        console.error("Login elements not found.");
+        return;
     }
 
-    document.getElementById("loginForm").addEventListener("submit", function () {
-      const btn = document.getElementById("loginBtn");
-      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Logging in...`;
-      btn.disabled = true;
+
+    loginForm.addEventListener("submit", async function (e) {
+
+        e.preventDefault();
+
+
+        /* ---------------------------------------------
+           CLEAR PREVIOUS MESSAGE
+        --------------------------------------------- */
+
+        loginMessage.innerHTML = "";
+        loginMessage.className = "alert d-none";
+
+
+        /* ---------------------------------------------
+           SHOW LOADING
+        --------------------------------------------- */
+
+        loginBtn.innerHTML = `
+            <span class="spinner-border spinner-border-sm me-2"
+                  role="status"
+                  aria-hidden="true">
+            </span>
+            Logging in...
+        `;
+
+        loginBtn.disabled = true;
+
+
+        try {
+
+            const response = await fetch(loginForm.action, {
+
+                method: "POST",
+
+                body: new FormData(loginForm),
+
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Accept": "application/json"
+                }
+
+            });
+
+
+            /* ---------------------------------------------
+               CHECK RESPONSE
+            --------------------------------------------- */
+
+            const contentType = response.headers.get("content-type") || "";
+
+
+            if (!contentType.includes("application/json")) {
+
+                throw new Error(
+                    "Server returned a non-JSON response. Status: "
+                    + response.status
+                );
+            }
+
+
+            const data = await response.json();
+
+
+            /* ---------------------------------------------
+               SUCCESS
+            --------------------------------------------- */
+
+            if (data.success) {
+
+                window.location.href = data.redirect;
+
+                return;
+            }
+
+
+            /* ---------------------------------------------
+               LOGIN FAILED
+            --------------------------------------------- */
+
+            showLoginMessage(
+                data.message || "Invalid username or password.",
+                "danger"
+            );
+
+            resetLoginButton();
+
+        }
+
+
+        catch (error) {
+
+            console.error("Login error:", error);
+
+
+            showLoginMessage(
+                "Something went wrong. Please try again.",
+                "danger"
+            );
+
+
+            resetLoginButton();
+        }
+
     });
-  </script>
+
+
+    /* =====================================================
+       SHOW MESSAGE
+    ===================================================== */
+
+    function showLoginMessage(message, type) {
+
+        loginMessage.innerHTML = message;
+
+        loginMessage.className =
+            "alert alert-" + type;
+
+    }
+
+
+    /* =====================================================
+       RESET LOGIN BUTTON
+    ===================================================== */
+
+    function resetLoginButton() {
+
+        loginBtn.innerHTML = "Login";
+
+        loginBtn.disabled = false;
+    }
+
+});
+
+</script>
+
 {% endblock %}

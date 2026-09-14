@@ -1,6 +1,8 @@
 from django.shortcuts import render, get_object_or_404,redirect
 from products.models import Product, Promotion,ProductReview,ProductVariant
 from django.utils import timezone
+from django.core.exceptions import ValidationError
+
 import json
 from django.core.serializers.json import DjangoJSONEncoder
 from rest_framework.views import APIView
@@ -16,6 +18,7 @@ from .serializers import CheckoutSerializer,AddressSerializer,PlaceOrderSerializ
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from rest_framework import serializers, status
 
 from accounts.models import Address
 
@@ -766,40 +769,87 @@ def OrderConfirmation(request):
         "order_items": order.items.all(),
     }
     return render(request, "Web/OrderConfirmation.html", context)
-
 class PlaceOrderAPIView(APIView):
-    authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
+
+    authentication_classes = [
+        SessionAuthentication
+    ]
+
+    permission_classes = [
+        IsAuthenticated
+    ]
 
     def post(self, request):
+
         serializer = PlaceOrderSerializer(
             data=request.data,
-            context={"request": request}
+            context={
+                "request": request
+            }
         )
 
-        if serializer.is_valid():
-            order = serializer.save()
-            notification = Notification.objects.create(
-                title="Order Placed Successfully",
-                message=f"Your order #{order.id} has been placed successfully. Total: {order.total_amount}",
-                notification_type="order",
-                is_general=False,
-                is_active=True,
-                order=order
+        if not serializer.is_valid():
+
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
             )
-            NotificationRecipient.objects.create(notification=notification,user=request.user,is_read=False)
+
+        try:
+
+            order = serializer.save()
+
+        except serializers.ValidationError as exc:
+
             return Response(
                 {
-                    "message": "Order placed successfully",
-                    "order_id": order.id,
-                    "total": order.total_amount,
+                    "success": False,
+                    "message": str(exc.detail)
                 },
-                status=status.HTTP_201_CREATED
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # -------------------------------------------------
+        # ORDER NOTIFICATION
+        # -------------------------------------------------
 
+        notification = Notification.objects.create(
+            title="Order Placed Successfully",
 
+            message=(
+                f"Your order #{order.id} has been "
+                f"placed successfully. "
+                f"Total: {order.total_amount}"
+            ),
+
+            notification_type="order",
+
+            is_general=False,
+
+            is_active=True,
+
+            order=order
+        )
+
+        NotificationRecipient.objects.create(
+            notification=notification,
+            user=request.user,
+            is_read=False
+        )
+
+        # -------------------------------------------------
+        # RESPONSE
+        # -------------------------------------------------
+
+        return Response(
+            {
+                "success": True,
+                "message": "Order placed successfully",
+                "order_id": order.id,
+                "total": order.total_amount,
+            },
+            status=status.HTTP_201_CREATED
+        )
 
 from django.contrib.auth.decorators import login_required
 from .models import OrderRequest, Order
@@ -1292,7 +1342,6 @@ def wish_to_buy(request):
             }, status=500)
 
 from django.core.validators import validate_email
-from django.core.exceptions import ValidationError
 from Web.models import NewsletterSubscriber
 
 @require_POST

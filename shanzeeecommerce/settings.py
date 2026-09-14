@@ -210,3 +210,13 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # settings.py
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.hostinger.com"
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True        # Hostinger's 465 port is SSL, not STARTTLS
+EMAIL_USE_TLS = False       # mutually exclusive with EMAIL_USE_SSL — leave off
+EMAIL_HOST_USER = "admin@shanzee.com"
+EMAIL_HOST_PASSWORD = "Today@123@1"
+DEFAULT_FROM_EMAIL = "no-reply@shanzee.com"

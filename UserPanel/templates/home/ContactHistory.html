@@ -1,0 +1,37 @@
+{% extends "base2.html" %}
+{% block content %}
+<section class="py-5">
+  <div class="container-xl">
+    <h1 class="font-display mb-4">My Support Tickets</h1>
+
+    {% if tickets %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>Subject</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ticket in tickets %}
+              <tr>
+                <td>{{ ticket.subject }}</td>
+                <td>{{ ticket.get_support_type_display }}</td>
+                <td><span class="badge text-bg-secondary">{{ ticket.get_status_display }}</span></td>
+                <td>{{ ticket.created_at|date:"M d, Y" }}</td>
+                <td><a href="{% url 'home:TicketDetail' ticket.id %}" class="btn btn-sm btn-outline-ink">View</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted-custom">You haven't submitted any support tickets yet.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

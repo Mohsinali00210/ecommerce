@@ -853,14 +853,25 @@ body{
 
         <div class="tab-pane fade" id="tab-qa">
           <div class="mb-3 d-flex justify-content-between align-items-center">
-            <strong>Questions &amp; Answers</strong>
+            <strong>Questions &amp; Answers ({{ Questions|length }})</strong>
             <button class="btn btn-sm btn-outline-ink" data-bs-toggle="modal" data-bs-target="#messageModal">Ask a Question</button>
           </div>
-          {% for qa in product.questions.all %}
+          {% for qa in Questions %}
             <div class="review-item">
               <strong>Q: {{ qa.question }}</strong>
+              <div class="text-muted-custom small mt-1">
+                {{ qa.user.get_full_name|default:qa.user.full_name }} · {{ qa.created_at|timesince }} ago
+                {% if not qa.answer and qa.user == request.user %}
+                  <span class="badge bg-secondary ms-1">Pending answer</span>
+                {% endif %}
+              </div>
               {% if qa.answer %}
-                <p class="text-muted-custom mt-1 mb-0"><i class="bi bi-reply-fill me-1"></i>A: {{ qa.answer }}</p>
+                <p class="text-muted-custom mt-2 mb-0">
+                  <i class="bi bi-reply-fill me-1"></i>A: {{ qa.answer }}
+                  {% if qa.answered_at %}
+                    <span class="d-block small">{{ qa.answered_at|timesince }} ago</span>
+                  {% endif %}
+                </p>
               {% endif %}
             </div>
           {% empty %}
@@ -960,6 +971,72 @@ body{
             <img src="{{ image.image.url }}" class="w-100 h-100" style="object-fit:cover;" alt="{{ product.name }} view {{ forloop.counter }}">
           </div>
         {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ============ ASK A QUESTION MODAL ============ -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title font-display">Ask About This Product</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted-custom small mb-3">
+          Your question will be posted publicly on this product page once answered.
+        </p>
+        <form id="questionForm">
+          <div class="mb-3">
+            <label class="form-label" for="questionText">Your Question</label>
+            <textarea class="form-control" id="questionText" rows="4" maxlength="1000" required
+                      placeholder="e.g. Does this run true to size? What material is it made of?"></textarea>
+          </div>
+          <div class="text-danger small mb-2 d-none" id="questionError"></div>
+        </form>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-ink" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-brass" id="submitQuestionBtn" onclick="Questions.submit({{ product.id  }})">
+          Submit Question
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ============ WRITE A REVIEW MODAL ============ -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title font-display">Write a Review</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="reviewForm">
+          <div class="mb-3">
+            <label class="form-label d-block">Your Rating</label>
+            <div class="star-picker fs-3" id="starPicker">
+              {% for i in "12345" %}
+                <i class="bi bi-star" data-star="{{ forloop.counter }}" style="cursor:pointer; color: var(--brass); margin-right:4px;"></i>
+              {% endfor %}
+            </div>
+            <input type="hidden" id="reviewRating" value="0">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="reviewComment">Your Review</label>
+            <textarea class="form-control" id="reviewComment" rows="4" maxlength="2000" required
+                      placeholder="What did you like or dislike? How did it fit, wear, or perform?"></textarea>
+          </div>
+          <div class="text-danger small mb-2 d-none" id="reviewError"></div>
+        </form>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-ink" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-brass" id="submitReviewBtn" onclick="Reviews.submit({{ product.id }})">
+          Submit Review
+        </button>
       </div>
     </div>
   </div>
@@ -1319,5 +1396,145 @@ body{
         result.style.display = 'none';
       });
     })();
+
+
+    // ============ PRODUCT REVIEWS ============
+  (function () {
+    const picker = document.getElementById('starPicker');
+    const ratingInput = document.getElementById('reviewRating');
+    if (!picker) return;
+
+    const stars = Array.from(picker.querySelectorAll('[data-star]'));
+
+    function paintStars(value) {
+      stars.forEach(s => {
+        s.classList.toggle('bi-star-fill', parseInt(s.dataset.star) <= value);
+        s.classList.toggle('bi-star', parseInt(s.dataset.star) > value);
+      });
+    }
+
+    stars.forEach(star => {
+      star.addEventListener('click', () => {
+        ratingInput.value = star.dataset.star;
+        paintStars(parseInt(star.dataset.star));
+      });
+      star.addEventListener('mouseenter', () => paintStars(parseInt(star.dataset.star)));
+    });
+    picker.addEventListener('mouseleave', () => paintStars(parseInt(ratingInput.value)));
+  })();
+
+  window.Reviews = {
+    submit(productId) {
+      const rating = parseInt(document.getElementById('reviewRating').value);
+      const comment = document.getElementById('reviewComment').value.trim();
+      const errorEl = document.getElementById('reviewError');
+      const btn = document.getElementById('submitReviewBtn');
+
+      errorEl.classList.add('d-none');
+
+      if (!rating || rating < 1 || rating > 5) {
+        errorEl.textContent = 'Please select a star rating.';
+        errorEl.classList.remove('d-none');
+        return;
+      }
+      if (!comment) {
+        errorEl.textContent = 'Please write a few words about the product.';
+        errorEl.classList.remove('d-none');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      fetch("{% url 'home:SubmitReview' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ product_id: productId, rating: rating, comment: comment })
+      })
+        .then(res => res.json())
+        .then(data => {
+          btn.disabled = false;
+          btn.textContent = 'Submit Review';
+
+          if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('reviewModal')).hide();
+            window.showToast && window.showToast(data.message || 'Review submitted — thank you!');
+            // Reload so the new review, updated average, and count all render server-side.
+            setTimeout(() => window.location.reload(), 600);
+          } else {
+            errorEl.textContent = data.message || 'Something went wrong. Please try again.';
+            errorEl.classList.remove('d-none');
+          }
+        })
+        .catch(() => {
+          btn.disabled = false;
+          btn.textContent = 'Submit Review';
+          errorEl.textContent = 'Connection failed. Please try again.';
+          errorEl.classList.remove('d-none');
+        });
+    }
+  };
+
+  // ============ ASK A QUESTION ============
+  window.Questions = {
+    submit(productId) {
+      const text = document.getElementById('questionText').value.trim();
+      const errorEl = document.getElementById('questionError');
+      const btn = document.getElementById('submitQuestionBtn');
+
+      errorEl.classList.add('d-none');
+
+      if (!IS_AUTHENTICATED) {
+        window.location.href = LOGIN_URL + "?next=" + encodeURIComponent(window.location.pathname);
+        return;
+      }
+
+      if (!text) {
+        errorEl.textContent = 'Please enter your question.';
+        errorEl.classList.remove('d-none');
+        return;
+      }
+      if (text.length < 5) {
+        errorEl.textContent = 'Your question is too short.';
+        errorEl.classList.remove('d-none');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      fetch("{% url 'home:SubmitQuestion' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ product_id: productId, question: text })
+      })
+        .then(res => res.json())
+        .then(data => {
+          btn.disabled = false;
+          btn.textContent = 'Submit Question';
+
+          if (data.success) {
+            document.getElementById('questionText').value = '';
+            bootstrap.Modal.getInstance(document.getElementById('messageModal')).hide();
+            window.showToast && window.showToast(data.message || 'Question submitted — we\'ll answer it soon.');
+          } else {
+            errorEl.textContent = data.message || 'Something went wrong. Please try again.';
+            errorEl.classList.remove('d-none');
+          }
+        })
+        .catch(() => {
+          btn.disabled = false;
+          btn.textContent = 'Submit Question';
+          errorEl.textContent = 'Connection failed. Please try again.';
+          errorEl.classList.remove('d-none');
+        });
+    }
+  };
 </script>
 {% endblock %}

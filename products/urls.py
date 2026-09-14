@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import BlogCategoryViewSet,Blog_post,BlogPostViewSet,variant_bulk_create,product_list,product_form_view,variant_add_modal,variant_edit_modal,variant_delete,image_modal,image_delete,promotion_modal,promotion_modal,promotion_delete,tag_modal,tag_remove,wish_to_buy_admin,wish_to_buy_list,picture_page,PictureViewSet,OrdersByStatus,inventory_page,VariantInventoryViewSet,ProductVariantViewSet,promotions_page,PromotionsViewSet,wishlist_page,admin_reviews_page,AdminReviewListAPIView,AdminReviewUpdateAPIView,AdminOrderRequestUpdateAPIView,support_ticket_list_view,OrderDetailAPIView,OrderUpdateStatusAPIView,OrdersListAPIView,orders,ProductPreview,editProduct,products,addProduct,CategoryViewSet,categories,ProductAttributeViewSet,attributes,AttributeTypesViewSet,BrandViewSet,brands,ProductViewSet,PromotionViewSet 
+from .views import BlogCategoryViewSet,toggle_promotion_status,Blog_post,BlogPostViewSet,variant_bulk_create,product_list,product_form_view,variant_add_modal,variant_edit_modal,variant_delete,image_modal,image_delete,promotion_modal,promotion_modal,promotion_delete,tag_modal,tag_remove,wish_to_buy_admin,wish_to_buy_list,picture_page,PictureViewSet,OrdersByStatus,inventory_page,VariantInventoryViewSet,ProductVariantViewSet,promotions_page,PromotionsViewSet,wishlist_page,admin_reviews_page,AdminReviewListAPIView,AdminReviewUpdateAPIView,AdminOrderRequestUpdateAPIView,support_ticket_list_view,OrderDetailAPIView,OrderUpdateStatusAPIView,OrdersListAPIView,orders,ProductPreview,editProduct,products,addProduct,CategoryViewSet,categories,ProductAttributeViewSet,attributes,AttributeTypesViewSet,BrandViewSet,brands,ProductViewSet,PromotionViewSet 
 
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet, basename='category')
@@ -39,6 +39,7 @@ urlpatterns = [
     path("reviews-page/", admin_reviews_page, name="AdminReviewsPage"),
     path("wishlist/", wishlist_page, name="wishlist"),
     path("promotions-page/", promotions_page, name="promotions_page"),
+    path("admin/promotions/<int:promo_id>/toggle-status/", toggle_promotion_status, name="toggle_promotion_status"),
     path("inventory-page/", inventory_page, name="inventory-page"),
     path("picture-page/", picture_page, name="picture-page"),
 

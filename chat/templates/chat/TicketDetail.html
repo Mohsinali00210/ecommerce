@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="py-5">
+  <div class="container-xl" style="max-width:800px;">
+
+    <h1 class="font-display mb-1">{{ ticket.subject }}</h1>
+    <p class="text-muted-custom mb-4">
+      {{ ticket.get_support_type_display }} &middot; <span class="badge text-bg-secondary">{{ ticket.get_status_display }}</span>
+    </p>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="p-3 border rounded mb-3" style="border-color:var(--border) !important;">
+      <div class="fw-semibold">{{ ticket.name }} <span class="small text-muted-custom">({{ ticket.created_at|date:"M d, Y H:i" }})</span></div>
+      <p class="mb-0 mt-1">{{ ticket.message }}</p>
+      {% if ticket.attachment %}
+        <a href="{{ ticket.attachment.url }}" target="_blank" class="small">View attachment</a>
+      {% endif %}
+    </div>
+
+    {% for reply in replies %}
+      <div class="p-3 border rounded mb-3 {% if reply.is_staff_reply %}bg-light{% endif %}" style="border-color:var(--border) !important;">
+        <div class="fw-semibold">
+          {% if reply.is_staff_reply %}Support Team{% else %}{{ reply.sender }}{% endif %}
+          <span class="small text-muted-custom">({{ reply.created_at|date:"M d, Y H:i" }})</span>
+        </div>
+        <p class="mb-0 mt-1">{{ reply.message }}</p>
+      </div>
+    {% endfor %}
+
+    <form method="POST" class="mt-4">
+      {% csrf_token %}
+      <textarea name="message" rows="3" class="form-control mb-2" placeholder="Write a reply..." required></textarea>
+
+      {% if request.user.is_staff %}
+        <select name="status" class="form-select mb-2" style="max-width:200px;">
+          {% for value, label in ticket.STATUS_CHOICES %}
+            <option value="{{ value }}" {% if ticket.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
+
+      <button type="submit" class="btn btn-brass"><i class="bi bi-send me-1"></i> Reply</button>
+    </form>
+
+  </div>
+</section>
+{% endblock %}

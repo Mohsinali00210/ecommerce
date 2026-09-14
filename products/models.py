@@ -579,7 +579,26 @@ class ProductReview(BaseAuditModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     rating = models.PositiveIntegerField(choices=[(i, str(i)) for i in range(1, 6)])
     comment = models.TextField()
+# models.py
+class ProductQuestion(BaseAuditModel):
+    product = models.ForeignKey(Product, related_name='questions', on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    question = models.TextField()
+    answer = models.TextField(blank=True, null=True)
+    answered_at = models.DateTimeField(blank=True, null=True)
+    answered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        blank=True, null=True, related_name='answered_questions'
+    )
+    # Tracks which staff members have viewed this question — read/unread
+    # is per-staff-user rather than a single global flag, since multiple
+    # admins may monitor the same queue independently.
+    read_by = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name='read_questions', blank=True
+    )
 
+    class Meta:
+        ordering = ['-created_at']
 
 
 class Promotion(BaseAuditModel):

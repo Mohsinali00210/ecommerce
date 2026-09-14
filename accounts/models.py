@@ -56,7 +56,25 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+    BLOCK_TYPE_CHOICES = [
+        ('temporary', 'Temporary'),
+        ('permanent', 'Permanent'),
+    ]
 
+    is_blocked_from_ordering = models.BooleanField(default=False)
+    block_type = models.CharField(max_length=10, choices=BLOCK_TYPE_CHOICES, null=True, blank=True)
+    blocked_until = models.DateTimeField(null=True, blank=True)
+    block_reason = models.CharField(max_length=255, blank=True)
+
+    def is_order_blocked(self):
+        """True if the user is currently blocked from placing orders."""
+        if not self.is_blocked_from_ordering:
+            return False
+        if self.block_type == 'temporary' and self.blocked_until and timezone.now() >= self.blocked_until:
+            return False  # temporary block has expired
+        return True
+    def get_full_name(self):
+        return self.full_name or self.username or self.email.split("@")[0] or self.mobile or ""
     def __str__(self):
         return self.full_name or self.email or self.mobile
 
@@ -68,7 +86,8 @@ class OTP(models.Model):
     PURPOSE_CHOICES = [
         ("REGISTER", "Register"),
         ("LOGIN", "Login"),
-        ("RESET_PASSWORD", "Reset Password")
+        ("RESET_PASSWORD", "Reset Password"),
+        ("ORDER_CONFIRM", "Order Confirm")
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='otps')
     code = models.CharField(max_length=6)
@@ -107,6 +126,7 @@ class Address(models.Model):
     country = models.CharField(max_length=100, default="Pakistan")
     postal_code = models.CharField(max_length=20)
     is_default = models.BooleanField(default=False)
+
 
     def __str__(self):
         return f"{self.full_name} - {self.address_type}"

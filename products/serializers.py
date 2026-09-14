@@ -779,7 +779,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "shipping_address_text",
             "billing_address_text",
             "items",
-            "qr_code",
+            "qr_code","tracking_number",
             "requests",
         ]
 

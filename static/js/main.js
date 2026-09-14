@@ -18,20 +18,20 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   /* ---------- Wishlist toggle (visual + optional AJAX) ---------- */
-  document.querySelectorAll('.wishlist-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var icon = btn.querySelector('i');
-      btn.classList.toggle('active');
-      icon.classList.toggle('bi-heart');
-      icon.classList.toggle('bi-heart-fill');
+  // document.querySelectorAll('.wishlist-btn').forEach(function (btn) {
+  //   btn.addEventListener('click', function () {
+  //     var icon = btn.querySelector('i');
+  //     btn.classList.toggle('active');
+  //     icon.classList.toggle('bi-heart');
+  //     icon.classList.toggle('bi-heart-fill');
 
-      // Wire this up to your Django endpoint, e.g.:
-      // fetch(`/wishlist/toggle/${btn.dataset.productId}/`, {
-      //   method: 'POST',
-      //   headers: { 'X-CSRFToken': getCookie('csrftoken') }
-      // });
-    });
-  });
+  //     // Wire this up to your Django endpoint, e.g.:
+  //     // fetch(`/wishlist/toggle/${btn.dataset.productId}/`, {
+  //     //   method: 'POST',
+  //     //   headers: { 'X-CSRFToken': getCookie('csrftoken') }
+  //     // });
+  //   });
+  // });
 
   /* ---------- Compare toggle ---------- */
   document.querySelectorAll('.compare-btn').forEach(function (btn) {

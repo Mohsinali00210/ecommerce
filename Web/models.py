@@ -2,6 +2,8 @@ from django.db import models
 from django.conf import settings
 from accounts.models import Address
 from products.models import ProductVariant,Product
+from django.core.exceptions import ValidationError
+
 class BaseAuditModel(models.Model):
     is_active = models.BooleanField(default=True)
     is_deleted = models.BooleanField(default=False)
@@ -55,6 +57,13 @@ class Order(BaseAuditModel):
     billing_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name="billing_orders")
     shipping_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name="shipping_orders")
     order_number = models.CharField(max_length=20, unique=True, blank=True)
+    tracking_number = models.CharField(
+        max_length=100,
+        unique=True,
+        null=True,     # 👈 allow NULL
+        blank=True,    # 👈 allow empty in forms/admin
+    )
+
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     shipping_charges = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -129,15 +138,27 @@ class OrderSeenLog(models.Model):
 
     def __str__(self):
         return f"Order #{self.order.id} - {self.user.username}"
+from django.conf import settings
+from django.db import models
+
 
 class SupportTicket(models.Model):
 
     SUPPORT_CHOICES = [
         ("order", "Order Issue"),
-        ("payment", "Payment Issue"),
+        ("payment", "Payment / Billing"),
         ("return", "Returns / Refunds"),
         ("account", "Account / Security"),
+        ("product", "Product Question"),
+        ("technical", "Technical Issue"),
+        ("feedback", "Feedback"),
         ("other", "Others"),
+    ]
+
+    STATUS_CHOICES = [
+        ("open", "Open"),
+        ("in_progress", "In Progress"),
+        ("closed", "Closed"),
     ]
 
     user = models.ForeignKey(
@@ -153,12 +174,40 @@ class SupportTicket(models.Model):
     subject = models.CharField(max_length=255)
     message = models.TextField()
     attachment = models.FileField(upload_to="support_attachments/", null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="open")
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.name} - {self.subject}"
 
+
+class SupportTicketReply(models.Model):
+
+    ticket = models.ForeignKey(
+        SupportTicket,
+        on_delete=models.CASCADE,
+        related_name="replies"
+    )
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    is_staff_reply = models.BooleanField(default=False)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        who = "Staff" if self.is_staff_reply else (self.sender or "Guest")
+        return f"Reply to #{self.ticket_id} by {who}"
 
 
 class OrderRequest(BaseAuditModel):
@@ -323,7 +372,16 @@ class ChatMessage(BaseAuditModel):
 
     def __str__(self):
         return f"{self.sender_type}: {self.message[:20]}"
+class ChatThreadRead(BaseAuditModel):
+    thread = models.ForeignKey(ChatThread, on_delete=models.CASCADE, related_name="reads")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    last_read_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        unique_together = ("thread", "user")
+
+    def __str__(self):
+        return f"Thread {self.thread_id} read by {self.user_id} @ {self.last_read_at}"
 
 class WishToBuy(BaseAuditModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

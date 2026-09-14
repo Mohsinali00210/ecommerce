@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Customers{% endblock %}
+{% block content %}
+<div class="container-xl py-4">
+  <h1 class="mb-4">Customers</h1>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Addresses</th>
+          <th>Orders</th>
+          <th>Wallet</th>
+          <th>Order Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <td>{{ u.full_name|default:"-" }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.address_count }}</td>
+            <td>{{ u.order_count }}</td>
+            <td>Rs {{ u.wallet.balance|default:0|floatformat:2 }}</td>
+            <td>
+              {% if u.is_blocked_from_ordering %}
+                <span class="badge text-bg-danger">
+                  Blocked{% if u.block_type == "temporary" %} until {{ u.blocked_until|date:"M d, Y H:i" }}{% else %} (permanent){% endif %}
+                </span>
+              {% else %}
+                <span class="badge text-bg-success">Active</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.is_blocked_from_ordering %}
+                <form method="POST" action="{% url 'unblock_user' u.id %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-success">Unblock</button>
+                </form>
+              {% else %}
+                <button type="button" class="btn btn-sm btn-outline-danger"
+                        data-bs-toggle="modal" data-bs-target="#blockModal"
+                        onclick="setBlockTarget({{ u.id }}, '{{ u.full_name|default:u.email|escapejs }}')">
+                  Block
+                </button>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- BLOCK MODAL -->
+<div class="modal fade" id="blockModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" id="blockForm" class="modal-content">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title">Block <span id="blockUserName"></span> from ordering</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Block Type</label>
+          <select name="block_type" id="blockTypeSelect" class="form-select" onchange="toggleDuration()">
+            <option value="temporary">Temporary</option>
+            <option value="permanent">Permanent</option>
+          </select>
+        </div>
+        <div class="mb-3" id="durationField">
+          <label class="form-label fw-semibold">Duration (days)</label>
+          <input type="number" name="duration_days" class="form-control" value="7" min="1">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Reason (optional)</label>
+          <textarea name="reason" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-danger">Block User</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function setBlockTarget(userId, name) {
+    document.getElementById("blockUserName").innerText = name;
+    document.getElementById("blockForm").action = `/api/v1/admin/users/${userId}/block/`;
+}
+
+function toggleDuration() {
+    const type = document.getElementById("blockTypeSelect").value;
+    document.getElementById("durationField").style.display = type === "temporary" ? "block" : "none";
+}
+</script>
+{% endblock %}

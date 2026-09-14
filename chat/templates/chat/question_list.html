@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Product Questions{% endblock %}
+
+{% block content %}
+<div class="container-xl py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="font-display mb-0">Product Questions</h4>
+      <div class="text-muted-custom small">
+        {{ unread_count }} unread &middot; {{ unanswered_count }} unanswered
+      </div>
+    </div>
+
+    <div class="btn-group" role="group">
+      <a href="?status=all" class="btn btn-sm {% if current_status == 'all' %}btn-brass{% else %}btn-outline-ink{% endif %}">All</a>
+      <a href="?status=unread" class="btn btn-sm {% if current_status == 'unread' %}btn-brass{% else %}btn-outline-ink{% endif %}">Unread</a>
+      <a href="?status=unanswered" class="btn btn-sm {% if current_status == 'unanswered' %}btn-brass{% else %}btn-outline-ink{% endif %}">Unanswered</a>
+      <a href="?status=answered" class="btn btn-sm {% if current_status == 'answered' %}btn-brass{% else %}btn-outline-ink{% endif %}">Answered</a>
+    </div>
+  </div>
+
+  <div class="d-flex flex-column gap-3" id="questionListRoot">
+    {% for qa in questions %}
+      <div class="filter-card question-row {% if request.user not in qa.read_by.all %}unread{% endif %}"
+           data-question-id="{{ qa.id }}">
+
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+          <div class="flex-grow-1" style="min-width:0;">
+            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+              {% if request.user not in qa.read_by.all %}
+                <span class="status-badge status-pending">New</span>
+              {% endif %}
+              {% if qa.answer %}
+                <span class="status-badge status-delivered">Answered</span>
+              {% else %}
+                <span class="status-badge status-processing">Awaiting reply</span>
+              {% endif %}
+              <a href="{% url 'home:Product_Details' slug=qa.product.slug %}" target="_blank" class="small fw-semibold">
+                {{ qa.product.name }}
+              </a>
+            </div>
+
+            <p class="mb-1"><strong>Q:</strong> {{ qa.question }}</p>
+            <div class="text-muted-custom small">
+              {{ qa.user.get_full_name|default:qa.user.username }} &middot; {{ qa.created_at|timesince }} ago
+            </div>
+
+            {% if qa.answer %}
+              <div class="mt-2 ps-3 border-start">
+                <p class="mb-1 text-muted-custom"><i class="bi bi-reply-fill me-1"></i><strong>A:</strong> {{ qa.answer }}</p>
+                <div class="text-muted-custom small">
+                  by {{ qa.answered_by.get_full_name|default:qa.answered_by.username }} &middot; {{ qa.answered_at|timesince }} ago
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="d-flex gap-2 flex-shrink-0">
+            <button type="button" class="btn btn-sm btn-outline-ink toggle-read-btn"
+                    data-question-id="{{ qa.id }}"
+                    data-currently-read="{% if request.user in qa.read_by.all %}true{% else %}false{% endif %}">
+              {% if request.user in qa.read_by.all %}Mark unread{% else %}Mark read{% endif %}
+            </button>
+            <button type="button" class="btn btn-sm btn-brass reply-toggle-btn" data-question-id="{{ qa.id }}">
+              {% if qa.answer %}Edit reply{% else %}Reply{% endif %}
+            </button>
+          </div>
+        </div>
+
+        <!-- Reply form, hidden until "Reply" is clicked -->
+        <div class="reply-form-wrap mt-3 d-none" id="replyForm-{{ qa.id }}">
+          <textarea class="form-control mb-2" rows="3" placeholder="Write your answer…">{{ qa.answer|default:"" }}</textarea>
+          <div class="text-danger small mb-2 d-none reply-error"></div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-brass submit-reply-btn" data-question-id="{{ qa.id }}">
+              Post Reply
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-ink cancel-reply-btn" data-question-id="{{ qa.id }}">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <p class="text-muted-custom text-center py-5">No questions match this filter.</p>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+  .question-row.unread{ border-left: 3px solid var(--brass); background: var(--bg-soft); }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const CSRF_TOKEN = "{{ csrf_token }}";
+
+  function questionUrl(id, action) {
+    return `/chat/questions/${id}/${action}/`;
+  }
+
+  // Reply form toggle
+  document.querySelectorAll('.reply-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.questionId;
+      document.getElementById(`replyForm-${id}`).classList.toggle('d-none');
+    });
+  });
+
+  document.querySelectorAll('.cancel-reply-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById(`replyForm-${btn.dataset.questionId}`).classList.add('d-none');
+    });
+  });
+
+  // Submit reply
+  document.querySelectorAll('.submit-reply-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.questionId;
+      const wrap = document.getElementById(`replyForm-${id}`);
+      const textarea = wrap.querySelector('textarea');
+      const errorEl = wrap.querySelector('.reply-error');
+      const answer = textarea.value.trim();
+
+      errorEl.classList.add('d-none');
+      if (!answer) {
+        errorEl.textContent = 'Answer cannot be empty.';
+        errorEl.classList.remove('d-none');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Posting…';
+
+      fetch(questionUrl(id, 'reply'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({ answer })
+      })
+        .then(res => res.json())
+        .then(data => {
+          btn.disabled = false;
+          btn.textContent = 'Post Reply';
+
+          if (data.success) {
+            // Simplest correct refresh: reload so the answered state,
+            // badges, and read status all re-render from the server.
+            window.location.reload();
+          } else {
+            errorEl.textContent = data.message || 'Something went wrong.';
+            errorEl.classList.remove('d-none');
+          }
+        })
+        .catch(() => {
+          btn.disabled = false;
+          btn.textContent = 'Post Reply';
+          errorEl.textContent = 'Connection failed.';
+          errorEl.classList.remove('d-none');
+        });
+    });
+  });
+
+  // Toggle read/unread
+  document.querySelectorAll('.toggle-read-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.questionId;
+      const currentlyRead = btn.dataset.currentlyRead === 'true';
+
+      fetch(questionUrl(id, 'mark-read'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({ read: !currentlyRead })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (!data.success) return;
+          const row = btn.closest('.question-row');
+          row.classList.toggle('unread', !data.read);
+          btn.dataset.currentlyRead = data.read ? 'true' : 'false';
+          btn.textContent = data.read ? 'Mark unread' : 'Mark read';
+        });
+    });
+  });
+</script>
+{% endblock %}

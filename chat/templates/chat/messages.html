@@ -30,59 +30,78 @@
         .thread-item:hover {
             background: #f1f1f1;
         }
+
+        .thread-item.unread {
+            background: #fff8e6;
+            font-weight: 600;
+        }
+
+        .unread-badge {
+            background: #dc3545;
+            color: #fff;
+            border-radius: 12px;
+            padding: 1px 7px;
+            font-size: 11px;
+            line-height: 1.6;
+        }
     </style>
 
+    <div class="card-body p-0">
+        <div class="row g-0" style="height: 75vh;">
 
+            <!-- LEFT: THREAD LIST -->
+            <div class="col-4 border-end">
+                <div class="p-2 fw-bold border-bottom">Conversations</div>
+                <div id="threadList" style="overflow-y:auto; height: 100%;"></div>
+            </div>
 
-        <div class="card-body p-0">
-            <div class="row g-0" style="height: 75vh;">
+            <!-- RIGHT: CHAT AREA -->
+            <div class="col-8 d-flex flex-column">
 
-                <!-- LEFT: THREAD LIST -->
-                <div class="col-4 border-end">
-                    <div class="p-2 fw-bold border-bottom">Conversations</div>
-                    <div id="threadList" style="overflow-y:auto; height: 100%;"></div>
+                <div class="p-2 border-bottom fw-bold" id="chatHeader">
+                    Select a conversation
                 </div>
 
-                <!-- RIGHT: CHAT AREA -->
-                <div class="col-8 d-flex flex-column">
-                    
-                    <!-- Header -->
-                    <div class="p-2 border-bottom fw-bold" id="chatHeader">
-                        Select a conversation
-                    </div>
+                <div id="chatBody" class="flex-grow-1 p-3" style="overflow-y:auto; background:#f8f9fa;"></div>
 
-                    <!-- Messages -->
-                    <div id="chatBody" class="flex-grow-1 p-3" style="overflow-y:auto; background:#f8f9fa;"></div>
-
-                    <!-- Input -->
-                    <div class="p-2 border-top d-flex">
-                        <input type="text" id="chatInput" class="form-control me-2" placeholder="Type message...">
-                        <button class="btn btn-primary" onclick="sendMessage()">Send</button>
-                    </div>
-
+                <div class="p-2 border-top d-flex">
+                    <input type="text" id="chatInput" class="form-control me-2" placeholder="Type message...">
+                    <button class="btn btn-primary" onclick="sendMessage()">Send</button>
                 </div>
+
             </div>
         </div>
-
-
-
+    </div>
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-
 <script>
-    
-   var links = $(".sidebar a");
-    links.each(function() {
-        $(this).removeClass('active');
-    });
-    $("#BrandLink").addClass('active');
-    
+
+var links = $(".sidebar a");
+links.each(function() {
+    $(this).removeClass('active');
+});
+$("#BrandLink").addClass('active');
+
 let CURRENT_THREAD_ID = null;
 let chatSocket = null;
 
-// Load all chat threads
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        document.cookie.split(";").forEach(cookie => {
+            const c = cookie.trim();
+            if (c.startsWith(name + "=")) {
+                cookieValue = decodeURIComponent(c.substring(name.length + 1));
+            }
+        });
+    }
+    return cookieValue;
+}
+const CSRF_TOKEN = getCookie("csrftoken");
+
+// Load all chat threads (includes unread_count per thread for the logged-in admin)
 function loadThreads() {
     fetch("{% url 'admin_threads' %}")
     .then(res => res.json())
@@ -90,10 +109,22 @@ function loadThreads() {
         let html = "";
 
         data.forEach(t => {
+            const isUnread = t.unread_count > 0;
+            const badge = isUnread
+                ? `<span class="unread-badge">${t.unread_count}</span>`
+                : "";
+
+            const productLine = t.product_url
+                ? `<a href="${t.product_url}" target="_blank" onclick="event.stopPropagation();">${t.product_name}</a>`
+                : (t.product_name || "-");
+
             html += `
-                <div class="thread-item" onclick="openChat(${t.id})">
-                    <div><b>User:</b> ${t.user}</div>
-                    <div><small>Product: ${t.product_name}</small></div>
+                <div class="thread-item ${isUnread ? "unread" : ""}" data-thread-id="${t.id}" onclick="openChat(${t.id})">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div><b>User:</b> ${t.user}</div>
+                        ${badge}
+                    </div>
+                    <div><small>Product: ${productLine}</small></div>
                 </div>
             `;
         });
@@ -103,9 +134,15 @@ function loadThreads() {
 }
 
 loadThreads();
+// Poll periodically so unread badges update even for threads you're not viewing
+setInterval(loadThreads, 15000);
 
-{% comment %} let CURRENT_THREAD_ID = null;
-let chatSocket = null; {% endcomment %}
+function markThreadRead(threadId) {
+    fetch(`/chat/admin/threads/${threadId}/read/`, {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF_TOKEN }
+    }).then(() => loadThreads());
+}
 
 function openChat(threadId) {
     CURRENT_THREAD_ID = threadId;
@@ -114,12 +151,10 @@ function openChat(threadId) {
     chatBody.innerHTML = "";
     document.getElementById("chatHeader").innerText = "Thread #" + threadId;
 
-    // Close old socket
     if (chatSocket) {
         chatSocket.close();
     }
 
-    // ✅ STEP 1: Load old messages FIRST
     fetch(`/chat/admin/threads/${threadId}/`)
     .then(res => res.json())
     .then(data => {
@@ -128,13 +163,14 @@ function openChat(threadId) {
         });
 
         scrollToBottom();
-
-        // ✅ STEP 2: THEN connect WebSocket
         connectSocket(threadId);
+
+        // Mark everything up to now as read for this admin, and refresh badges
+        markThreadRead(threadId);
     });
 }
-function connectSocket(threadId) {
 
+function connectSocket(threadId) {
     const protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
 
     chatSocket = new WebSocket(
@@ -145,15 +181,20 @@ function connectSocket(threadId) {
         const data = JSON.parse(e.data);
         appendMessage(data.message, data.sender);
         scrollToBottom();
+
+        // If this thread is open while a new message arrives, keep it marked read
+        if (CURRENT_THREAD_ID === threadId) {
+            markThreadRead(threadId);
+        }
     };
 }
+
 function scrollToBottom() {
     const chatBody = document.getElementById("chatBody");
     chatBody.scrollTop = chatBody.scrollHeight;
 }
 
-
- function sendMessage() {
+function sendMessage() {
     const input = document.getElementById("chatInput");
     const msg = input.value.trim();
 
@@ -166,6 +207,7 @@ function scrollToBottom() {
 
     input.value = "";
 }
+
 function appendMessage(message, sender) {
     const div = document.createElement("div");
     div.classList.add("msg", sender === "admin" ? "admin" : "user");
@@ -180,6 +222,4 @@ function appendMessage(message, sender) {
 {% endblock %}
 
 {% block extra_js %}
-
-
 {% endblock %}

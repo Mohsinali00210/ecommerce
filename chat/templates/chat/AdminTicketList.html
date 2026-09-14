@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="py-5">
+  <div class="container-xl">
+    <h1 class="font-display mb-4">All Support Tickets</h1>
+
+    {% if tickets %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Email</th>
+              <th>Subject</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ticket in tickets %}
+              <tr>
+                <td>{% if ticket.user %}{{ ticket.user }}{% else %}{{ ticket.name }} <span class="small text-muted-custom">(guest)</span>{% endif %}</td>
+                <td>{{ ticket.email }}</td>
+                <td>{{ ticket.subject }}</td>
+                <td>{{ ticket.get_support_type_display }}</td>
+                <td>
+                  <span class="badge text-bg-secondary">{{ ticket.get_status_display }}</span>
+                </td>
+                <td>{{ ticket.created_at|date:"M d, Y H:i" }}</td>
+                <td><a href="{% url 'AdminTicketDetail' ticket.id %}" class="btn btn-sm btn-outline-ink">View / Reply</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted-custom">No support tickets have been submitted yet.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

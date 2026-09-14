@@ -5,6 +5,7 @@ app_name = "home"
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("product/<int:product_id>/quick-view/", views.product_quick_view, name="product_quick_view"),
      path("product/<slug:slug>/", views.ProductDetails, name="Product_Details"),
     path("product/<slug:slug>/<str:sku>/", views.ProductDetails, name="Product_Details"), 
     path("CheckoutPage/", views.CheckoutPage, name="MyCheckoutPage"), 
@@ -24,6 +25,8 @@ urlpatterns = [
         path("address-detail/<int:address_id>/", views.address_detail, name="address-detail"),
         path("user-address/", views.addresses, name="user-address"),
         path("Contact/", views.Contact, name="Contact"),
+        path("contact/history/", views.ContactHistory, name="ContactHistory"),
+        path("contact/ticket/<int:ticket_id>/", views.TicketDetail, name="TicketDetail"),
         path("blog-detail/<slug:slug>/", views.blog_detail, name="blog-detail"),
         path("blog/", views.blog_list, name="blog"),
         path("notifications/",views.user_notifications,name="notifications"),
@@ -31,6 +34,9 @@ urlpatterns = [
         path("mark-notification-read/<int:recipient_id>/",views.mark_notification_read,name="mark-notification-read"),
         path("mark-all-notification-read/",views.mark_all_notifications_read,name="mark-all-notifications-read"),
         path("header-counts/",views.header_counts,name="header-counts"),
+        path("review/submit/", views.submit_review, name="SubmitReview"),
+        path('question/submit/', views.submit_question, name='SubmitQuestion'),
+
 ]
 
 # In your project urls.py:

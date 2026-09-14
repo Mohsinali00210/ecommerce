@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User
-from .utils import send_verification_email
+# from .utils import send_verification_email
 
 class EmailRegisterSerializer(serializers.ModelSerializer):
     confirmPassword = serializers.CharField(write_only=True)
@@ -43,7 +43,7 @@ class EmailRegisterSerializer(serializers.ModelSerializer):
         user.generate_email_verification()
         user.save()
 
-        send_verification_email(user)
+        # send_verification_email(user)
         return user
 
     def get_tokens(self, user):

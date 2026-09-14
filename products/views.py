@@ -727,6 +727,7 @@ class OrderUpdateStatusAPIView(UpdateAPIView):
 
         order.status = request.data.get("status", order.status)
         order.payment_status = request.data.get("payment_status", order.payment_status)
+        order.tracking_number = request.data.get("tracking_number", order.tracking_number)
         order.save()
         message_text = (
                 f"Your Order #{order.order_number} status "
@@ -920,7 +921,24 @@ def promotions_page(request):
     if not request.user.is_superuser:
         return redirect('login') 
     return render(request, "promotions/promotions.html")
+from django.http import HttpResponseForbidden, JsonResponse
+from django.shortcuts import get_object_or_404
+from django.views.decorators.http import require_POST
 
+
+@login_required
+def toggle_promotion_status(request, promo_id):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Staff only.")
+
+    promo = get_object_or_404(Promotion, id=promo_id)
+    promo.is_active = not promo.is_active
+    promo.save(update_fields=["is_active"])
+
+    return JsonResponse({
+        "success": True,
+        "is_active": promo.is_active,
+    })
 @login_required
 def inventory_page(request):
     if not request.user.is_superuser:
@@ -1299,59 +1317,129 @@ def variant_bulk_create(request, product_id):
         'success': True,
         'message': f'{len(created_variants)} variant(s) created successfully.',
     })
- 
 @login_required
 def image_modal(request, product_id):
-    product = get_object_or_404(Product, pk=product_id)
+    product = get_object_or_404(
+        Product,
+        pk=product_id
+    )
 
     if request.method == "POST":
+
         form = ProductImageForm(
             request.POST,
             request.FILES
         )
 
-        if form.is_valid():
-            instance = form.save(commit=False)
-            instance.product = product
-            instance.created_by = request.user
-            instance.save()
+        # Get ALL uploaded images
+        images = request.FILES.getlist("image")
+
+        if not images:
 
             return JsonResponse({
+                "success": False,
+                "message": "Please select at least one image."
+            }, status=400)
+
+
+        if form.is_valid():
+
+            uploaded_images = []
+
+        
+            for index, image in enumerate(images):
+
+                instance = ProductImage()
+
+                instance.product = product
+                instance.image = image
+                instance.alt_text = form.cleaned_data.get(
+                    "alt_text",
+                    ""
+                )
+                instance.created_by = request.user
+
+                if (
+                    form.cleaned_data.get("is_primary")
+                    and index == 0
+                ):
+
+                    instance.is_primary = True
+
+                else:
+
+                    instance.is_primary = False
+
+                instance.save()
+
+                uploaded_images.append(
+                    instance.id
+                )
+
+
+            return JsonResponse({
+
                 "success": True,
-                "message": "Image added successfully.",
-                "image_id": instance.id,
+
+                "message":
+                    f"{len(uploaded_images)} image(s) uploaded successfully.",
+
+                "image_ids":
+                    uploaded_images
+
             })
 
+
         html = render_to_string(
+
             "products/partials/image_form.html",
+
             {
                 "form": form,
                 "product": product,
             },
+
             request=request,
         )
 
+
         return JsonResponse({
+
             "success": False,
-            "message": "Please correct the errors below.",
-            "html": html,
+
+            "message":
+                "Please correct the errors below.",
+
+            "html":
+                html
+
         }, status=400)
 
     form = ProductImageForm()
 
+
     html = render_to_string(
+
         "products/partials/image_form.html",
+
         {
             "form": form,
             "product": product,
         },
+
         request=request,
     )
 
+
     return JsonResponse({
+
         "success": True,
-        "html": html,
+
+        "html": html
+
     })
+
+
  
 @login_required
 def image_delete(request, product_id, image_id):

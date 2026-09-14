@@ -1,0 +1,156 @@
+{% load static %}
+<div class="row g-4" data-product-quick-view data-product-id="{{ product.id }}">
+
+  <!-- Gallery -->
+  <div class="col-md-6">
+    <div class="pdp-main-media mb-2">
+      {% with first_image=images.0 %}
+        <img src="{{ first_image.image.url }}" alt="{{ product.name }}" class="qv-main-img">
+      {% endwith %}
+    </div>
+    {% if images|length > 1 %}
+      <div class="row g-2">
+        {% for image in images %}
+          <div class="col-3">
+            <div class="pdp-thumb {% if forloop.first %}active{% endif %}" data-full="{{ image.image.url }}">
+              <img src="{{ image.image.url }}" class="w-100 h-100" style="object-fit:cover" alt="{{ product.name }} view {{ forloop.counter }}">
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Info -->
+  <div class="col-md-6">
+    <div class="cat text-muted-custom">{{ product.category.first.name }}</div>
+    <h4 class="font-display mb-2">{{ product.name }}</h4>
+
+    <div class="price-row mb-2">
+      <span class="price-now fs-4 qv-price-now">RS {{ product.final_price|floatformat:2 }}</span>
+      {% if product.final_price != product.price %}
+        <span class="price-was qv-price-was">RS {{ product.price|floatformat:2 }}</span>
+      {% endif %}
+    </div>
+
+    <p class="text-muted-custom small mb-3">{{ product.description|striptags|truncatewords:30 }}</p>
+
+    {% regroup options by option_name as grouped_options %}
+    {% for group in grouped_options %}
+      <div class="mb-3">
+        <label class="form-label d-block">
+          {{ group.grouper|title }}:
+          <span data-variant-label="{{ group.grouper }}" class="fw-normal text-muted-custom"></span>
+        </label>
+        <div class="d-flex gap-2 flex-wrap {% if group.grouper == 'color' %}variant-group{% else %}size-group{% endif %}"
+             data-option-group="{{ group.grouper }}">
+          {% for item in group.list %}
+            {% if group.grouper == "color" %}
+              <span class="variant-swatch {% if forloop.first %}active{% endif %}"
+                    style="background:{{ item.value|default:'#ccc' }}"
+                    data-value="{{ item.option }}"></span>
+            {% else %}
+              <span class="size-pill {% if forloop.first %}active{% endif %} {% if not item.in_stock %}disabled{% endif %}"
+                    data-value="{{ item.option }}">{{ item.option }}</span>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+
+    <div class="mb-3">
+      <label class="form-label d-block">Quantity</label>
+      <div class="qty-stepper">
+        <button type="button" data-qty-step="-1">−</button>
+        <input type="text" class="qv-qty" readonly value="1">
+        <button type="button" data-qty-step="1">+</button>
+      </div>
+    </div>
+
+    <span class="small qv-stock-label {% if product.stock_quantity > 0 %}text-success{% else %}text-danger{% endif %}">
+      <i class="bi {% if product.stock_quantity > 0 %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %}"></i>
+      {% if product.stock_quantity > 0 %}In stock ({{ product.stock_quantity }} left){% else %}Out of stock{% endif %}
+    </span>
+
+    <div class="d-flex gap-2 mt-3">
+      <button class="btn btn-brass flex-grow-1 qv-add-btn"
+              {% if product.stock_quantity == 0 %}disabled{% endif %}
+              onclick="window.QuickView.addToCart({{ product.id }})">
+        <i class="bi bi-bag-plus me-1"></i> Add to Cart
+      </button>
+      <a href="{% url 'home:Product_Details' slug=product.slug %}" class="btn btn-outline-ink">
+        Full Details
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Scoped to this fetch response — re-run each time the modal loads new content.
+  (function () {
+    const root = document.querySelector('[data-product-quick-view]');
+    if (!root) return;
+
+    const VARIANTS = {{ variants_json|safe }};
+    const selected = {};
+
+    root.querySelectorAll('[data-option-group]').forEach(groupEl => {
+      groupEl.querySelectorAll('.variant-swatch, .size-pill').forEach(el => {
+        if (el.classList.contains('disabled')) return;
+        if (el.classList.contains('active')) {
+          selected[groupEl.dataset.optionGroup] = el.dataset.value;
+        }
+        el.addEventListener('click', () => {
+          groupEl.querySelectorAll('.variant-swatch, .size-pill').forEach(e => e.classList.remove('active'));
+          el.classList.add('active');
+          selected[groupEl.dataset.optionGroup] = el.dataset.value;
+          const labelEl = root.querySelector(`[data-variant-label="${groupEl.dataset.optionGroup}"]`);
+          if (labelEl) labelEl.textContent = el.dataset.value;
+          updateVariant();
+        });
+      });
+    });
+
+    function matchingVariant() {
+      const name = Object.values(selected).join(' / ');
+      return VARIANTS.find(v => v.name === name);
+    }
+
+    function updateVariant() {
+      const v = matchingVariant();
+      if (!v) return;
+      root.querySelector('.qv-price-now').textContent = `RS ${v.final_price.toFixed(2)}`;
+      const wasEl = root.querySelector('.qv-price-was');
+      if (wasEl) wasEl.style.display = v.off_price > 0 ? '' : 'none';
+
+      const stockLabel = root.querySelector('.qv-stock-label');
+      const addBtn = root.querySelector('.qv-add-btn');
+      if (v.stock > 0) {
+        stockLabel.innerHTML = `<i class="bi bi-check-circle-fill"></i> In stock (${v.stock} left)`;
+        stockLabel.className = 'small qv-stock-label text-success';
+        addBtn.disabled = false;
+      } else {
+        stockLabel.innerHTML = `<i class="bi bi-x-circle-fill"></i> Out of stock`;
+        stockLabel.className = 'small qv-stock-label text-danger';
+        addBtn.disabled = true;
+      }
+    }
+
+    root.querySelectorAll('[data-qty-step]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = root.querySelector('.qv-qty');
+        input.value = Math.max(1, parseInt(input.value) + parseInt(btn.dataset.qtyStep));
+      });
+    });
+
+    window.QuickView = window.QuickView || {};
+    window.QuickView.addToCart = function (fallbackId) {
+      const v = matchingVariant();
+      const variantId = v ? v.id : fallbackId;
+      const qty = parseInt(root.querySelector('.qv-qty').value);
+      Cart.add({{ product.id }},variantId, qty); // reuses your existing Cart.add()
+    };
+
+    updateVariant();
+  })();
+</script>

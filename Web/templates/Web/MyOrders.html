@@ -338,16 +338,41 @@
 <!-- Order Details Modal -->
 
 
-
 <script>
-  
-
-
-
-    // ================================
-// 1️⃣ Load order details into Cancel/Return Modal
 // ================================
-function openCancelReturnModal(orderId,type) {
+// 1️⃣ Handle Cancel (simple confirm) vs Return (full modal)
+// ================================
+function openCancelReturnModal(orderId, type) {
+    if (type === "cancel") {
+        // Simple Yes/No confirmation popup for cancel
+        const confirmMsg = "Are you sure you want to cancel this order? This action cannot be undone.";
+        
+        // Use SweetAlert2 if available, otherwise fallback to native confirm
+        if (typeof Swal !== "undefined") {
+            Swal.fire({
+                title: "Cancel Order?",
+                text: confirmMsg,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#6c757d",
+                confirmButtonText: "Yes, cancel it",
+                cancelButtonText: "No, keep it"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitCancelRequest(orderId);
+                }
+            });
+        } else {
+            // Fallback to native confirm
+            if (confirm(confirmMsg)) {
+                submitCancelRequest(orderId);
+            }
+        }
+        return;
+    }
+
+    // ---- RETURN flow (existing full modal) ----
     const orderDetailBaseUrl = "{% url 'OrderDetailApi' 0 %}";
     const url = orderDetailBaseUrl.replace("0", orderId);
 
@@ -362,15 +387,15 @@ function openCancelReturnModal(orderId,type) {
         return res.json();
     })
     .then(data => {
-        // Update modal title
         document.getElementById("cancelReturnModalLabel").innerText =
             `Order #${data.order_number} Details`;
 
-            document.getElementById("requestType").value=type;
-        // Populate items dynamically
+        document.getElementById("requestType").value = type;
+        document.getElementById("cancelOrderId").value = data.id;
+
         const itemsContainer = document.getElementById("returnItems").querySelector(".list-group");
-        itemsContainer.innerHTML = ""; // clear previous items
-        document.getElementById("cancelOrderId").value=data.id;
+        itemsContainer.innerHTML = "";
+
         data.items.forEach(item => {
             const totalPrice = parseFloat(item.price) * parseInt(item.quantity);
             const html = `
@@ -387,10 +412,8 @@ function openCancelReturnModal(orderId,type) {
             `;
             itemsContainer.insertAdjacentHTML("beforeend", html);
         });
-                
-        // Initialize on modal open (optional)
-       toggleReturnItems();
-        // Show modal
+
+        toggleReturnItems();
         new bootstrap.Modal(document.getElementById('cancelReturnModal')).show();
     })
     .catch(err => {
@@ -398,59 +421,101 @@ function openCancelReturnModal(orderId,type) {
         alert("Failed to load order details");
     });
 }
-// Get elements
+
+// ================================
+// Auto-submit cancel request (no form UI)
+// ================================
+function submitCancelRequest(orderId) {
+    const formData = new FormData();
+    formData.append("order_id", orderId);
+    formData.append("request_type", "cancel");
+    formData.append("reason", "Customer cancelled the order");
+    formData.append("preferred_action", ""); // not needed for cancel
+
+    const cancelReturnUrl = "{% url 'order-request' %}";
+    fetch(cancelReturnUrl, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        },
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof showAlert !== "undefined") {
+                showAlert("Order cancelled successfully", "success");
+            } else {
+                alert("Order cancelled successfully");
+            }
+            setTimeout(() => window.location.reload(), 1200);
+        } else {
+            const msg = "Failed to cancel: " + (data.error || "Unknown error");
+            if (typeof showAlert !== "undefined") {
+                showAlert(msg, "danger");
+            } else {
+                alert(msg);
+            }
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        const msg = "Failed to cancel order";
+        if (typeof showAlert !== "undefined") {
+            showAlert(msg, "danger");
+        } else {
+            alert(msg);
+        }
+    });
+}
+
+// ================================
+// Toggle Return Items visibility
+// ================================
 const requestTypeEl = document.getElementById("requestType");
 const returnItemsEl = document.getElementById("returnItems");
 const preferredActions = document.getElementById("preferredActionsCon");
+
 function toggleReturnItems() {
     if (requestTypeEl.value === "cancel") {
-      returnItemsEl.style.display = "none";  // hide items for Return
-      preferredActions.style.display = "none";  // hide items for Return
+        returnItemsEl.style.display = "none";
+        preferredActions.style.display = "none";
     } else {
-      returnItemsEl.style.display = "block"; // show items for Cancel
-      preferredActions.style.display = "block"; // show items for Cancel
+        returnItemsEl.style.display = "block";
+        preferredActions.style.display = "block";
     }
 }
 requestTypeEl.addEventListener("change", toggleReturnItems);
 
 // ================================
-// 2️⃣ Submit Cancel/Return Request
+// 2️⃣ Submit Return Request (form)
 // ================================
 document.getElementById("cancelReturnForm").addEventListener("submit", function(e) {
     e.preventDefault();
 
-    const orderId = document.getElementById("cancelReturnModalLabel").innerText.match(/#(\w+)/)[1];
-
     const requestType = document.getElementById("requestType").value;
     if (!requestType) {
-        showAlert("Please select request type","warning");
+        showAlert("Please select request type", "warning");
         return;
     }
 
     const items = Array.from(this.querySelectorAll("input[name='items[]']:checked"))
                         .map(i => i.value);
 
-                        
-    let reason = "";
-    let preferredAction = "";
+    let reason = document.getElementById("requestReason").value;
+    let preferredAction = this.querySelector("input[name='preferredAction']:checked")?.value;
 
-      reason = document.getElementById("requestReason").value;
-      preferredAction = this.querySelector("input[name='preferredAction']:checked")?.value;
-
-      if (items.length === 0) {
-          showAlert("Please select at least one item","warning");
-          return;
-      }
-      if(requestTypeEl.value != "cancel") {
-
+    if (items.length === 0) {
+        showAlert("Please select at least one item", "warning");
+        return;
+    }
+    if (requestType !== "cancel") {
         if (!reason || !preferredAction) {
-            showAlert("Please fill reason and select preferred action","warning");
+            showAlert("Please fill reason and select preferred action", "warning");
             return;
         }
-      }
-  
+    }
 
-    // Handle optional attachment
     const attachmentInput = document.getElementById("requestAttachment");
     const formData = new FormData();
     formData.append("order_id", document.getElementById("cancelOrderId").value);
@@ -463,7 +528,7 @@ document.getElementById("cancelReturnForm").addEventListener("submit", function(
         formData.append("attachment", attachmentInput.files[0]);
     }
 
-    const cancelReturnUrl = "{% url 'order-request' %}"; // Your API endpoint for cancel/return
+    const cancelReturnUrl = "{% url 'order-request' %}";
     fetch(cancelReturnUrl, {
         method: "POST",
         headers: {
@@ -474,137 +539,23 @@ document.getElementById("cancelReturnForm").addEventListener("submit", function(
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            showAlert("Request submitted successfully","warning");
+            showAlert("Request submitted successfully", "success");
             new bootstrap.Modal(document.getElementById('cancelReturnModal')).hide();
             window.location.reload();
         } else {
-            showAlert("Failed to submit request: " + (data.error || "Unknown error"),"warning");
-
+            showAlert("Failed to submit request: " + (data.error || "Unknown error"), "warning");
         }
     })
     .catch(err => {
         console.error(err);
-        showAlert("Failed to submit request","warning");
-
+        showAlert("Failed to submit request", "warning");
     });
 });
-{% comment %} 
-  function viewOrder(orderId) {
 
-      const orderDetailBaseUrl = "{% url 'OrderDetailApi' 0 %}";
-      const url = orderDetailBaseUrl.replace("0", orderId);
-
-      fetch(url, {
-        method:"GET",
-              headers: {
-            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
-        }
-      })
-      .then(res => res.json())
-      .then(data => {
-
-          // Title
-          document.getElementById("modalOrderNumber").innerText =
-              "Order #" + data.order_number + " Details";
-
-          // ========================
-          // Shipment Progress
-          // ========================
-          updateProgress(data.status);
-
-          // ========================
-          // Items
-          // ========================
-          let itemsHtml = "";
-          data.items.forEach(item => {
-              itemsHtml += `
-                  <div class="list-group-item d-flex align-items-center">
-                      <img src="${item.product_image}" width="50"
-                          class="border rounded me-3">
-                      <div class="flex-grow-1">
-                          <div class="fw-semibold">${item.product_name}</div>
-                          <div class="small text-muted">Qty: ${item.quantity}</div>
-                      </div>
-                      <div class="fw-semibold">
-                          Rs. ${item.total_price}
-                      </div>
-                  </div>
-              `;
-          });
-
-          document.getElementById("modalItems").innerHTML = itemsHtml;
-
-          // ========================
-          // Totals
-          // ========================
-          document.getElementById("modalItemTotal").innerText =
-              "Rs. " + data.subtotal;
-
-          document.getElementById("modalItemDiscount").innerText =
-              "-Rs. " + data.discount;
-
-          document.getElementById("modalSubtotal").innerText =
-              "Rs. " + data.subtotal;
-
-          document.getElementById("modalFinalTotal").innerText =
-              "Rs. " + data.total_amount;
-
-          // ========================
-          // Shipment
-          // ========================
-          document.getElementById("modalShippingMethod").innerText =
-              data.shipping_method || "-";
-
-          document.getElementById("modalTrackingNumber").innerText =
-              data.tracking_number || "-";
-
-          document.getElementById("modalShippingAddress").innerText =
-              data.shipping_address;
-
-          document.getElementById("modalEstimatedDelivery").innerText =
-              data.estimated_delivery || "-";
-
-          // ========================
-          // Customer
-          // ========================
-          document.getElementById("modalCustomerName").innerText =
-              data.customer_name;
-
-          document.getElementById("modalCustomerEmail").innerText =
-              data.customer_email;
-
-          document.getElementById("modalCustomerPhone").innerText =
-              data.customer_phone;
-
-          // ========================
-          // Requests
-          // ========================
-          let requestHtml = "";
-          data.requests.forEach(req => {
-              requestHtml += `
-                  <div class="list-group-item d-flex justify-content-between align-items-center">
-                      <div>
-                          <div class="fw-semibold">${req.request_type} Request</div>
-                          <div class="small text-muted">${req.comment || ""}</div>
-                      </div>
-                      <div>
-                          <span class="badge bg-warning text-dark">${req.status}</span>
-                          <div class="small text-muted">${req.created_at}</div>
-                      </div>
-                  </div>
-              `;
-          });
-
-          document.getElementById("modalRequests").innerHTML = requestHtml;
-
-          // Show modal
-          new bootstrap.Modal(document.getElementById('orderDetailsModal')).show();
-
-      });
-  } {% endcomment %}
-
-  function viewOrder(orderId) {
-    // Get URL from Django template
+// ================================
+// View Order (unchanged)
+// ================================
+function viewOrder(orderId) {
     const orderDetailBaseUrl = "{% url 'OrderDetailApi' 0 %}";
     const url = orderDetailBaseUrl.replace("0", orderId);
 
@@ -619,14 +570,11 @@ document.getElementById("cancelReturnForm").addEventListener("submit", function(
         return res.json();
     })
     .then(data => {
-        // Title
         document.getElementById("modalOrderNumber").innerText =
             "Order #" + data.order_number + " Details";
 
-        // Shipment Progress
         updateProgress(data.status);
 
-        // Items
         let itemsHtml = "";
         data.items.forEach(item => {
             const totalPrice = parseFloat(item.price) * parseInt(item.quantity);
@@ -646,15 +594,13 @@ document.getElementById("cancelReturnForm").addEventListener("submit", function(
         });
         document.getElementById("modalItems").innerHTML = itemsHtml;
 
-        // Totals
         const subtotal = data.items.reduce((acc, i) => acc + (parseFloat(i.price) * parseInt(i.quantity)), 0);
         document.getElementById("modalItemTotal").innerText = "Rs. " + subtotal.toFixed(2);
-        document.getElementById("modalItemDiscount").innerText = "-Rs. 0.00"; // No discount in API yet
+        document.getElementById("modalItemDiscount").innerText = "-Rs. 0.00";
         document.getElementById("modalSubtotal").innerText = "Rs. " + subtotal.toFixed(2);
-        document.getElementById("modalShippingCharges").innerText = parseFloat(data.modalShippingCharges).toFixed(2) >0?"Rs. " +parseFloat(data.total_amount).toFixed(2):"Free";
+        document.getElementById("modalShippingCharges").innerText = parseFloat(data.modalShippingCharges).toFixed(2) > 0 ? "Rs. " + parseFloat(data.total_amount).toFixed(2) : "Free";
         document.getElementById("modalFinalTotal").innerText = "Rs. " + parseFloat(data.total_amount).toFixed(2);
 
-        // Shipment
         document.getElementById("modalShippingMethod").innerText = data.shipping_method || "-";
         document.getElementById("modalPaymentMethod").innerText = data.payment_method || "-";
         document.getElementById("modalPaymentStatus").innerText = data.payment_status || "-";
@@ -662,13 +608,11 @@ document.getElementById("cancelReturnForm").addEventListener("submit", function(
         document.getElementById("modalShippingAddress").innerText = data.shipping_address_text || "-";
         document.getElementById("modalEstimatedDelivery").innerText = data.estimated_delivery || "-";
 
-        // Customer
         document.getElementById("modalCustomerName").innerText = data.customer_name;
         document.getElementById("modalCustomerEmail").innerText = data.customer_email;
         document.getElementById("modalCustomerPhone").innerText = data.customer_phone;
         document.getElementById("modalOrderQRCode").src = data.qr_code;
 
-        // Requests
         let requestHtml = "";
         if (data.requests && data.requests.length > 0) {
             data.requests.forEach(req => {
@@ -680,7 +624,7 @@ document.getElementById("cancelReturnForm").addEventListener("submit", function(
                         </div>
                         <div>
                             <span class="badge bg-warning text-dark">${req.status}</span>
-                            <div class="small text-muted">${new Date(req.created_at).toLocaleString('en-GB', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}</div>
+                            <div class="small text-muted">${new Date(req.created_at).toLocaleString('en-GB', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
                         </div>
                     </div>
                 `;
@@ -690,7 +634,6 @@ document.getElementById("cancelReturnForm").addEventListener("submit", function(
         }
         document.getElementById("modalRequests").innerHTML = requestHtml;
 
-        // Show modal
         new bootstrap.Modal(document.getElementById('orderDetailsModal')).show();
     })
     .catch(err => {
@@ -699,21 +642,17 @@ document.getElementById("cancelReturnForm").addEventListener("submit", function(
     });
 }
 
-  // ============================
-  // Progress Logic
-  // ============================
-
-  function updateProgress(status) {
-
-      let progress = 0;
-
-      if (status === "pending") progress = 33;
-      if (status === "shipped") progress = 66;
-      if (status === "delivered") progress = 100;
-
-      document.querySelector(".progress-bar").style.width = progress + "%";
-  }
-  </script>
+// ============================
+// Progress Logic
+// ============================
+function updateProgress(status) {
+    let progress = 0;
+    if (status === "pending") progress = 33;
+    if (status === "shipped") progress = 66;
+    if (status === "delivered") progress = 100;
+    document.querySelector(".progress-bar").style.width = progress + "%";
+}
+</script>
     <script>
       const dropdown = document.getElementById('statusFilter');
       const buttons = document.querySelectorAll('.filter-btn');

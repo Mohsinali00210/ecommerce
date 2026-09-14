@@ -177,6 +177,10 @@
                             <div class="card-body">
                                 <textarea class="form-control form-control-sm" id="ShippingAddress" rows="3" readonly></textarea>
                             </div>
+                            <div class="col-md-6">
+                                    <label class="form-label">Tracking Number</label>
+                                    <input type="text" class="form-control form-control-sm" id="TrackingNumber" >
+                            </div>
                         </div>
 
                         <!-- ================= ORDER ITEMS ================= -->
@@ -680,7 +684,8 @@
                     },
                     body: JSON.stringify({
                         status: document.getElementById("OrderStatus").value,
-                        payment_status: document.getElementById("PaymentStatus").value
+                        payment_status: document.getElementById("PaymentStatus").value,
+                        tracking_number: document.getElementById("TrackingNumber").value
                     })
                 })
                 .then(res => res.json())
@@ -707,6 +712,7 @@
 
                         document.getElementById("OrderId").value = data.id;
                         document.getElementById("OrderNumber").value = data.order_number;
+                        document.getElementById("TrackingNumber").value = data.tracking_number;
                         document.getElementById("OrderDate").value = new Date(data.placed_at).toLocaleString();
                         document.getElementById("OrderTotal").value = data.total_amount;
 

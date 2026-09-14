@@ -6,6 +6,8 @@ from django.utils import timezone
 from .models import OrderRequest,Order, OrderItem
 from products.models import Product, ProductVariant,Promotion
 from django.core.exceptions import ValidationError
+from decimal import Decimal
+
 class CartItemSerializer(serializers.ModelSerializer):
     product_id = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all(),source="product")
     variant_id = serializers.PrimaryKeyRelatedField(queryset=ProductVariant.objects.all(),source="variant",allow_null=True,required=False)
@@ -156,40 +158,129 @@ class AddressSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({field: "This field is required."})
         return data
 
-
 class PlaceOrderSerializer(serializers.Serializer):
     address_id = serializers.IntegerField()
+
     checkout_items = serializers.ListField(
-        child=serializers.DictField(), required=False
+        child=serializers.DictField(),
+        required=False
     )
 
     def validate_address_id(self, value):
         user = self.context["request"].user
-        if not Address.objects.filter(id=value, user=user).exists():
-            raise serializers.ValidationError("Invalid address.")
+
+        if not Address.objects.filter(
+            id=value,
+            user=user
+        ).exists():
+            raise serializers.ValidationError(
+                "Invalid address."
+            )
+
         return value
 
     @transaction.atomic
     def create(self, validated_data):
+
         request = self.context["request"]
         user = request.user
-        checkout_items = request.session.get("checkout_items", [])
+
+        # -------------------------------------------------
+        # GET CHECKOUT ITEMS FROM SESSION
+        # -------------------------------------------------
+
+        checkout_items = request.session.get(
+            "checkout_items",
+            []
+        )
 
         if not checkout_items:
-            raise serializers.ValidationError("No checkout items found.")
-        address = Address.objects.get(id=validated_data["address_id"], user=user)
-        product_ids = [int(i["product_id"]) for i in checkout_items]
-        variant_ids = [int(i["variant_id"]) for i in checkout_items if i.get("variant_id")]
+            raise serializers.ValidationError(
+                "No checkout items found."
+            )
 
-        products = Product.objects.filter(id__in=product_ids)
-        variants = ProductVariant.objects.filter(id__in=variant_ids)
+        # -------------------------------------------------
+        # ADDRESS
+        # -------------------------------------------------
 
-        product_map = {p.id: p for p in products}
-        variant_map = {v.id: v for v in variants}
+        address = Address.objects.get(
+            id=validated_data["address_id"],
+            user=user
+        )
+
+        # -------------------------------------------------
+        # PRODUCT / VARIANT IDS
+        # -------------------------------------------------
+
+        product_ids = []
+
+        variant_ids = []
+
+        for item in checkout_items:
+
+            try:
+                product_id = int(item["product_id"])
+            except (KeyError, TypeError, ValueError):
+                raise serializers.ValidationError(
+                    "Invalid product information."
+                )
+
+            product_ids.append(product_id)
+
+            if item.get("variant_id"):
+                try:
+                    variant_ids.append(
+                        int(item["variant_id"])
+                    )
+                except (TypeError, ValueError):
+                    raise serializers.ValidationError(
+                        "Invalid variant information."
+                    )
+
+        # -------------------------------------------------
+        # LOAD PRODUCTS
+        # -------------------------------------------------
+
+        products = Product.objects.filter(
+            id__in=product_ids,
+            status="active"
+        )
+
+        variants = ProductVariant.objects.filter(
+            id__in=variant_ids
+        )
+
+        product_map = {
+            product.id: product
+            for product in products
+        }
+
+        variant_map = {
+            variant.id: variant
+            for variant in variants
+        }
+
+        # -------------------------------------------------
+        # CURRENT TIME
+        # -------------------------------------------------
 
         now = timezone.now()
-        shipping_charges = [p.shipping_charges for p in products]
-        max_shipping_charge = max(shipping_charges) if shipping_charges else 0
+
+        # -------------------------------------------------
+        # CREATE ORDER
+        # -------------------------------------------------
+
+        shipping_charges = [
+            p.shipping_charges or Decimal("0")
+            for p in products
+        ]
+
+        max_shipping_charge = (
+            max(shipping_charges)
+            if shipping_charges
+            else Decimal("0")
+        )
+
         order = Order.objects.create(
             user=user,
             shipping_address=address,
@@ -199,27 +290,131 @@ class PlaceOrderSerializer(serializers.Serializer):
             status="pending",
         )
 
-        subtotal = 0
+        subtotal = Decimal("0")
+        total_items_created = 0
+
+        # -------------------------------------------------
+        # CREATE ORDER ITEMS
+        # -------------------------------------------------
 
         for item in checkout_items:
-            product = product_map.get(int(item["product_id"]))
-            variant = variant_map.get(int(item["variant_id"])) if item.get("variant_id") else None
-            qty = int(item.get("quantity", 1))
 
+            product_id = int(item["product_id"])
+
+            product = product_map.get(product_id)
+
+            # Product no longer exists / inactive
             if not product:
-                continue
+                raise serializers.ValidationError(
+                    f"Product with ID {product_id} is no longer available."
+                )
 
-            base_price = variant.price if variant else product.price
+            # -------------------------------------------------
+            # VARIANT
+            # -------------------------------------------------
+
+            variant = None
+
+            if item.get("variant_id"):
+
+                variant_id = int(item["variant_id"])
+
+                variant = variant_map.get(variant_id)
+
+                if not variant:
+                    raise serializers.ValidationError(
+                        f"Selected variant for {product.name} is no longer available."
+                    )
+
+                # Make sure variant belongs to this product
+                if variant.product_id != product.id:
+                    raise serializers.ValidationError(
+                        "Invalid product variant."
+                    )
+
+            # -------------------------------------------------
+            # QUANTITY
+            # -------------------------------------------------
+
+            try:
+                qty = int(item.get("quantity", 1))
+            except (TypeError, ValueError):
+
+                raise serializers.ValidationError(
+                    f"Invalid quantity for {product.name}."
+                )
+
+            if qty <= 0:
+                raise serializers.ValidationError(
+                    f"Invalid quantity for {product.name}."
+                )
+
+            # -------------------------------------------------
+            # STOCK CHECK
+            # -------------------------------------------------
+
+            if variant:
+
+                if hasattr(variant, "is_active"):
+                    if not variant.is_active:
+                        raise serializers.ValidationError(
+                            f"Variant of {product.name} is inactive."
+                        )
+
+                if variant.stock_quantity < qty:
+                    raise serializers.ValidationError(
+                        f"Not enough stock available for {product.name}."
+                    )
+
+            else:
+
+                if product.stock_quantity < qty:
+                    raise serializers.ValidationError(
+                        f"Not enough stock available for {product.name}."
+                    )
+
+            # -------------------------------------------------
+            # BASE PRICE
+            # -------------------------------------------------
+
+            base_price = (
+                variant.price
+                if variant
+                else product.price
+            )
+
+            base_price = Decimal(str(base_price))
+
             final_price = base_price
 
-            promo = Promotion.objects.filter(
-                products=product,
-                start_date__lte=now,
-                end_date__gte=now
-            ).first()
+            # -------------------------------------------------
+            # ACTIVE PROMOTION
+            # -------------------------------------------------
+
+            promo = (
+                Promotion.objects
+                .filter(
+                    products=product,
+                    start_date__lte=now,
+                    end_date__gte=now,
+                    is_active=True
+                )
+                .first()
+            )
 
             if promo:
-                final_price = promo.get_discounted_price(base_price)
+
+                final_price = promo.get_discounted_price(
+                    base_price
+                )
+
+                final_price = Decimal(
+                    str(final_price)
+                )
+
+            # -------------------------------------------------
+            # CREATE ORDER ITEM
+            # -------------------------------------------------
 
             OrderItem.objects.create(
                 order=order,
@@ -231,14 +426,51 @@ class PlaceOrderSerializer(serializers.Serializer):
 
             subtotal += final_price * qty
 
-        order.subtotal = subtotal
-        order.total_amount = subtotal + max_shipping_charge
-        order.save()
+            total_items_created += 1
 
-        # clear session
-        request.session.pop("checkout_items", None)
+        # -------------------------------------------------
+        # MAKE SURE ORDER HAS ITEMS
+        # -------------------------------------------------
+
+        if total_items_created == 0:
+
+            raise serializers.ValidationError(
+                "No valid products found for checkout."
+            )
+
+        # -------------------------------------------------
+        # ORDER TOTAL
+        # -------------------------------------------------
+
+        order.subtotal = subtotal
+
+        order.total_amount = (
+            subtotal +
+            max_shipping_charge
+        )
+
+        order.save(
+            update_fields=[
+                "subtotal",
+                "total_amount",
+                "shipping_charges"
+            ]
+        )
+
+        # -------------------------------------------------
+        # CLEAR CHECKOUT SESSION
+        # -------------------------------------------------
+
+        request.session.pop(
+            "checkout_items",
+            None
+        )
+
+        request.session.modified = True
 
         return order
+
+
 
 
 from rest_framework import serializers

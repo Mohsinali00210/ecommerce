@@ -561,6 +561,9 @@
             <li><a class="dropdown-item rounded" href="{% url 'home:user-wallet' %}"><i class="bi bi-wallet2 me-2"></i>Wallet</a></li>
             <li><a class="dropdown-item rounded" href="{% url 'home:Wishlist' %}"><i class="bi bi-heart me-2"></i>Wishlist</a></li>
             <li><a class="dropdown-item rounded" href="{% url 'home:user-address' %}"><i class="bi bi-geo-alt me-2"></i>Addresses</a></li>
+            <li><a class="dropdown-item rounded" href="{% url 'home:ContactHistory' %}"><i class="bi bi-geo-alt me-2"></i>Contact History</a></li>
+
+            
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item rounded text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
           {% else %}
@@ -647,8 +650,8 @@
   <div class="container-xl">
     <div class="row g-4">
       <div class="col-6 col-lg-4">
-         <a class="navbar-brand ms-2" href="{% url 'home:home' %}" style="font-size: 15px;">
-            <img src="{% static 'images/logo2.png' %}" width="70px" alt="Logo">
+         <a class="footer-brand ms-2" href="{% url 'home:home' %}" style="font-size: 15px;">
+            <img src="{% static 'images/logo2.png' %}" width="90px" alt="Logo">
         </a>
         <p class="text-muted-custom">Considered goods for people who keep things a long time. Est. 2014.</p>
         <div class="d-flex gap-2">
@@ -693,7 +696,57 @@
     <a class="fab fab-chat pulse-ring" href="{% url 'home:Contact' %}" aria-label="Support Help"><i class="bi bi-headset"></i></a>
   {% endif %}
 </div>
+<!-- ============ QUICK VIEW MODAL (shared, reused for any product) ============ -->
+<div class="modal fade" id="quickViewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-0" id="quickViewBody">
+        <!-- injected via fetch() -->
+        <div class="text-center py-5">
+          <div class="spinner-border" role="status"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
+
+<script>
+function openQuickView(productId) {
+  const modalEl = document.getElementById('quickViewModal');
+  const body = document.getElementById('quickViewBody');
+  body.innerHTML = `<div class="text-center py-5"><div class="spinner-border" role="status"></div></div>`;
+
+  bootstrap.Modal.getOrCreateInstance(modalEl).show();
+
+  fetch(`/product/${productId}/quick-view/`)
+    .then(res => res.text())
+    .then(html => {
+      body.innerHTML = html;
+      executeScripts(body); // <-- manually run any <script> tags just inserted
+    })
+    .catch(() => {
+      body.innerHTML = `<p class="text-danger text-center py-5">Couldn't load product. Please try again.</p>`;
+    });
+}
+
+// innerHTML strips script execution for security — clone + re-append each
+// script tag so the browser treats it as freshly authored, which does execute.
+function executeScripts(container) {
+  container.querySelectorAll('script').forEach(oldScript => {
+    const newScript = document.createElement('script');
+    if (oldScript.src) {
+      newScript.src = oldScript.src;
+    } else {
+      newScript.textContent = oldScript.textContent;
+    }
+    oldScript.replaceWith(newScript);
+  });
+}
+</script>
 {% if not request.user.is_authenticated %}
 <!-- ============ LOGIN MODAL ============ -->
 <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">

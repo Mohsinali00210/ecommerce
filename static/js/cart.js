@@ -74,55 +74,55 @@
   };
 
   /* ---------- Wishlist ---------- */
-  window.Wishlist = {
-      items() {
-          return Store.get(LS.wishlist);
-      },
-      has(id) {
-          return Store.get(LS.wishlist).some(i => i.id == id);
-      },
-      toggle(id) {
-        debugger
-          let items = Store.get(LS.wishlist);
-          let url = "/web/wishlisttoggle/" + id + "/";
-          console.log("product id"+id);   // or use your generated URL
-          fetch(url, {
-              method: "GET",
-              headers: {
-                  "X-Requested-With": "XMLHttpRequest"
-              }
-          })
-          .then(response => response.json())
-          .then(data => {
-              if (data.status === "added") {
-                  if (!items.some(i => i.id == id)) {
-                      const product = window.AUGUST_CATALOG[id] || {};
-                      items.push({ id, ...product });
-                  }
-                  window.showToast && window.showToast("Added to wishlist.");
-              }
-              else if (data.status === "removed") {
-                  items = items.filter(i => i.id != id);
-                  window.showToast && window.showToast("Removed from wishlist.");
-              }
-              Store.set(LS.wishlist, items);
-              renderBadges();
-              syncWishlistIcons();
-          })
-          .catch(err => {
-              console.error(err);
-              window.showToast && window.showToast("Something went wrong.");
-          });
-      },
-      remove(id) {
-          Store.set(
-              LS.wishlist,
-              Store.get(LS.wishlist).filter(i => i.id != id)
-          );
-          renderBadges();
-          syncWishlistIcons();
-      }
-  };
+  // window.Wishlist = {
+  //     items() {
+  //         return Store.get(LS.wishlist);
+  //     },
+  //     // has(id) {
+  //     //     return Store.get(LS.wishlist).some(i => i.id == id);
+  //     // },
+  //     toggle(id) {
+  //       debugger
+  //         let items = Store.get(LS.wishlist);
+  //         let url = "/web/wishlisttoggle/" + id + "/";
+  //         console.log("product id"+id);   // or use your generated URL
+  //         fetch(url, {
+  //             method: "GET",
+  //             headers: {
+  //                 "X-Requested-With": "XMLHttpRequest"
+  //             }
+  //         })
+  //         .then(response => response.json())
+  //         .then(data => {
+  //             if (data.status === "added") {
+  //                 if (!items.some(i => i.id == id)) {
+  //                     const product = window.AUGUST_CATALOG[id] || {};
+  //                     items.push({ id, ...product });
+  //                 }
+  //                 window.showToast && window.showToast("Added to wishlist.");
+  //             }
+  //             else if (data.status === "removed") {
+  //                 items = items.filter(i => i.id != id);
+  //                 window.showToast && window.showToast("Removed from wishlist.");
+  //             }
+  //             Store.set(LS.wishlist, items);
+  //             renderBadges();
+  //             syncWishlistIcons();
+  //         })
+  //         .catch(err => {
+  //             console.error(err);
+  //             window.showToast && window.showToast("Something went wrong.");
+  //         });
+  //     },
+  //     remove(id) {
+  //         Store.set(
+  //             LS.wishlist,
+  //             Store.get(LS.wishlist).filter(i => i.id != id)
+  //         );
+  //         renderBadges();
+  //         syncWishlistIcons();
+  //     }
+  // };
 
   /* ---------- Compare ---------- */
   window.Compare = {

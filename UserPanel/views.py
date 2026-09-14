@@ -37,8 +37,8 @@ If your real field names differ, adjust the query below and the
 from django.shortcuts import render,get_object_or_404
 from django.utils import timezone
 from django.db.models import Sum
-
-from products.models import Product, Category,Promotion  # adjust import path/names if different
+from django.core.exceptions import ValidationError
+from products.models import Product, Category,Promotion,ProductQuestion,ProductReview  # adjust import path/names if different
 
 # All of Cart, CartItem, WishToBuy, Notification, NotificationRecipient came from the
 # single models.py you sent — I'm assuming that app is called "orders". Change this
@@ -103,7 +103,8 @@ def _get_or_create_cart(request):
 
 def _cart_count(request):
     cart = _get_or_create_cart(request)
-    total = CartItem.objects.filter(cart=cart, is_deleted=False).aggregate(
+    total = CartItem.objects.filter(cart=cart, is_deleted=False,
+                    product__status="active").aggregate(
         qty=Sum("quantity")
     )["qty"]
     return total or 0
@@ -129,74 +130,306 @@ def header_counts(request):
         "wishlist_count": _wishlist_count(request),
         "notification_count": _unread_notification_count(request),
     })
-def home(request):
-    active_products = Product.objects.filter(is_active=True)
+from django.db.models import Exists, OuterRef
+from products.models import Wishlist as WishlistModel
+from django.utils import timezone
+# views.py
+def product_quick_view(request, product_id):
+    product = get_object_or_404(
+        Product.objects.prefetch_related("images", "variants", "variant_options"),
+        id=product_id,
+    )
+    now = timezone.now()
 
-    
+    promo = Promotion.objects.filter(products=product, start_date__lte=now, end_date__gte=now).first()
+    if promo:
+        product.final_price = promo.get_discounted_price(product.price)
+    else:
+        product.final_price = product.price
+
+    variants = product.variants.select_related("image")
+    variant_data = []
+    for v in variants:
+        vp = Promotion.objects.filter(products=product, start_date__lte=now, end_date__gte=now).first()
+        final_price = vp.get_discounted_price(v.price) if vp else v.price
+        off_price = vp.get_off_price(v.price) if vp else 0
+        variant_data.append({
+            "id": v.id, "sku": v.sku, "name": v.name,
+            "price": float(v.price), "final_price": float(final_price),
+            "off_price": float(off_price), "stock": v.stock_quantity,
+        })
+
+    return render(request, "home/partials/product_quick_view.html", {
+        "product": product,
+        "images": product.images.all(),
+        "options": product.variant_options.all(),
+        "variants_json": json.dumps(variant_data, cls=DjangoJSONEncoder),
+    })
+
+def home(request):
+
     current_date = timezone.now()
 
-    featured_products = Product.objects.prefetch_related(
-        "images",
-        "variants",
-        "category",
-        "promotions"
+    # =========================================================
+    # WISHLIST CHECK
+    # =========================================================
+
+    if request.user.is_authenticated:
+
+        wishlist_exists = WishlistModel.objects.filter(
+            user=request.user,
+            product=OuterRef("pk")
+        )
+
+    else:
+
+        # Empty queryset for guest users
+        wishlist_exists = WishlistModel.objects.none()
+
+
+    # =========================================================
+    # FEATURED PRODUCTS
+    # =========================================================
+
+    featured_products = (
+        Product.objects
+        .filter(status="active")
+        .annotate(
+            is_wishlisted=Exists(wishlist_exists)
+        )
+        .prefetch_related(
+            "images",
+            "variants",
+            "category",
+            "promotions"
+        )
     )
 
-    # Active promotions
-    promotions = Promotion.objects.filter(
-        start_date__lte=current_date,
-        end_date__gte=current_date,
-        is_active=True
-    ).prefetch_related("products")
 
-    # Attach promotion info to products
+    # =========================================================
+    # ACTIVE PROMOTIONS
+    # =========================================================
+
+    promotions = (
+        Promotion.objects
+        .filter(
+            start_date__lte=current_date,
+            end_date__gte=current_date,
+            is_active=True
+        )
+        .prefetch_related("products")
+    )
+
+
+    # =========================================================
+    # APPLY PROMOTION INFORMATION
+    # =========================================================
+
     for product in featured_products:
+
         product.final_price = product.price
         product.has_discount = False
         product.discount_percent = 0
         product.promotion = None
 
-        promo = product.promotions.filter(
-            start_date__lte=current_date,
-            end_date__gte=current_date,
-            is_active=True
-        ).first()
+        promo = (
+            product.promotions
+            .filter(
+                start_date__lte=current_date,
+                end_date__gte=current_date,
+                is_active=True
+            )
+            .first()
+        )
 
         if promo:
+
             product.promotion = promo
-            product.final_price = promo.get_discounted_price(product.price)
-            product.has_discount = product.final_price != product.price
+
+            product.final_price = promo.get_discounted_price(
+                product.price
+            )
+
+            product.has_discount = (
+                product.final_price != product.price
+            )
 
             if promo.discount_type == "percentage":
-                product.discount_percent = int(promo.discount_value)
 
-    
-    print("product ",product)
-    best_sellers = active_products.order_by("-sold")[:PRODUCTS_PER_ROW_SECTION]
+                product.discount_percent = int(
+                    promo.discount_value
+                )
 
-    new_arrivals = active_products.order_by("-created_at")[:PRODUCTS_PER_ROW_SECTION]
 
-    categories = Category.objects.filter(parent__isnull=True)
+    # =========================================================
+    # ACTIVE PRODUCTS
+    # =========================================================
+
+    active_products = (
+        Product.objects
+        .filter(is_active=True)
+        .annotate(
+            is_wishlisted=Exists(wishlist_exists)
+        )
+    )
+
+
+    # =========================================================
+    # BEST SELLERS
+    # =========================================================
+
+    best_sellers = (
+        active_products
+        .order_by("-sold")
+        [:PRODUCTS_PER_ROW_SECTION]
+    )
+
+
+    # =========================================================
+    # NEW ARRIVALS
+    # =========================================================
+
+    new_arrivals = (
+        active_products
+        .order_by("-created_at")
+        [:PRODUCTS_PER_ROW_SECTION]
+    )
+
+
+    # =========================================================
+    # CATEGORIES
+    # =========================================================
+
+    categories = Category.objects.filter(
+        parent__isnull=True
+    )
+
+
+    # =========================================================
+    # CONTEXT
+    # =========================================================
 
     context = {
+
         "featured_products": featured_products,
+
         "best_sellers": best_sellers,
+
         "new_arrivals": new_arrivals,
+
         "categories": categories,
+
         "cart_count": _cart_count(request),
+
         "wishlist_count": _wishlist_count(request),
+
         "notification_count": _unread_notification_count(request),
+
         "recent_notifications": (
-            NotificationRecipient.objects.filter(user=request.user)
+            NotificationRecipient.objects
+            .filter(user=request.user)
             .select_related("notification")
             .order_by("-notification__created_at")[:3]
             if request.user.is_authenticated
             else []
         ),
-        "sale_ends_at": timezone.now() + timezone.timedelta(hours=6),  # for the countdown widget
-    }
-    return render(request, "home/index.html", context)
 
+        "sale_ends_at": (
+            timezone.now() +
+            timezone.timedelta(hours=6)
+        ),
+    }
+
+
+    # =========================================================
+    # RETURN RESPONSE
+    # =========================================================
+
+    return render(
+        request,
+        "home/index.html",
+        context
+    )
+# views.py
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+import json
+
+@login_required
+@require_POST
+def submit_review(request):
+    try:
+        data = json.loads(request.body)
+        product_id = data.get("product_id")
+        rating = int(data.get("rating", 0))
+        comment = (data.get("comment") or "").strip()
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return JsonResponse({"success": False, "message": "Invalid request."}, status=400)
+
+    if rating < 1 or rating > 5:
+        return JsonResponse({"success": False, "message": "Rating must be between 1 and 5."}, status=400)
+    if not comment:
+        return JsonResponse({"success": False, "message": "Please write a review comment."}, status=400)
+
+    product = get_object_or_404(Product, id=product_id)
+
+    # Must have received a delivered order containing this product — same rule
+    # as `can_review` in the PDP view, so it can't be bypassed via direct POST.
+    has_purchased = OrderItem.objects.filter(
+        order__user=request.user,
+        order__status="delivered",
+        product=product,
+    ).exists()
+    if not has_purchased:
+        return JsonResponse(
+            {"success": False, "message": "You can review this item after it's delivered to you."},
+            status=403,
+        )
+
+    if ProductReview.objects.filter(product=product, user=request.user).exists():
+        return JsonResponse(
+            {"success": False, "message": "You've already reviewed this product."},
+            status=409,
+        )
+
+    ProductReview.objects.create(
+        product=product,
+        user=request.user,
+        rating=rating,
+        comment=comment,
+    )
+
+    return JsonResponse({"success": True, "message": "Review submitted — thank you!"})
+# views.py
+@login_required
+@require_POST
+def submit_question(request):
+    try:
+        data = json.loads(request.body)
+        product_id = data.get("product_id")
+        print("product_id ",product_id)
+        question = (data.get("question") or "").strip()
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return JsonResponse({"success": False, "message": "Invalid request."}, status=400)
+
+    if len(question) < 5:
+        return JsonResponse({"success": False, "message": "Please enter a more complete question."}, status=400)
+    if len(question) > 1000:
+        return JsonResponse({"success": False, "message": "Question is too long."}, status=400)
+
+    product = get_object_or_404(Product, id=product_id)
+
+    ProductQuestion.objects.create(
+        product=product,
+        user=request.user,
+        question=question,
+    )
+
+    return JsonResponse({
+        "success": True,
+        "message": "Question submitted — we'll answer it soon.",
+    })
 def ProductDetails(request, slug, sku=None):
     """
     URLs:
@@ -241,6 +474,15 @@ def ProductDetails(request, slug, sku=None):
             prd.discounted_price = prd.price
             prd.off_price = prd.old_price - prd.final_price
  
+    questions_qs = product.questions.filter(is_deleted=False).select_related("user", "answered_by")
+
+    if request.user.is_authenticated:
+        Questions = questions_qs.filter(
+            Q(answer__isnull=False) | Q(user=request.user)
+        ).order_by("-created_at")
+    else:
+        Questions = questions_qs.filter(answer__isnull=False).order_by("-created_at")
+
     Reviews = product.reviews.filter(
         is_active=True,
         is_deleted=False,
@@ -302,6 +544,7 @@ def ProductDetails(request, slug, sku=None):
         "options": product.variant_options.all(),
         "related_products": related_products,
         "Reviews": Reviews,
+        "Questions": Questions,
         "can_review": can_review,
         "estimated_date": estimated_date,
         "user_wishlist_ids": wishlist_ids,
@@ -445,7 +688,8 @@ def MyCart(request):
                 "items",
                 queryset=CartItem.objects.filter(
                     is_active=True,
-                    is_deleted=False
+                    is_deleted=False,
+                    product__status="active"
                 ).select_related(
                     "product",
                     "variant"
@@ -1038,10 +1282,17 @@ def address_set_default(request, address_id):
     return JsonResponse({"success": True, "message": "Default address updated"})
 
 
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden
+from django.shortcuts import get_object_or_404, redirect, render
+
+from Web.models import SupportTicket, SupportTicketReply
+
+
 def Contact(request):
 
     data = {}
-    success = False
     error = None
 
     if request.method == "POST":
@@ -1053,16 +1304,18 @@ def Contact(request):
         message = request.POST.get("message")
         attachment = request.FILES.get("attachment")
 
-        # Preserve values if error
         data = {
             "name": name,
             "email": email,
             "subject": subject,
             "message": message,
+            "support_type": support_type,
         }
 
         if not name or not email or not subject or not message:
             error = "All required fields must be filled."
+        elif support_type not in dict(SupportTicket.SUPPORT_CHOICES):
+            error = "Please choose a valid support type."
         else:
             SupportTicket.objects.create(
                 user=request.user if request.user.is_authenticated else None,
@@ -1073,12 +1326,57 @@ def Contact(request):
                 message=message,
                 attachment=attachment
             )
-            success = True
-            data = {}  # clear form after success
+            messages.success(
+                request,
+                "Thanks — your message has been received. We'll get back to you shortly."
+            )
             return redirect("home:Contact")
 
+    return render(request, "home/Contact.html", {
+        "error": error,
+        "data": data,
+        "support_choices": SupportTicket.SUPPORT_CHOICES,
+    })
 
-    return render(request, "home/Contact.html", {"success": success,"error": error,"data": data})
+
+@login_required
+def ContactHistory(request):
+    tickets = SupportTicket.objects.filter(user=request.user)
+    return render(request, "home/ContactHistory.html", {"tickets": tickets})
+
+
+@login_required
+def TicketDetail(request, ticket_id):
+    ticket = get_object_or_404(SupportTicket, id=ticket_id)
+
+    if ticket.user_id != request.user.id and not request.user.is_staff:
+        return HttpResponseForbidden("You don't have permission to view this ticket.")
+
+    if request.method == "POST":
+        reply_message = (request.POST.get("message") or "").strip()
+
+        if reply_message:
+            SupportTicketReply.objects.create(
+                ticket=ticket,
+                sender=request.user,
+                is_staff_reply=request.user.is_staff,
+                message=reply_message,
+            )
+
+            if request.user.is_staff:
+                new_status = request.POST.get("status")
+                if new_status in dict(SupportTicket.STATUS_CHOICES):
+                    ticket.status = new_status
+                    ticket.save(update_fields=["status"])
+
+            messages.success(request, "Reply sent.")
+
+        return redirect("home:TicketDetail", ticket_id=ticket.id)
+
+    return render(request, "home/TicketDetail.html", {
+        "ticket": ticket,
+        "replies": ticket.replies.select_related("sender"),
+    })
 
 
 

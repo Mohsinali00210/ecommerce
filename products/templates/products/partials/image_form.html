@@ -4,79 +4,106 @@
     id="imgForm"
     enctype="multipart/form-data">
 
-    {% csrf_token %}
+{% csrf_token %}
 
-    <!-- Alert -->
-    <div id="imageFormAlert"></div>
+<div id="imageFormAlert"></div>
 
-    {% if form.non_field_errors %}
-        <div class="alert alert-danger">
-            {{ form.non_field_errors }}
-        </div>
-    {% endif %}
+{% if form.non_field_errors %}
+    <div class="alert alert-danger">
+        {{ form.non_field_errors }}
+    </div>
+{% endif %}
 
-    <div class="row g-2">
+<div class="row g-2">
 
-        <div class="col-12">
-            <label class="form-label">Image File</label>
+    <!-- Multiple Images -->
+    <div class="col-12">
 
-            {{ form.image }}
+        <label class="form-label">
+            Image Files
+        </label>
 
-            {% for error in form.image.errors %}
-                <div class="text-danger small">
-                    {{ error }}
-                </div>
-            {% endfor %}
-        </div>
+        <input
+            type="file"
+            name="image"
+            id="id_image"
+            class="form-control"
+            accept="image/*"
+            multiple
+            required>
 
-        <div class="col-12">
-            <label class="form-label">Alt Text</label>
-
-            {{ form.alt_text }}
-
-            {% for error in form.alt_text.errors %}
-                <div class="text-danger small">
-                    {{ error }}
-                </div>
-            {% endfor %}
+        <div class="form-text">
+            You can select multiple images at once.
         </div>
 
-        <div class="col-12">
-            <div class="form-check">
-
-                {{ form.is_primary }}
-
-                <label class="form-check-label">
-                    Set as primary image
-                </label>
-
+        {% for error in form.image.errors %}
+            <div class="text-danger small">
+                {{ error }}
             </div>
+        {% endfor %}
+
+    </div>
+
+    <!-- Alt Text -->
+    <div class="col-12">
+
+        <label class="form-label">
+            Alt Text
+        </label>
+
+        {{ form.alt_text }}
+
+        {% for error in form.alt_text.errors %}
+            <div class="text-danger small">
+                {{ error }}
+            </div>
+        {% endfor %}
+
+    </div>
+
+    <!-- Primary -->
+    <div class="col-12">
+
+        <div class="form-check">
+
+            {{ form.is_primary }}
+
+            <label class="form-check-label">
+                Set first uploaded image as primary
+            </label>
+
         </div>
 
     </div>
 
-    <div class="mt-3 text-end">
+</div>
 
-        <button
-            type="button"
-            class="btn btn-outline-secondary"
-            data-bs-dismiss="modal">
-            Cancel
-        </button>
+<div class="mt-3 text-end">
 
-        <button
-            type="submit"
-            class="btn btn-dark"
-            id="saveImageBtn">
-            Save Image
-        </button>
+    <button
+        type="button"
+        class="btn btn-outline-secondary"
+        data-bs-dismiss="modal">
+        Cancel
+    </button>
 
-    </div>
+    <button
+        type="submit"
+        class="btn btn-dark"
+        id="saveImageBtn">
+
+        Save Images
+
+    </button>
+
+</div>
+```
 
 </form>
 
 <script>
-    function showImageAlert(message, type) {
+
+function showImageAlert(message, type) {
 
     const alertBox =
         document.getElementById("imageFormAlert");
@@ -100,6 +127,14 @@
         </div>
     `;
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| Multiple Image Upload
+|--------------------------------------------------------------------------
+*/
+
 document.addEventListener("submit", async function (e) {
 
     if (!e.target.matches("#imgForm")) {
@@ -109,91 +144,189 @@ document.addEventListener("submit", async function (e) {
     e.preventDefault();
 
     const form = e.target;
-    const submitBtn = form.querySelector("#saveImageBtn");
 
-    // Get alert container
-    const alertBox = form.querySelector("#imageFormAlert");
+    const submitBtn =
+        form.querySelector("#saveImageBtn");
+
+    const alertBox =
+        form.querySelector("#imageFormAlert");
 
     // Clear previous alert
     alertBox.innerHTML = "";
 
     // Save original button text
-    const originalText = submitBtn.innerHTML;
+    const originalText =
+        submitBtn.innerHTML;
 
     // Disable button
     submitBtn.disabled = true;
 
     submitBtn.innerHTML = `
         <span class="spinner-border spinner-border-sm me-1"></span>
-        Saving...
+        Uploading...
     `;
 
     try {
 
-        // FormData handles image/file upload
-        const formData = new FormData(form);
+        /*
+        |--------------------------------------------------------------------------
+        | FormData automatically contains ALL selected files
+        |--------------------------------------------------------------------------
+        */
 
-        const response = await fetch(form.action, {
-            method: "POST",
-            body: formData,
-            headers: {
-                "X-CSRFToken": form.querySelector(
-                    '[name="csrfmiddlewaretoken"]'
-                ).value,
+        const formData =
+            new FormData(form);
 
-                "X-Requested-With": "XMLHttpRequest"
-            }
-        });
+        const response =
+            await fetch(form.action, {
 
-        const data = await response.json();
+                method: "POST",
 
-        console.log("Image response:", data);
+                body: formData,
+
+                headers: {
+
+                    "X-CSRFToken":
+                        form.querySelector(
+                            '[name="csrfmiddlewaretoken"]'
+                        ).value,
+
+                    "X-Requested-With":
+                        "XMLHttpRequest"
+                }
+
+            });
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Handle non-JSON response safely
+        |--------------------------------------------------------------------------
+        */
+
+        const contentType =
+            response.headers.get("content-type") || "";
+
+        if (!contentType.includes("application/json")) {
+
+            const text =
+                await response.text();
+
+            console.error(
+                "Non JSON response:",
+                text
+            );
+
+            throw new Error(
+                "Server returned an invalid response."
+            );
+        }
+
+
+        const data =
+            await response.json();
+
+
+        console.log(
+            "Multiple image response:",
+            data
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Success
+        |--------------------------------------------------------------------------
+        */
 
         if (data.success) {
 
-            window.location.reload();
+            showImageAlert(
+                data.message ||
+                "Images uploaded successfully.",
+                "success"
+            );
 
-            // Optional:
-            // reloadImages();
+            /*
+            | Give the user a moment to see success
+            | then reload product images.
+            */
 
-        } else {
+            setTimeout(function () {
+
+                window.location.reload();
+
+            }, 500);
+
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validation Error
+        |--------------------------------------------------------------------------
+        */
+
+        else {
 
             showImageAlert(
-                data.message || "Please correct the errors.",
+                data.message ||
+                "Please correct the errors.",
                 "danger"
             );
 
-            // Replace form with Django validation HTML
+            /*
+            | If Django returned the form HTML,
+            | replace the existing form.
+            */
+
             if (data.html) {
 
-                form.outerHTML = data.html;
+                form.outerHTML =
+                    data.html;
 
             }
+
         }
 
-    } catch (error) {
+    }
 
-        console.error("Image upload error:", error);
+    catch (error) {
+
+        console.error(
+            "Image upload error:",
+            error
+        );
 
         showImageAlert(
-            "Something went wrong while uploading the image.",
+            error.message ||
+            "Something went wrong while uploading the images.",
             "danger"
         );
 
-    } finally {
+    }
 
-        // Restore button if form still exists
+    finally {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Restore button
+        |--------------------------------------------------------------------------
+        */
+
         if (
             submitBtn &&
             document.body.contains(submitBtn)
         ) {
 
             submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
+
+            submitBtn.innerHTML =
+                originalText;
 
         }
 
     }
 
 });
+
 </script>

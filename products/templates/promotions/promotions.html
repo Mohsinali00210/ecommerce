@@ -286,7 +286,18 @@
         const PROMO_API = `${window.location.origin}/Adminpanel/Products/api/v1/promotionss/`;
 
         getPromotions();
-
+        function togglePromoStatus(promoId) {
+            fetch(`${window.location.origin}/Adminpanel/Products/admin/promotions/${promoId}/toggle-status/`, {
+                method: "GET",
+               // headers: { "X-CSRFToken": CSRF_TOKEN }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    getPromotions(); // re-fetch and re-render #promoBody
+                }
+            });
+        }
         function getPromotions() {
 
             fetch(PROMO_API, {
@@ -320,6 +331,10 @@
                                     data-bs-toggle="modal"
                                     data-bs-target="#promoModal">
                                     Edit
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        onclick="togglePromoStatus(${item.id})">
+                                    ${item.is_active ? "Deactivate" : "Activate"}
                                 </button>
                             </td>
                         </tr>
