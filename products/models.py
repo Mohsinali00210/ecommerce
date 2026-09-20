@@ -604,9 +604,9 @@ class ProductQuestion(BaseAuditModel):
 class Promotion(BaseAuditModel):
     DISCOUNT_TYPES = [
         ('percentage', 'Percentage (%)'),
-        ('fixed', 'Fixed Amount'),
-        ('buy_x_get_y', 'Buy X Get Y'),
-        ('free_delivery', 'Free Delivery'),
+        # ('fixed', 'Fixed Amount'),
+        # ('buy_x_get_y', 'Buy X Get Y'),
+        # ('free_delivery', 'Free Delivery'),
     ]
 
     # Basic Info

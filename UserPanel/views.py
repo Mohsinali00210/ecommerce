@@ -1,38 +1,3 @@
-"""
-Home page view for the AUGUST storefront (index1.html).
-
-ASSUMPTIONS — you only sent cart/order/notification models, not
-products/models.py, so this view assumes the following fields exist
-on products.models.Product / ProductVariant / Category. Rename to
-match your real schema:
-
-    Product:
-        name            CharField
-        slug            SlugField                (used for product-details URL)
-        category        FK -> Category (has .name)
-        price           Decimal
-        compare_at_price Decimal (nullable)       -> "was" price / strike-through
-        image           ImageField/URLField       -> primary image
-        hover_image     ImageField/URLField (nullable, optional)
-        is_active       Boolean
-        is_featured     Boolean
-        created_at      DateTime
-        sold            Integer                  (already used in models.py you sent)
-        rating          Decimal/Integer (nullable, optional)
-
-    ProductVariant:
-        product         FK -> Product
-        stock_quantity  Integer                  (already used in models.py you sent)
-        color / color_hex   (optional, for the color-dot swatches)
-
-    Category:
-        name            CharField
-        slug            SlugField
-        image           ImageField/URLField (optional, for the "Shop by Category" tiles)
-
-If your real field names differ, adjust the query below and the
-`.name` / `.price` / etc. attribute access in the template + partial.
-"""
 
 from django.shortcuts import render,get_object_or_404
 from django.utils import timezone
@@ -401,7 +366,7 @@ def submit_review(request):
     )
 
     return JsonResponse({"success": True, "message": "Review submitted — thank you!"})
-# views.py
+# # views.py
 @login_required
 @require_POST
 def submit_question(request):
@@ -430,52 +395,321 @@ def submit_question(request):
         "success": True,
         "message": "Question submitted — we'll answer it soon.",
     })
+# def ProductDetails(request, slug, sku=None):
+#     """
+#     URLs:
+#       /product/<slug>/           -> plain product page, no variant preselected
+#       /product/<slug>/<sku>/     -> product page with that variant preselected
+#     """
+#     product = get_object_or_404(
+#         Product.objects.prefetch_related("images", "variants", "variant_options"),
+#         slug=slug,
+#     )
+ 
+#     max_handling_days = product.handling_time
+#     estimated_date = timezone.now() + timedelta(days=max_handling_days)
+#     now = timezone.now()
+ 
+#     # Product promotions
+#     promotions = Promotion.objects.filter(products=product, start_date__lte=now, end_date__gte=now)
+#     if promotions.exists():
+#         promo = promotions.first()
+#         product.final_price = promo.get_discounted_price(product.price)
+#         promo.discounted_price = promo.get_discounted_price(product.price)
+#         promo.off_price = promo.get_off_price(product.price)
+#     else:
+#         product.final_price = product.price
+#         product.off_price = product.old_price - product.final_price
+ 
+#     # Related products
+#     related_products = (
+#         Product.objects.filter(category__in=product.category.all(), brand=product.brand)
+#         .exclude(id=product.id)
+#         .prefetch_related("images", "promotions")[:5]
+#     )
+ 
+#     for prd in related_products:
+#         promo = prd.promotions.filter(start_date__lte=now, end_date__gte=now).first()
+#         if promo:
+#             prd.final_price = promo.get_discounted_price(prd.price)
+#             prd.discounted_price = promo.get_discounted_price(prd.price)
+#             prd.off_price = promo.get_off_price(prd.price)
+#         else:
+#             prd.final_price = prd.price
+#             prd.discounted_price = prd.price
+#             prd.off_price = prd.old_price - prd.final_price
+ 
+#     questions_qs = product.questions.filter(is_deleted=False).select_related("user", "answered_by")
+
+#     if request.user.is_authenticated:
+#         Questions = questions_qs.filter(
+#             Q(answer__isnull=False) | Q(user=request.user)
+#         ).order_by("-created_at")
+#     else:
+#         Questions = questions_qs.filter(answer__isnull=False).order_by("-created_at")
+
+#     Reviews = product.reviews.filter(
+#         is_active=True,
+#         is_deleted=False,
+#         product=product,
+#     ).select_related("user").order_by("-created_at")
+ 
+#     variants = product.variants.select_related("image")
+#     variant_data = []
+#     selected_variant = None
+ 
+#     for v in variants:
+#         variant_promotions = Promotion.objects.filter(products=product, start_date__lte=now, end_date__gte=now)
+ 
+#         if variant_promotions.exists():
+#             promo = variant_promotions.first()
+#             final_price = promo.get_discounted_price(v.price)
+#             off_price = promo.get_off_price(v.price)
+#         else:
+#             final_price = v.price
+#             off_price = product.old_price - final_price
+ 
+#         entry = {
+#             "id": v.id,
+#             "sku": v.sku,  # used to build /product/<slug>/<sku>/ links and to preselect on load
+#             "name": v.name,
+#             "price": float(v.price),
+#             "final_price": float(final_price),
+#             "off_price": float(off_price),
+#             "stock": v.stock_quantity,
+#         }
+#         variant_data.append(entry)
+ 
+#         if sku and v.sku == sku:
+#             selected_variant = entry
+ 
+#     variants_json = json.dumps(variant_data, cls=DjangoJSONEncoder)
+ 
+#     can_review = False
+
+#     if request.user.is_authenticated:
+#         can_review = OrderItem.objects.filter(
+#             order__user=request.user,
+#             order__status="delivered",
+#             product=product,
+#         ).exists()
+ 
+#     wishlist_ids = []
+#     if request.user.is_authenticated:
+#         wishlist_ids = WishToBuy.objects.filter(
+#             user=request.user,
+#         ).values_list("product_id", flat=True)
+ 
+#     context = {
+#         "product": product,
+#         "promotions": promotions,
+#         "images": product.images.all(),
+#         "variants": variants,
+#         "variants_json": variants_json,
+#         "options": product.variant_options.all(),
+#         "related_products": related_products,
+#         "Reviews": Reviews,
+#         "Questions": Questions,
+#         "can_review": can_review,
+#         "estimated_date": estimated_date,
+#         "user_wishlist_ids": wishlist_ids,
+#         "show_message_box": True,
+#         "selected_variant": selected_variant,  # None if no sku in URL or sku didn't match any variant
+#     }
+ 
+#     return render(request, "home/product_details.html", context)
+
+import json
+from datetime import timedelta
+from decimal import Decimal, ROUND_HALF_UP
+
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Prefetch, Q
+from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
+
+# Keep your existing model imports (Product, Promotion, OrderItem, WishToBuy, ...)
+
+TWO_PLACES = Decimal("0.01")
+ZERO = Decimal("0.00")
+ 
+# Shipping in the cart never exceeds this amount (RS).
+MAX_SHIPPING_CHARGE = Decimal("450.00")
+
+def get_active_promotion(product, now):
+    """One query per product. Newest running promotion wins."""
+    return (
+        Promotion.objects
+        .filter(products=product, start_date__lte=now, end_date__gte=now)
+        .order_by("-start_date")
+        .first()
+    )
+def promo_for_qty(promo, qty):
+    """Return the promotion only if `qty` reaches its minimum quantity, else None."""
+    if promo and int(qty) >= promo_min_qty(promo):
+        return promo
+    return None
+def item_shipping(product):
+    if product.free_shipping:
+        return ZERO
+    return (product.shipping_charges or ZERO) + (product.additional_shipping_charges or ZERO)
+ 
+ 
+def cap_shipping(raw_total):
+    """Cart shipping = sum of the lines, but never more than MAX_SHIPPING_CHARGE."""
+    return min(Decimal(raw_total), MAX_SHIPPING_CHARGE)
+def promo_min_qty(promo):
+    """
+    Minimum quantity the customer must buy for the promotion to apply.
+    Read from Promotion.compare_at  (0 or 1 = applies at any quantity).
+    """
+    return int(promo.compare_at or 0) if promo else 0
+ 
+ 
+def build_pricing(price, promo):
+    """
+    Single source of truth for every price shown on the page
+    (product, each variant, each related product).
+
+    Returns:
+      price        original / list price
+      final        price after the promotion (== price when no discount)
+      was          original price to strike through, or None when no discount
+      off          amount saved
+      percent_off  0 when no discount. For a percentage promotion this is
+                   exactly promo.discount_value; for a fixed promotion it is
+                   the computed, rounded percentage.
+    """
+    price = Decimal(price)
+    final = price
+    percent_off = Decimal("0")
+
+    if promo and promo.discount_value:
+        if promo.discount_type == "percentage":
+            final = price - (price * promo.discount_value / Decimal("100"))
+            percent_off = promo.discount_value
+        elif promo.discount_type == "fixed":
+            # discount_value = flat amount off. (The old code returned
+            # promo.discounted_price, which is one number for the whole
+            # promotion and can't work when variants have different prices.)
+            final = price - promo.discount_value
+
+    final = max(final, ZERO).quantize(TWO_PLACES, rounding=ROUND_HALF_UP)
+    has_discount = final < price
+
+    if not has_discount:
+        percent_off = Decimal("0")
+    elif not percent_off and price > 0:
+        percent_off = ((price - final) / price * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+
+    return {
+        "price": price,
+        "final": final,
+        "was": price if has_discount else None,
+        "off": (price - final) if has_discount else ZERO,
+        "percent_off": percent_off,
+    }
+
+
+def active_promos_prefetch(now=None):
+    """
+    For querysets of CartItem: prefetches each product's running promotions in ONE query
+    into `product.active_promos` (newest first).
+ 
+        CartItem.objects.select_related("product", "variant").prefetch_related(active_promos_prefetch())
+    """
+    now = now or timezone.now()
+    return Prefetch(
+        "product__promotions",
+        queryset=Promotion.objects.filter(start_date__lte=now, end_date__gte=now).order_by("-start_date"),
+        to_attr="active_promos",
+    )
+def price_cart_item(item, qty):
+    product = item.product
+    variant = item.variant
+ 
+    # Real price = the variant's price (falls back to the product price)
+    unit = variant.price if variant else product.price
+ 
+    active = getattr(product, "active_promos", None)
+    if active is None:
+        promo = get_active_promotion(product, timezone.now())
+    else:
+        promo = active[0] if active else None
+ 
+    full = build_pricing(unit, promo)                          # promotion at full effect
+    applied = build_pricing(unit, promo_for_qty(promo, qty))   # what applies at THIS quantity
+ 
+    return {
+        "promo": promo,
+        "full": full,
+        "applied": applied,
+        "qty": qty,
+        "line_original": unit * qty,               # list price x qty
+        "line_saved": applied["off"] * qty,        # promotion saving
+        "line_final": applied["final"] * qty,      # what the customer pays for the goods
+        "shipping": item_shipping(product),        # 0 when the product ships free
+    }
+ 
+ 
+def summarize_lines(lines):
+    """Totals for a list of price_cart_item() results."""
+    subtotal = sum((l["line_original"] for l in lines), ZERO)
+    discount = sum((l["line_saved"] for l in lines), ZERO)
+    shipping_raw = sum((l["shipping"] for l in lines), ZERO)
+    shipping_total = cap_shipping(shipping_raw)
+ 
+    return {
+        "subtotal": subtotal,                         # at list prices, before discounts
+        "discount": discount,                         # promotion savings
+        "shipping_raw": shipping_raw,                 # before the cap
+        "shipping_total": shipping_total,             # capped
+        "shipping_capped": shipping_raw > MAX_SHIPPING_CHARGE,
+        "final_total": subtotal - discount + shipping_total,
+    }
 def ProductDetails(request, slug, sku=None):
     """
     URLs:
       /product/<slug>/           -> plain product page, no variant preselected
       /product/<slug>/<sku>/     -> product page with that variant preselected
     """
+    now = timezone.now()
+
+    # Active promotions, prefetched once for the related-products loop below
+    active_promos_qs = (
+        Promotion.objects
+        .filter(start_date__lte=now, end_date__gte=now)
+        .order_by("-start_date")
+    )
+
     product = get_object_or_404(
         Product.objects.prefetch_related("images", "variants", "variant_options"),
         slug=slug,
     )
- 
-    max_handling_days = product.handling_time
-    estimated_date = timezone.now() + timedelta(days=max_handling_days)
-    now = timezone.now()
- 
-    # Product promotions
-    promotions = Promotion.objects.filter(products=product, start_date__lte=now, end_date__gte=now)
-    if promotions.exists():
-        promo = promotions.first()
-        product.final_price = promo.get_discounted_price(product.price)
-        promo.discounted_price = promo.get_discounted_price(product.price)
-        promo.off_price = promo.get_off_price(product.price)
-    else:
-        product.final_price = product.price
-        product.off_price = product.old_price - product.final_price
- 
-    # Related products
-    related_products = (
-        Product.objects.filter(category__in=product.category.all(), brand=product.brand)
-        .exclude(id=product.id)
-        .prefetch_related("images", "promotions")[:5]
-    )
- 
-    for prd in related_products:
-        promo = prd.promotions.filter(start_date__lte=now, end_date__gte=now).first()
-        if promo:
-            prd.final_price = promo.get_discounted_price(prd.price)
-            prd.discounted_price = promo.get_discounted_price(prd.price)
-            prd.off_price = promo.get_off_price(prd.price)
-        else:
-            prd.final_price = prd.price
-            prd.discounted_price = prd.price
-            prd.off_price = prd.old_price - prd.final_price
- 
-    questions_qs = product.questions.filter(is_deleted=False).select_related("user", "answered_by")
 
+    estimated_date = now + timedelta(days=product.handling_time)
+
+    # ---- Product-level pricing ----
+    promo = get_active_promotion(product, now)
+    pricing = build_pricing(product.price, promo)
+
+    # ---- Related products (no per-item promotion queries) ----
+    related_products = list(
+        Product.objects
+        .filter(category__in=product.category.all(), brand=product.brand)
+        .exclude(id=product.id)
+        .distinct()
+        .prefetch_related(
+            "images",
+            Prefetch("promotions", queryset=active_promos_qs, to_attr="active_promos"),
+        )[:5]
+    )
+    for prd in related_products:
+        prd_promo = prd.active_promos[0] if prd.active_promos else None
+        prd.pricing = build_pricing(prd.price, prd_promo)
+
+    # ---- Q&A ----
+    questions_qs = product.questions.filter(is_deleted=False).select_related("user", "answered_by")
     if request.user.is_authenticated:
         Questions = questions_qs.filter(
             Q(answer__isnull=False) | Q(user=request.user)
@@ -486,62 +720,56 @@ def ProductDetails(request, slug, sku=None):
     Reviews = product.reviews.filter(
         is_active=True,
         is_deleted=False,
-        product=product,
     ).select_related("user").order_by("-created_at")
- 
+
+    # ---- Variants: real price + discounted price per variant ----
     variants = product.variants.select_related("image")
     variant_data = []
     selected_variant = None
- 
+
     for v in variants:
-        variant_promotions = Promotion.objects.filter(products=product, start_date__lte=now, end_date__gte=now)
- 
-        if variant_promotions.exists():
-            promo = variant_promotions.first()
-            final_price = promo.get_discounted_price(v.price)
-            off_price = promo.get_off_price(v.price)
-        else:
-            final_price = v.price
-            off_price = product.old_price - final_price
- 
+        vp = build_pricing(v.price, promo)  # same promo, computed once above
         entry = {
             "id": v.id,
-            "sku": v.sku,  # used to build /product/<slug>/<sku>/ links and to preselect on load
+            "sku": v.sku,
             "name": v.name,
-            "price": float(v.price),
-            "final_price": float(final_price),
-            "off_price": float(off_price),
+            "price": float(vp["price"]),
+            "final_price": float(vp["final"]),
+            "was_price": float(vp["was"]) if vp["was"] else None,
+            "percent_off": float(vp["percent_off"]),
             "stock": v.stock_quantity,
         }
         variant_data.append(entry)
- 
+
         if sku and v.sku == sku:
             selected_variant = entry
- 
-    variants_json = json.dumps(variant_data, cls=DjangoJSONEncoder)
- 
-    can_review = False
 
+    variants_json = json.dumps(variant_data, cls=DjangoJSONEncoder)
+
+    can_review = False
     if request.user.is_authenticated:
         can_review = OrderItem.objects.filter(
             order__user=request.user,
             order__status="delivered",
             product=product,
         ).exists()
- 
+
     wishlist_ids = []
     if request.user.is_authenticated:
         wishlist_ids = WishToBuy.objects.filter(
             user=request.user,
         ).values_list("product_id", flat=True)
- 
+    
     context = {
         "product": product,
-        "promotions": promotions,
+        "promo": promo,
+        "pricing": pricing,  # template uses pricing.final / .was / .percent_off
         "images": product.images.all(),
         "variants": variants,
+        
         "variants_json": variants_json,
-        "options": product.variant_options.all(),
+        # "options": product.variant_options.all(),
+        "options": product.variant_options.order_by("option_name", "id"),
         "related_products": related_products,
         "Reviews": Reviews,
         "Questions": Questions,
@@ -549,137 +777,40 @@ def ProductDetails(request, slug, sku=None):
         "estimated_date": estimated_date,
         "user_wishlist_ids": wishlist_ids,
         "show_message_box": True,
-        "selected_variant": selected_variant,  # None if no sku in URL or sku didn't match any variant
+        "selected_variant": selected_variant,
     }
- 
+
     return render(request, "home/product_details.html", context)
-
-
 
 from accounts.models import Address
 from decimal import Decimal
 
+def _checkout_quantity(session_item, item):
+    """
+    Quantity chosen on the cart page, sanitised: a whole number >= 1 and never above the stock.
+    (The browser sent it, so never trust it as is.)
+    """
+    try:
+        qty = int(session_item.get("quantity", item.quantity))
+    except (TypeError, ValueError):
+        qty = item.quantity
+ 
+    stock = item.variant.stock_quantity if item.variant else item.product.stock_quantity
+    qty = max(1, qty)
+    return min(qty, stock) if stock > 0 else qty
+ 
+ 
+@login_required   # the view reads request.user.* straight away, so anonymous users crashed anyway
 def CheckoutPage(request):
-
+    now = timezone.now()
+ 
     defaultaddresses = Address.objects.filter(user=request.user, is_default=True)
     addresses = Address.objects.filter(user=request.user)
-
+ 
+    # {cart_item_id: {"quantity": ..}} for the items ticked on the cart page
     checkout_items = request.session.get("checkout_items", [])
-    print("checkout_items ",checkout_items)
-    # create lookup dict
     checkout_lookup = {str(i["cart_item_id"]): i for i in checkout_items}
-    print("checkout_lookup ",checkout_lookup)
-    if request.user.is_authenticated:
-        cart = (
-            Cart.objects
-            .filter(user=request.user, is_active=True)
-            .prefetch_related(
-                "items",
-                "items__product",
-                "items__variant",
-                "items__product__images",
-            )
-            .first()
-        )
-    else:
-        cart = (
-            Cart.objects
-            .filter(session_key=request.session.session_key, is_active=True)
-            .prefetch_related(
-                "items",
-                "items__product",
-                "items__variant",
-                "items__product__images",
-            )
-            .first()
-        )
-
-    shipping_total = Decimal(0)
-    additional_total = Decimal(0)
-    subtotal = Decimal(0)
-    total_off_price = Decimal(0)
-    total_price_without_discount = Decimal(0)
-    handling_days = []
-
-    filtered_items = []
-
-    if cart:
-        current_date = timezone.now()
-
-        for cartitem in cart.items.all():
-
-            # skip if not selected for checkout
-            if str(cartitem.id) not in checkout_lookup:
-                continue
-
-            session_item = checkout_lookup[str(cartitem.id)]
-            quantity = session_item.get("quantity", cartitem.quantity)
-
-            product = cartitem.product
-
-            product.total_price_without_discount = cartitem.variant.price
-            promo = (
-                product.promotions
-                .filter(start_date__lte=current_date, end_date__gte=current_date)
-                .first()
-            )
-
-            if promo:
-                final_price = promo.get_discounted_price(cartitem.variant.price)
-
-                product.final_price = final_price
-                product.discounted_price = final_price
-                product.discount_type = promo.discount_type
-                product.discount_value = promo.discount_value
-                product.has_discount = final_price < cartitem.variant.price
-                product.off_price = promo.get_off_price(cartitem.variant.price) 
-
-            else:
-                product.final_price = cartitem.variant.price
-                product.discounted_price = cartitem.variant.price
-                product.discount_type = None
-                product.discount_value = None
-                product.has_discount = False
-                product.off_price = 0
-            handling_days.append(product.handling_time)
-            subtotal += product.final_price * quantity
-            total_price_without_discount += cartitem.variant.price * quantity
-            shipping_total += product.shipping_charges
-            total_off_price += product.off_price
-            additional_total += product.additional_shipping_charges
-
-            cartitem.quantity = quantity
-            filtered_items.append(cartitem)
-    max_handling_days = max(handling_days) if handling_days else 0
-    estimated_date = timezone.now() + timedelta(days=max_handling_days)
-    context = {
-        "cart_items": filtered_items,
-        "subtotal": subtotal,
-        "shipping_total": shipping_total,
-        "total_off_price": total_off_price,
-        "additional_total": additional_total,
-        "final_total": subtotal + shipping_total + additional_total,
-        "estimated_date":estimated_date,
-        "total_price_without_discount":total_price_without_discount
-    }
-
-    return render(
-        request,
-        "home/checkout.html",
-        {
-            "items": context,
-            "defaultaddresses": defaultaddresses,
-            "addresses": addresses
-        }
-    )
-
-
-
-from django.contrib.auth.decorators import login_required
-from django.db.models import Prefetch
-
-@login_required
-def MyCart(request):
+ 
     cart = (
         Cart.objects
         .filter(user=request.user, is_active=True)
@@ -689,82 +820,145 @@ def MyCart(request):
                 queryset=CartItem.objects.filter(
                     is_active=True,
                     is_deleted=False,
-                    product__status="active"
-                ).select_related(
-                    "product",
-                    "variant"
-                ).prefetch_related(
-                    "product__images"
+                    product__status="active",
                 )
+                .select_related("product", "variant")
+                .prefetch_related("product__images", active_promos_prefetch(now)),
             )
         )
         .first()
     )
-   
-    shipping_total = Decimal(0)
-    additional_total = Decimal(0)
-    subtotal = Decimal(0)
-    total_price_without_discount = Decimal(0)
-    total_off_price = Decimal(0)
+ 
+    filtered_items = []
+    lines = []
     handling_days = []
+ 
     if cart:
-        current_date = timezone.now()
-        for cartitem in cart.items.all():
-            base_price=0
-            product = cartitem.product
-            if cartitem.variant:
-                base_price = cartitem.variant.price
-            else:
-                base_price = product.price
-            product.total_price_without_discount = base_price
+        for item in cart.items.all():
+ 
+            # skip items that weren't selected for checkout
+            session_item = checkout_lookup.get(str(item.id))
+            if session_item is None:
+                continue
+ 
+            qty = _checkout_quantity(session_item, item)
+            item.quantity = qty
+ 
+            line = price_cart_item(item, qty)
+            lines.append(line)
+ 
+            # what the template shows for this line
+            item.unit_price = line["full"]["price"]        # variant price
+            item.unit_final = line["applied"]["final"]     # after the promotion
+            item.percent_off = line["applied"]["percent_off"]
+            item.line_original = line["line_original"]
+            item.line_saved = line["line_saved"]
+            item.line_final = line["line_final"]
+ 
+            handling_days.append(item.product.handling_time)
+            filtered_items.append(item)
+ 
+    totals = summarize_lines(lines)
+ 
+    estimated_date = now + timedelta(days=max(handling_days) if handling_days else 0)
+ 
+    context = {
+        "cart_items": filtered_items,
+        "subtotal": totals["subtotal"],               # at list (variant) prices
+        "total_off_price": totals["discount"],        # promotion savings
+        "shipping_raw": totals["shipping_raw"],
+        "shipping_total": totals["shipping_total"],   # capped, free-shipping products add 0
+        "shipping_capped": totals["shipping_capped"],
+        "max_shipping": MAX_SHIPPING_CHARGE,
+        "final_total": totals["final_total"],
+        "estimated_date": estimated_date,
+    }
+ 
+    return render(
+        request,
+        "home/checkout.html",
+        {
+            "items": context,
+            "defaultaddresses": defaultaddresses,
+            "addresses": addresses,
+        },
+    )
 
-            promo = (
-                product.promotions
-                .filter(start_date__lte=current_date, end_date__gte=current_date)
-                .first()
+
+ 
+@login_required
+def MyCart(request):
+    now = timezone.now()
+ 
+    cart = (
+        Cart.objects
+        .filter(user=request.user, is_active=True)
+        .prefetch_related(
+            Prefetch(
+                "items",
+                queryset=CartItem.objects.filter(
+                    is_active=True,
+                    is_deleted=False,
+                    product__status="active",
+                )
+                .select_related("product", "variant")
+                .prefetch_related("product__images", active_promos_prefetch(now)),
             )
-            if promo:
-                final_price = promo.get_discounted_price(base_price)
-
-                product.final_price = final_price
-                product.off_price = promo.get_off_price(base_price) 
-
-                product.discounted_price = final_price
-                product.discount_type = promo.discount_type
-                product.discount_value = promo.discount_value
-                product.has_discount = final_price < base_price
-            else:
-                product.final_price = base_price
-                product.off_price = 0 
-                product.discounted_price = base_price
-                product.discount_type = None
-                product.discount_value = None
-                product.has_discount = False
-            
-            total_price_without_discount += base_price * cartitem.quantity
-            handling_days.append(product.handling_time)
-            subtotal += product.final_price * cartitem.quantity
-            shipping_total += product.shipping_charges
-            additional_total += product.additional_shipping_charges
-            total_off_price += product.off_price
-
-            print("shipping_charges ",product.shipping_charges)
-            print("additional_shipping_charges ",product.additional_shipping_charges)
-
-    max_handling_days = max(handling_days) if handling_days else 0
-    estimated_date = timezone.now() + timedelta(days=max_handling_days)
+        )
+        .first()
+    )
+ 
+    items = list(cart.items.all()) if cart else []
+ 
+    lines = []          # price_cart_item() result per item
+    browser_lines = {}  # per-item pricing rules for the page's JavaScript
+    handling_days = []
+ 
+    for item in items:
+        line = price_cart_item(item, item.quantity)
+        lines.append(line)
+ 
+        item.unit_price = line["full"]["price"]
+        item.unit_final = line["applied"]["final"]
+        item.unit_saved = line["applied"]["off"]
+        item.percent_off = line["applied"]["percent_off"]
+        item.line_saved = line["line_saved"]
+ 
+        product, variant = item.product, item.variant
+        handling_days.append(product.handling_time)
+ 
+        browser_lines[str(item.id)] = {
+            "price": float(line["full"]["price"]),
+            "promo_price": float(line["full"]["final"]) if line["full"]["was"] else None,
+            "promo_percent": float(line["full"]["percent_off"]),
+            "min_qty": promo_min_qty(line["promo"]),
+            "shipping": float(line["shipping"]),   # 0 when the product ships free
+            "stock": variant.stock_quantity if variant else product.stock_quantity,
+        }
+ 
+    totals = summarize_lines(lines)
+ 
+    estimated_date = now + timedelta(days=max(handling_days) if handling_days else 0)
+ 
+    cart_json = json.dumps(
+        {"lines": browser_lines, "max_shipping": float(MAX_SHIPPING_CHARGE)},
+        cls=DjangoJSONEncoder,
+    )
+ 
     context = {
         "cart": cart,
-        "subtotal": subtotal,
-        "shipping_total": shipping_total,
-        "additional_total": additional_total,
-        "final_total": subtotal + shipping_total + additional_total,
-        "estimated_date":estimated_date,
-        "total_price_without_discount":total_price_without_discount,
-        "total_off_price":total_off_price,
+        "items": items,
+        "subtotal": totals["subtotal"],            # at list price, before discounts
+        "total_off_price": totals["discount"],     # "You saved"
+        "shipping_raw": totals["shipping_raw"],
+        "shipping_total": totals["shipping_total"],  # capped
+        "shipping_capped": totals["shipping_capped"],
+        "max_shipping": MAX_SHIPPING_CHARGE,
+        "final_total": totals["final_total"],
+        "estimated_date": estimated_date,
+        "cart_json": cart_json,
     }
     return render(request, "home/cart.html", context)
-
 from Web.models import OrderRequest, Order
 
 @login_required

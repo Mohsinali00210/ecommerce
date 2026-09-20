@@ -37,7 +37,7 @@
       <textarea name="message" rows="3" class="form-control mb-2" placeholder="Write a reply..." required></textarea>
 
       {% if request.user.is_staff %}
-        <select name="status" class="form-select mb-2" style="max-width:200px;">
+        <select name="status" class="form-select mb-2" style="max-width:200px; display:none;">
           {% for value, label in ticket.STATUS_CHOICES %}
             <option value="{{ value }}" {% if ticket.status == value %}selected{% endif %}>{{ label }}</option>
           {% endfor %}

@@ -624,6 +624,7 @@ body{
 .trust-item h6{margin:0; font-size:.95rem; font-weight:600;}
 .trust-item small{color:var(--sz-muted); font-size:.8rem;}
 </style> {% endcomment %}
+
 <style>
   
   [data-gallery]{ position: relative; }
@@ -650,6 +651,124 @@ body{
     border:1px solid rgba(255,255,255,.2);
     background-color:#0e1210;
   }
+  /* =====================================================
+   BADGE STACK — PILL STYLE
+===================================================== */
+
+.badge-stack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.badge-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0.375rem 0.75rem;
+
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  line-height: 1;
+
+  border-radius: 999px;
+  white-space: nowrap;
+
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.badge-tag i {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* Hover lift */
+.badge-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* ---------------------------------------------
+   SALE / DISCOUNT
+--------------------------------------------- */
+
+.badge-sale {
+  background: linear-gradient(135deg, #d94a4a 0%, #b8342e 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ---------------------------------------------
+   FREE SHIPPING
+--------------------------------------------- */
+
+.badge-ship {
+  background: linear-gradient(135deg, #2f6b4f 0%, #1f3d2f 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ---------------------------------------------
+   PRE-ORDER / NEW
+--------------------------------------------- */
+
+.badge-new {
+  background: linear-gradient(135deg, #c79a3a 0%, #a87e26 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ---------------------------------------------
+   OPTIONAL: SUBTLE PULSE ON SALE
+--------------------------------------------- */
+
+.badge-sale:not(.d-none) {
+  animation: badgePulse 2.4s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06),
+                0 0 0 0 rgba(217, 74, 74, 0.5);
+  }
+  50% {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06),
+                0 0 0 6px rgba(217, 74, 74, 0);
+  }
+}
+
+/* ---------------------------------------------
+   RESPONSIVE TIGHTENING
+--------------------------------------------- */
+
+@media (max-width: 576px) {
+  .badge-tag {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.65rem;
+  }
+
+  .badge-tag i {
+    font-size: 0.7rem;
+  }
+}
+
+/* ---------------------------------------------
+   ACCESSIBILITY — REDUCED MOTION
+--------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-tag,
+  .badge-sale {
+    animation: none;
+    transition: none;
+  }
+}
 </style>
 <section class="pb-5">
   <div class="container-xl">
@@ -691,7 +810,7 @@ body{
 
       <!-- Info -->
       <div class="col-lg-6">
-        <div class="badge-stack mb-2" style="position:static; flex-direction:row;">
+        {% comment %} <div class="badge-stack mb-2" style="position:static; flex-direction:row;">
           {% if product.off_price and product.off_price > 0 %}
             {# assumes product.price is the original/old price used for the percent-off calc #}
             <span class="badge-tag badge-sale">-{% widthratio product.off_price product.price 100 %}%</span>
@@ -699,8 +818,32 @@ body{
           {% if product.free_shipping %}
             <span class="badge-tag badge-ship">Free Shipping</span>
           {% endif %}
-        </div>
+        </div> {% endcomment %}
+      <div class="badge-stack mb-3 d-flex flex-wrap align-items-center gap-2"
+          style="position:static;">
 
+        {# Discount badge — always rendered so JS can toggle visibility #}
+        <span class="badge-tag badge-sale {% if not pricing.percent_off %}d-none{% endif %}"
+              id="discountBadge">
+          <i class="bi bi-lightning-charge-fill me-1"></i>
+          -{{ pricing.percent_off|floatformat:"-2" }}%
+        </span>
+
+        {% if product.free_shipping %}
+          <span class="badge-tag badge-ship">
+            <i class="bi bi-truck me-1"></i>
+            Free Shipping
+          </span>
+        {% endif %}
+
+        {% if product.available_for_preorder %}
+          <span class="badge-tag badge-new">
+            <i class="bi bi-clock-history me-1"></i>
+            Pre-Order
+          </span>
+        {% endif %}
+
+      </div>
         <div class="cat text-muted-custom">{{ product.category.first.name }}</div>
         <h1 class="font-display fs-2 mb-2">{{ product.name }}</h1>
 
@@ -717,13 +860,35 @@ body{
           </span>
         </div>
 
-        <div class="price-row mb-3">
+        {% comment %} <div class="price-row mb-3">
           <span class="price-now fs-3" id="priceNow">RS {{ product.final_price|floatformat:2 }}</span>
           {% if product.final_price != product.price  %}
             <span class="price-was fs-5" id="priceWas">RS {{ product.price|floatformat:2 }}</span>
           {% endif %}
+        </div> {% endcomment %}
+        <div class="small text-muted-custom mb-2 d-none" id="promoHint"></div>
+        <div class="price-row mb-2">
+          <span class="price-now fs-3" id="priceNow">RS {{ pricing.final|floatformat:2 }}</span>
+          {# Always rendered (hidden when no discount) — the JS looks it up by id #}
+          <span class="price-was fs-5 {% if not pricing.was %}d-none{% endif %}" id="priceWas">{% if pricing.was %}RS {{ pricing.was|floatformat:2 }}{% endif %}</span>
         </div>
 
+        {# Shipping line #}
+        {% if product.shipping_enabled %}
+          <div class="small mb-3" id="shippingLine">
+            <i class="bi bi-truck me-1"></i> Shipping:
+            {% if product.free_shipping %}
+              {% if product.shipping_charges > 0 %}
+                <span class="price-was">RS {{ product.shipping_charges|floatformat:2 }}</span>
+              {% endif %}
+              <strong class="text-success">FREE</strong>
+            {% elif product.shipping_charges > 0 %}
+              <strong>RS {{ product.shipping_charges|floatformat:2 }}</strong>
+            {% else %}
+              <span class="text-muted-custom">Calculated at checkout</span>
+            {% endif %}
+          </div>
+        {% endif %}
         {% comment %} <p class="text-muted-custom">{{ product.description }}</p> {% endcomment %}
 
         {# ---- Variant option groups (color, size, etc.) ---- #}
@@ -746,7 +911,7 @@ body{
                         style="background:{{ item.value|default:'#ccc' }}"
                         data-value="{{ item.option }}"></span>
                 {% else %}
-                  <span class="size-pill {% if forloop.first %}active{% endif %} {% if not item.in_stock %}disabled{% endif %}"
+                  <span class="size-pill {% if forloop.first %}active{% endif %}"
                         data-value="{{ item.option }}">{{ item.option }}</span>
                 {% endif %}
               {% endfor %}
@@ -763,7 +928,7 @@ body{
           </div>
         </div>
 
-        <div class="d-flex gap-2 mb-3">
+        {% comment %} <div class="d-flex gap-2 mb-3">
           <button class="btn btn-brass btn-lg flex-grow-1" id="addToCartBtn"
                   onclick="Cart.add(getSelectedVariantId('{{ product.id }}'), parseInt(document.getElementById('pdpQty').value))">
             <i class="bi bi-bag-plus me-1"></i> Add to Cart
@@ -775,9 +940,30 @@ body{
           <button class="btn-icon" data-wishlist-btn="{{ product.id }}" onclick="Wishlist.toggle('{{ product.id }}')">
             <i class="bi {% if product.id in user_wishlist_ids %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
           </button>
-        </div>
+        </div> {% endcomment %}
 
-        <div class="filter-card mb-3">
+        {% if product.available_for_preorder %}
+          <div class="alert alert-warning small py-2 mb-2">
+            <i class="bi bi-hourglass-split me-1"></i> Available for pre-order. Adding to cart is not open yet.
+          </div>
+        {% endif %}
+
+        <div class="d-flex gap-2 mb-3">
+          <button class="btn btn-brass btn-lg flex-grow-1" id="addToCartBtn"
+                  {% if product.available_for_preorder %}disabled{% endif %}
+                  onclick="Cart.add(getSelectedVariantId('{{ product.id }}'), parseInt(document.getElementById('pdpQty').value))">
+            <i class="bi bi-bag-plus me-1"></i> Add to Cart
+          </button>
+          <button class="btn btn-outline-ink btn-lg" style="min-width:140px" id="buyNowBtn"
+                  {% if product.available_for_preorder %}disabled{% endif %}
+                  onclick="Cart.add(getSelectedVariantId('{{ product.id }}'), parseInt(document.getElementById('pdpQty').value), true)">
+            Buy Now
+          </button>
+          <button class="btn-icon" data-wishlist-btn="{{ product.id }}" onclick="Wishlist.toggle('{{ product.id }}')">
+            <i class="bi {% if product.id in user_wishlist_ids %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+          </button>
+        </div>
+        {% comment %} <div class="filter-card mb-3">
           <div class="d-flex align-items-center gap-2 mb-2">
             <i class="bi bi-truck text-success"></i>
             <span class="small">Free delivery by {{ estimated_date|date:"D, M j" }}</span>
@@ -786,8 +972,12 @@ body{
             <i class="bi bi-arrow-repeat" style="color:var(--brass)"></i>
             <span class="small">Free 30-day returns, prepaid label included</span>
           </div>
-        </div>
+        </div> {% endcomment %}
 
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="bi bi-truck text-success"></i>
+          <span class="small">{% if product.free_shipping %}Free delivery{% else %}Delivery{% endif %} by {{ estimated_date|date:"D, M j" }}</span>
+        </div>
         <button class="btn btn-outline-ink w-100" data-bs-toggle="modal" data-bs-target="#messageModal">
           <i class="bi bi-chat-square-text me-1"></i> Ask About This Product
         </button>
@@ -893,9 +1083,9 @@ body{
                 <a href="{% url 'home:Product_Details' slug=related.slug %}">
                   <img class="img-primary" src="{{ related.images.first.image.url }}" alt="{{ related.name }}">
                 </a>
-                {% if related.off_price and related.off_price > 0 %}
+                {% if related.pricing.percent_off %}
                   <div class="badge-stack">
-                    <span class="badge-tag badge-sale">-{% widthratio related.off_price related.price 100 %}%</span>
+                    <span class="badge-tag badge-sale">-{{ related.pricing.percent_off|floatformat:"-2" }}%</span>
                   </div>
                 {% endif %}
               </div>
@@ -903,9 +1093,9 @@ body{
               <div class="product-info">
                 <div class="name">{{ related.name }}</div>
                 <div class="price-row mt-1">
-                  <span class="price-now">${{ related.final_price|floatformat:2 }}</span>
-                  {% if related.off_price and related.off_price > 0 %}
-                    <span class="price-was">${{ related.price|floatformat:2 }}</span>
+                  <span class="price-now">RS {{ related.pricing.final|floatformat:2 }}</span>
+                  {% if related.pricing.was %}
+                    <span class="price-was">RS {{ related.pricing.was|floatformat:2 }}</span>
                   {% endif %}
                 </div>
                 <button class="btn btn-brass w-100 mt-3" onclick="Cart.add('{{ related.id }}',1)">Add to Cart</button>
@@ -1052,6 +1242,7 @@ body{
      
   
     const IS_AUTHENTICATED = {{ request.user.is_authenticated|yesno:"true,false" }};
+    const PREORDER_ONLY = {{ product.available_for_preorder|yesno:"true,false" }};
     const LOGIN_URL = "{% url 'login' %}";
     window.Cart = {
 
@@ -1128,20 +1319,19 @@ body{
     };
    
   // Server-provided variant price/stock table — computed in the view per Promotion.
-  const PRODUCT_VARIANTS = {{ variants_json|safe }};
+  {% comment %} const PRODUCT_VARIANTS = {{ variants_json|safe }}; {% endcomment %}
  
-  const selectedOptions = {};
- 
-  function selectOption(groupEl, target) {
+    {% comment %} const selectedOptions = {}; {% endcomment %}
+  {% comment %} function selectOption(groupEl, target) {
     groupEl.querySelectorAll(".variant-swatch, .size-pill").forEach(el => el.classList.remove("active"));
     target.classList.add("active");
     const groupName = groupEl.dataset.optionGroup;
     selectedOptions[groupName] = target.dataset.value;
     document.querySelector(`[data-variant-label="${groupName}"]`).textContent = target.dataset.value;
     updateSelectedVariant();
-  }
+  } {% endcomment %}
  
-  document.querySelectorAll("[data-option-group]").forEach(groupEl => {
+  {% comment %} document.querySelectorAll("[data-option-group]").forEach(groupEl => {
     groupEl.querySelectorAll(".variant-swatch, .size-pill").forEach(el => {
       if (el.classList.contains("disabled")) return;
       el.addEventListener("click", () => selectOption(groupEl, el));
@@ -1149,15 +1339,15 @@ body{
         selectedOptions[groupEl.dataset.optionGroup] = el.dataset.value;
       }
     });
-  });
+  }); {% endcomment %}
  
   // IMPORTANT: assumes Variant.name is built as "<Color> / <Size>" in that option order.
   // If your naming convention differs, change buildVariantName() to match it.
-  function buildVariantName() {
+  {% comment %} function buildVariantName() {
     return Object.values(selectedOptions).join(" / ");
   }
- 
-  function getMatchingVariant() {
+  {% endcomment %}
+  {% comment %} function getMatchingVariant() {
     const name = buildVariantName();
     return PRODUCT_VARIANTS.find(v => v.name === name);
   }
@@ -1165,9 +1355,9 @@ body{
   function getSelectedVariantId(fallbackProductId) {
     const variant = getMatchingVariant();
     return variant ? variant.id : fallbackProductId;
-  }
+  } {% endcomment %}
  
-  function updateSelectedVariant() {
+  {% comment %} function updateSelectedVariant() {
     const variant = getMatchingVariant();
     const priceNow = document.getElementById("priceNow");
     const priceWas = document.getElementById("priceWas");
@@ -1199,16 +1389,16 @@ body{
       stockLabel.className = "small text-danger";
       addBtn.disabled = true;
     }
-  }
+  } {% endcomment %}
  
   // Qty stepper
-  document.querySelectorAll("[data-qty-step]").forEach(btn => {
+  {% comment %} document.querySelectorAll("[data-qty-step]").forEach(btn => {
     btn.addEventListener("click", () => {
       const input = document.getElementById("pdpQty");
       const next = parseInt(input.value) + parseInt(btn.dataset.qtyStep);
       input.value = Math.max(1, next);
     });
-  });
+  }); {% endcomment %}
  
   // Gallery thumb swap
   document.querySelectorAll(".pdp-thumb[data-full]").forEach(thumb => {
@@ -1221,22 +1411,11 @@ body{
  
   // If the URL included a variant SKU (e.g. /product/{{ product.slug }}/{{ selected_variant.sku }}/),
   // the view resolves it server-side into `selected_variant` — preselect those swatches on load.
-  {% if selected_variant %}
-  (function preselectFromUrl() {
-    const parts = "{{ selected_variant.name|escapejs }}".split(" / ");
-    document.querySelectorAll("[data-option-group]").forEach((groupEl, idx) => {
-      const target = groupEl.querySelector(`[data-value="${parts[idx]}"]`);
-      if (target && !target.classList.contains("disabled")) {
-        selectOption(groupEl, target);
-      }
-    });
-  })();
-  {% endif %}
+
  
-  updateSelectedVariant();
  
   // Keep the URL in sync with the selected variant so it can be shared/bookmarked directly.
-  function syncUrlToVariant() {
+  {% comment %} function syncUrlToVariant() {
     const variant = getMatchingVariant();
     console.log("variant "+JSON.stringify(variant) );
     if (!variant || !variant.sku) return;
@@ -1247,9 +1426,374 @@ body{
     cartVariantSKU=variant.sku;
     document.getElementById("priceNow").innerHTML="RS "+variant.final_price;
     document.getElementById("priceWas").innerHTML=variant.final_price==variant.price?"":"RS "+variant.price;
-  }
-  document.querySelectorAll("[data-option-group] .variant-swatch, [data-option-group] .size-pill")
-    .forEach(el => el.addEventListener("click", syncUrlToVariant));
+  } {% endcomment %}
+      // ============ VARIANTS: price + stock ============
+  
+    const PRODUCT_VARIANTS = {{ variants_json|safe }};
+    const PRODUCT_STOCK = {{ product.stock_quantity|default:0 }};
+
+    const selectedOptions = {};
+   
+    let maxQty = Infinity;
+
+    const qtyInput = document.getElementById("pdpQty");
+
+    const money = (n) => `RS ${Number(n).toFixed(2)}`;
+
+    
+
+
+    // =========================================================
+    // SELECT VARIANT OPTION
+    // =========================================================
+
+    function selectOption(groupEl, target) {
+
+        // Remove active from this group
+        groupEl
+            .querySelectorAll(".variant-swatch, .size-pill")
+            .forEach(el => el.classList.remove("active"));
+
+        // Select clicked option
+        target.classList.add("active");
+
+        const groupName = groupEl.dataset.optionGroup;
+
+        selectedOptions[groupName] = target.dataset.value;
+
+        // Update label
+        const label = document.querySelector(
+            `[data-variant-label="${groupName}"]`
+        );
+
+        if (label) {
+            label.textContent = target.dataset.value;
+        }
+
+        // Update price / stock / buttons
+        updateSelectedVariant();
+    }
+
+
+    // =========================================================
+    // OPTION CLICK EVENTS
+    // =========================================================
+
+    document.querySelectorAll("[data-option-group]").forEach(groupEl => {
+
+        const groupName = groupEl.dataset.optionGroup;
+
+        groupEl
+            .querySelectorAll(".variant-swatch, .size-pill")
+            .forEach(el => {
+
+                el.addEventListener("click", () => {
+
+                    // Don't allow unavailable option
+                    if (el.classList.contains("sold-out")) {
+                        return;
+                    }
+
+                    selectOption(groupEl, el);
+                });
+
+                // Existing active option
+                if (el.classList.contains("active")) {
+
+                    selectedOptions[groupName] = el.dataset.value;
+
+                    const label = document.querySelector(
+                        `[data-variant-label="${groupName}"]`
+                    );
+
+                    if (label) {
+                        label.textContent = el.dataset.value;
+                    }
+                }
+            });
+    });
+
+
+    // =========================================================
+    // FIND MATCHING VARIANT
+    // =========================================================
+    const normalize = (arr) =>
+        arr
+            .map(s => String(s).trim().toLowerCase())
+            .sort()
+            .join("|");
+
+    function getMatchingVariant() {
+
+        const values = Object.values(selectedOptions);
+
+        // No options
+        if (!values.length) {
+
+            // Only one variant
+            if (PRODUCT_VARIANTS.length === 1) {
+                return PRODUCT_VARIANTS[0];
+            }
+
+            return null;
+        }
+
+        const wanted = normalize(values);
+
+        return PRODUCT_VARIANTS.find(v => {
+
+            const variantOptions = v.name
+                .split(" / ")
+                .map(x => x.trim());
+
+            return normalize(variantOptions) === wanted;
+
+        }) || null;
+    }
+
+
+    // =========================================================
+    // SELECTED VARIANT ID
+    // =========================================================
+
+    function getSelectedVariantId(fallbackProductId) {
+
+        const variant = getMatchingVariant();
+
+        return variant
+            ? variant.id
+            : fallbackProductId;
+    }
+
+
+    // =========================================================
+    // PRICE
+    // =========================================================
+
+    function renderPrice(variant) {
+
+        const priceNow = document.getElementById("priceNow");
+        const priceWas = document.getElementById("priceWas");
+        const badge = document.getElementById("discountBadge");
+
+        if (!priceNow) return;
+
+        priceNow.textContent = money(variant.final_price);
+
+        // Old price
+        if (variant.was_price) {
+
+            priceWas.textContent = money(variant.was_price);
+            priceWas.classList.remove("d-none");
+
+        } else {
+
+            priceWas.textContent = "";
+            priceWas.classList.add("d-none");
+        }
+
+        // Discount badge
+        if (badge) {
+
+            if (Number(variant.percent_off) > 0) {
+
+                badge.textContent = `-${variant.percent_off}%`;
+                badge.classList.remove("d-none");
+
+            } else {
+
+                badge.classList.add("d-none");
+            }
+        }
+    }
+
+
+    // =========================================================
+    // PURCHASE BUTTONS
+    // =========================================================
+
+    function setPurchaseButtons(canBuy) {
+
+        const disabled = !canBuy;
+
+        const addBtn = document.getElementById("addToCartBtn");
+        const buyBtn = document.getElementById("buyNowBtn");
+
+        if (addBtn) {
+            addBtn.disabled = disabled;
+        }
+
+        if (buyBtn) {
+            buyBtn.disabled = disabled;
+        }
+    }
+
+
+    // =========================================================
+    // QUANTITY
+    // =========================================================
+
+    function setMaxQty(max) {
+
+        maxQty = Math.max(1, Number(max));
+
+        if (parseInt(qtyInput.value) > maxQty) {
+            qtyInput.value = maxQty;
+        }
+    }
+
+
+    // =========================================================
+    // SHOW STOCK
+    // =========================================================
+
+    function showStock(stock) {
+
+        stock = Number(stock || 0);
+
+        const stockLabel = document.getElementById("stockLabel");
+
+        if (stock > 0) {
+
+            stockLabel.innerHTML =
+                `<i class="bi bi-check-circle-fill"></i> In stock (${stock} left)`;
+
+            stockLabel.className = "small text-success";
+
+            setMaxQty(stock);
+
+            // ENABLE BOTH BUTTONS
+            setPurchaseButtons(true);
+
+        } else {
+
+            stockLabel.innerHTML =
+                `<i class="bi bi-x-circle-fill"></i> Out of stock`;
+
+            stockLabel.className = "small text-danger";
+
+            setMaxQty(1);
+
+            // DISABLE BOTH BUTTONS
+            setPurchaseButtons(false);
+        }
+    }
+
+
+    // =========================================================
+    // UPDATE VARIANT
+    // =========================================================
+
+    function updateSelectedVariant() {
+
+        const variant = getMatchingVariant();
+
+        // Product has variants but selected combination doesn't exist
+        if (!variant) {
+
+            const stockLabel = document.getElementById("stockLabel");
+
+            stockLabel.innerHTML =
+                `<i class="bi bi-exclamation-circle"></i> This combination is unavailable`;
+
+            stockLabel.className = "small text-muted-custom";
+
+            // DISABLE BOTH
+            setPurchaseButtons(false);
+
+            return;
+        }
+
+        // Update price
+        renderPrice(variant);
+
+        // Update stock + buttons
+        showStock(variant.stock);
+    }
+
+
+    // =========================================================
+    // MARK SOLD-OUT OPTIONS
+    // =========================================================
+
+    function markSoldOutOptions() {
+
+        if (!PRODUCT_VARIANTS.length) {
+            return;
+        }
+
+        document
+            .querySelectorAll(
+                "[data-option-group] .size-pill, " +
+                "[data-option-group] .variant-swatch"
+            )
+            .forEach(el => {
+
+                const val = normalize([el.dataset.value]);
+
+                const available = PRODUCT_VARIANTS.some(v => {
+
+                    if (Number(v.stock) <= 0) {
+                        return false;
+                    }
+
+                    return v.name
+                        .split(" / ")
+                        .some(part =>
+                            normalize([part]) === val
+                        );
+                });
+
+                el.classList.toggle("sold-out", !available);
+            });
+    }
+
+
+    // =========================================================
+    // QUANTITY BUTTONS
+    // =========================================================
+
+    document.querySelectorAll("[data-qty-step]").forEach(btn => {
+
+        btn.addEventListener("click", () => {
+
+            const current = parseInt(qtyInput.value) || 1;
+
+            const next =
+                current + parseInt(btn.dataset.qtyStep);
+
+            qtyInput.value = Math.min(
+                Math.max(1, next),
+                maxQty
+            );
+        });
+    });
+
+
+    // =========================================================
+    // INITIAL STATE
+    // =========================================================
+
+    // Mark options that have no stock
+    markSoldOutOptions();
+
+    // IMPORTANT:
+    // Run this when page loads so buttons immediately reflect
+    // the currently selected variant.
+    updateSelectedVariant();
+       {% if selected_variant %}
+  (function preselectFromUrl() {
+    const parts = "{{ selected_variant.name|escapejs }}".split(" / ");
+    document.querySelectorAll("[data-option-group]").forEach((groupEl, idx) => {
+      const target = groupEl.querySelector(`[data-value="${parts[idx]}"]`);
+      if (target && !target.classList.contains("disabled")) {
+        selectOption(groupEl, target);
+      }
+    });
+  })();
+  {% endif %}
+  {% comment %} document.querySelectorAll("[data-option-group] .variant-swatch, [data-option-group] .size-pill")
+    .forEach(el => el.addEventListener("click", syncUrlToVariant)); {% endcomment %}
 
 
     

@@ -158,319 +158,317 @@ class AddressSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({field: "This field is required."})
         return data
 
+from django.db.models import Prefetch, Q
+from types import SimpleNamespace
+from decimal import Decimal, ROUND_HALF_UP
+
+TWO_PLACES = Decimal("0.01")
+ZERO = Decimal("0.00")
+ 
+# Shipping in the cart never exceeds this amount (RS).
+MAX_SHIPPING_CHARGE = Decimal("450.00")
+# ---------------------------------------------------------------------------
+# 1) Small change to your existing helper: let it prefetch from a Product
+#    queryset as well as a CartItem queryset. Existing callers are unaffected.
+# ---------------------------------------------------------------------------
+def promo_min_qty(promo):
+    """
+    Minimum quantity the customer must buy for the promotion to apply.
+    Read from Promotion.compare_at  (0 or 1 = applies at any quantity).
+    """
+    return int(promo.compare_at or 0) if promo else 0
+
+def cap_shipping(raw_total):
+    """Cart shipping = sum of the lines, but never more than MAX_SHIPPING_CHARGE."""
+    return min(Decimal(raw_total), MAX_SHIPPING_CHARGE)
+def summarize_lines(lines):
+    """Totals for a list of price_cart_item() results."""
+    subtotal = sum((l["line_original"] for l in lines), ZERO)
+    discount = sum((l["line_saved"] for l in lines), ZERO)
+    shipping_raw = sum((l["shipping"] for l in lines), ZERO)
+    shipping_total = cap_shipping(shipping_raw)
+ 
+    return {
+        "subtotal": subtotal,                         # at list prices, before discounts
+        "discount": discount,                         # promotion savings
+        "shipping_raw": shipping_raw,                 # before the cap
+        "shipping_total": shipping_total,             # capped
+        "shipping_capped": shipping_raw > MAX_SHIPPING_CHARGE,
+        "final_total": subtotal - discount + shipping_total,
+    }
+ 
+def promo_for_qty(promo, qty):
+    """Return the promotion only if `qty` reaches its minimum quantity, else None."""
+    if promo and int(qty) >= promo_min_qty(promo):
+        return promo
+    return None
+def item_shipping(product):
+    if product.free_shipping:
+        return ZERO
+    return (product.shipping_charges or ZERO) + (product.additional_shipping_charges or ZERO)
+ 
+def build_pricing(price, promo):
+    """
+    Single source of truth for every price shown on the page
+    (product, each variant, each related product).
+
+    Returns:
+      price        original / list price
+      final        price after the promotion (== price when no discount)
+      was          original price to strike through, or None when no discount
+      off          amount saved
+      percent_off  0 when no discount. For a percentage promotion this is
+                   exactly promo.discount_value; for a fixed promotion it is
+                   the computed, rounded percentage.
+    """
+    price = Decimal(price)
+    final = price
+    percent_off = Decimal("0")
+
+    if promo and promo.discount_value:
+        if promo.discount_type == "percentage":
+            final = price - (price * promo.discount_value / Decimal("100"))
+            percent_off = promo.discount_value
+        elif promo.discount_type == "fixed":
+            # discount_value = flat amount off. (The old code returned
+            # promo.discounted_price, which is one number for the whole
+            # promotion and can't work when variants have different prices.)
+            final = price - promo.discount_value
+
+    final = max(final, ZERO).quantize(TWO_PLACES, rounding=ROUND_HALF_UP)
+    has_discount = final < price
+
+    if not has_discount:
+        percent_off = Decimal("0")
+    elif not percent_off and price > 0:
+        percent_off = ((price - final) / price * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+
+    return {
+        "price": price,
+        "final": final,
+        "was": price if has_discount else None,
+        "off": (price - final) if has_discount else ZERO,
+        "percent_off": percent_off,
+    }
+def price_cart_item(item, qty):
+    product = item.product
+    variant = item.variant
+ 
+    # Real price = the variant's price (falls back to the product price)
+    unit = variant.price if variant else product.price
+ 
+    active = getattr(product, "active_promos", None)
+    if active is None:
+        promo = get_active_promotion(product, timezone.now())
+    else:
+        promo = active[0] if active else None
+ 
+    full = build_pricing(unit, promo)                          # promotion at full effect
+    applied = build_pricing(unit, promo_for_qty(promo, qty))   # what applies at THIS quantity
+ 
+    return {
+        "promo": promo,
+        "full": full,
+        "applied": applied,
+        "qty": qty,
+        "line_original": unit * qty,               # list price x qty
+        "line_saved": applied["off"] * qty,        # promotion saving
+        "line_final": applied["final"] * qty,      # what the customer pays for the goods
+        "shipping": item_shipping(product),        # 0 when the product ships free
+    }
+def active_promos_prefetch(now=None, lookup="product__promotions"):
+    """
+    CartItem queryset:  .prefetch_related(active_promos_prefetch())
+    Product queryset:   .prefetch_related(active_promos_prefetch(lookup="promotions"))
+ 
+    Puts the running promotions (newest first) into `product.active_promos`.
+    """
+    now = now or timezone.now()
+    return Prefetch(  # noqa: F821  (django.db.models.Prefetch, already imported in your module)
+        lookup,
+        queryset=Promotion.objects.filter(  # noqa: F821
+            start_date__lte=now, end_date__gte=now
+        ).order_by("-start_date"),
+        to_attr="active_promos",
+    )
+ 
+ 
+# ---------------------------------------------------------------------------
+# 2) Serializer
+# ---------------------------------------------------------------------------
 class PlaceOrderSerializer(serializers.Serializer):
     address_id = serializers.IntegerField()
-
+ 
     checkout_items = serializers.ListField(
         child=serializers.DictField(),
-        required=False
+        required=False,
     )
-
+ 
     def validate_address_id(self, value):
         user = self.context["request"].user
-
-        if not Address.objects.filter(
-            id=value,
-            user=user
-        ).exists():
-            raise serializers.ValidationError(
-                "Invalid address."
-            )
-
+ 
+        if not Address.objects.filter(id=value, user=user).exists():
+            raise serializers.ValidationError("Invalid address.")
+ 
         return value
-
+ 
     @transaction.atomic
     def create(self, validated_data):
-
         request = self.context["request"]
         user = request.user
-
+ 
         # -------------------------------------------------
-        # GET CHECKOUT ITEMS FROM SESSION
+        # CHECKOUT ITEMS (session only - the client never sends prices)
         # -------------------------------------------------
-
-        checkout_items = request.session.get(
-            "checkout_items",
-            []
-        )
-
+        checkout_items = request.session.get("checkout_items", [])
+ 
         if not checkout_items:
-            raise serializers.ValidationError(
-                "No checkout items found."
-            )
-
-        # -------------------------------------------------
-        # ADDRESS
-        # -------------------------------------------------
-
-        address = Address.objects.get(
-            id=validated_data["address_id"],
-            user=user
-        )
-
+            raise serializers.ValidationError("No checkout items found.")
+ 
+        address = Address.objects.get(id=validated_data["address_id"], user=user)
+ 
         # -------------------------------------------------
         # PRODUCT / VARIANT IDS
         # -------------------------------------------------
-
         product_ids = []
-
         variant_ids = []
-
+ 
         for item in checkout_items:
-
             try:
-                product_id = int(item["product_id"])
+                product_ids.append(int(item["product_id"]))
             except (KeyError, TypeError, ValueError):
-                raise serializers.ValidationError(
-                    "Invalid product information."
-                )
-
-            product_ids.append(product_id)
-
+                raise serializers.ValidationError("Invalid product information.")
+ 
             if item.get("variant_id"):
                 try:
-                    variant_ids.append(
-                        int(item["variant_id"])
-                    )
+                    variant_ids.append(int(item["variant_id"]))
                 except (TypeError, ValueError):
-                    raise serializers.ValidationError(
-                        "Invalid variant information."
-                    )
-
+                    raise serializers.ValidationError("Invalid variant information.")
+ 
         # -------------------------------------------------
-        # LOAD PRODUCTS
+        # LOAD PRODUCTS (with running promotions prefetched in one query)
         # -------------------------------------------------
-
-        products = Product.objects.filter(
-            id__in=product_ids,
-            status="active"
-        )
-
-        variants = ProductVariant.objects.filter(
-            id__in=variant_ids
-        )
-
-        product_map = {
-            product.id: product
-            for product in products
-        }
-
-        variant_map = {
-            variant.id: variant
-            for variant in variants
-        }
-
-        # -------------------------------------------------
-        # CURRENT TIME
-        # -------------------------------------------------
-
         now = timezone.now()
-
+ 
+        products = (
+            Product.objects
+            .filter(id__in=product_ids, status="active")
+            .prefetch_related(active_promos_prefetch(now, lookup="promotions"))
+        )
+        product_map = {p.id: p for p in products}
+ 
+        variant_map = {
+            v.id: v for v in ProductVariant.objects.filter(id__in=variant_ids)
+        }
+ 
+        # -------------------------------------------------
+        # VALIDATE + PRICE EVERY LINE (nothing written to the DB yet)
+        # -------------------------------------------------
+        lines = []  # (product, variant, qty, priced)
+ 
+        for item in checkout_items:
+            product_id = int(item["product_id"])
+            product = product_map.get(product_id)
+ 
+            if not product:
+                raise serializers.ValidationError(
+                    f"Product with ID {product_id} is no longer available."
+                )
+ 
+            # ---- variant
+            variant = None
+            if item.get("variant_id"):
+                variant = variant_map.get(int(item["variant_id"]))
+ 
+                if not variant:
+                    raise serializers.ValidationError(
+                        f"Selected variant for {product.name} is no longer available."
+                    )
+ 
+                if variant.product_id != product.id:
+                    raise serializers.ValidationError("Invalid product variant.")
+ 
+            # ---- quantity
+            try:
+                qty = int(item.get("quantity", 1))
+            except (TypeError, ValueError):
+                raise serializers.ValidationError(f"Invalid quantity for {product.name}.")
+ 
+            if qty <= 0:
+                raise serializers.ValidationError(f"Invalid quantity for {product.name}.")
+ 
+            # ---- stock
+            if variant:
+                if hasattr(variant, "is_active") and not variant.is_active:
+                    raise serializers.ValidationError(
+                        f"Variant of {product.name} is inactive."
+                    )
+                available = variant.stock_quantity
+            else:
+                available = product.stock_quantity
+ 
+            if available < qty:
+                raise serializers.ValidationError(
+                    f"Not enough stock available for {product.name}."
+                )
+ 
+            # ---- price: same function the cart uses
+            priced = price_cart_item(SimpleNamespace(product=product, variant=variant), qty)
+            lines.append((product, variant, qty, priced))
+ 
+        if not lines:
+            raise serializers.ValidationError("No valid products found for checkout.")
+ 
+        # -------------------------------------------------
+        # TOTALS: same function the cart uses (shipping is summed, then capped)
+        # -------------------------------------------------
+        totals = summarize_lines([priced for *_, priced in lines])
+ 
+        goods_total = totals["subtotal"] - totals["discount"]  # after promotions
+ 
         # -------------------------------------------------
         # CREATE ORDER
         # -------------------------------------------------
-
-        shipping_charges = [
-            p.shipping_charges or Decimal("0")
-            for p in products
-        ]
-
-        max_shipping_charge = (
-            max(shipping_charges)
-            if shipping_charges
-            else Decimal("0")
-        )
-
         order = Order.objects.create(
             user=user,
             shipping_address=address,
             billing_address=address,
             payment_method="COD",
-            shipping_charges=max_shipping_charge,
             status="pending",
+            shipping_charges=totals["shipping_total"],
+            subtotal=goods_total,
+            total_amount=totals["final_total"],
+            # If your Order model has a discount column, store it too:
+            # discount_amount=totals["discount"],
         )
-
-        subtotal = Decimal("0")
-        total_items_created = 0
-
+ 
         # -------------------------------------------------
-        # CREATE ORDER ITEMS
+        # CREATE ORDER ITEMS (unit price = price after promotion at this qty)
         # -------------------------------------------------
-
-        for item in checkout_items:
-
-            product_id = int(item["product_id"])
-
-            product = product_map.get(product_id)
-
-            # Product no longer exists / inactive
-            if not product:
-                raise serializers.ValidationError(
-                    f"Product with ID {product_id} is no longer available."
-                )
-
-            # -------------------------------------------------
-            # VARIANT
-            # -------------------------------------------------
-
-            variant = None
-
-            if item.get("variant_id"):
-
-                variant_id = int(item["variant_id"])
-
-                variant = variant_map.get(variant_id)
-
-                if not variant:
-                    raise serializers.ValidationError(
-                        f"Selected variant for {product.name} is no longer available."
-                    )
-
-                # Make sure variant belongs to this product
-                if variant.product_id != product.id:
-                    raise serializers.ValidationError(
-                        "Invalid product variant."
-                    )
-
-            # -------------------------------------------------
-            # QUANTITY
-            # -------------------------------------------------
-
-            try:
-                qty = int(item.get("quantity", 1))
-            except (TypeError, ValueError):
-
-                raise serializers.ValidationError(
-                    f"Invalid quantity for {product.name}."
-                )
-
-            if qty <= 0:
-                raise serializers.ValidationError(
-                    f"Invalid quantity for {product.name}."
-                )
-
-            # -------------------------------------------------
-            # STOCK CHECK
-            # -------------------------------------------------
-
-            if variant:
-
-                if hasattr(variant, "is_active"):
-                    if not variant.is_active:
-                        raise serializers.ValidationError(
-                            f"Variant of {product.name} is inactive."
-                        )
-
-                if variant.stock_quantity < qty:
-                    raise serializers.ValidationError(
-                        f"Not enough stock available for {product.name}."
-                    )
-
-            else:
-
-                if product.stock_quantity < qty:
-                    raise serializers.ValidationError(
-                        f"Not enough stock available for {product.name}."
-                    )
-
-            # -------------------------------------------------
-            # BASE PRICE
-            # -------------------------------------------------
-
-            base_price = (
-                variant.price
-                if variant
-                else product.price
-            )
-
-            base_price = Decimal(str(base_price))
-
-            final_price = base_price
-
-            # -------------------------------------------------
-            # ACTIVE PROMOTION
-            # -------------------------------------------------
-
-            promo = (
-                Promotion.objects
-                .filter(
-                    products=product,
-                    start_date__lte=now,
-                    end_date__gte=now,
-                    is_active=True
-                )
-                .first()
-            )
-
-            if promo:
-
-                final_price = promo.get_discounted_price(
-                    base_price
-                )
-
-                final_price = Decimal(
-                    str(final_price)
-                )
-
-            # -------------------------------------------------
-            # CREATE ORDER ITEM
-            # -------------------------------------------------
-
+        for product, variant, qty, priced in lines:
             OrderItem.objects.create(
                 order=order,
                 product=product,
                 variant=variant,
                 quantity=qty,
-                price=final_price
+                price=priced["applied"]["final"],
             )
+        purchased = Q()
+        for product, variant, qty, priced in lines:
+            purchased |= Q(product=product, variant=variant)  # variant=None matches NULL
+        CartItem.objects.filter(cart__user=user).filter(purchased).delete()
 
-            subtotal += final_price * qty
 
-            total_items_created += 1
-
-        # -------------------------------------------------
-        # MAKE SURE ORDER HAS ITEMS
-        # -------------------------------------------------
-
-        if total_items_created == 0:
-
-            raise serializers.ValidationError(
-                "No valid products found for checkout."
-            )
-
-        # -------------------------------------------------
-        # ORDER TOTAL
-        # -------------------------------------------------
-
-        order.subtotal = subtotal
-
-        order.total_amount = (
-            subtotal +
-            max_shipping_charge
-        )
-
-        order.save(
-            update_fields=[
-                "subtotal",
-                "total_amount",
-                "shipping_charges"
-            ]
-        )
-
+        # Let the view read the breakdown without recalculating.
+        self.pricing = totals
+ 
         # -------------------------------------------------
         # CLEAR CHECKOUT SESSION
         # -------------------------------------------------
-
-        request.session.pop(
-            "checkout_items",
-            None
-        )
-
+        request.session.pop("checkout_items", None)
         request.session.modified = True
-
+ 
         return order
-
-
 
 
 from rest_framework import serializers

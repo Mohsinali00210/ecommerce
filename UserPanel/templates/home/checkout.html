@@ -665,7 +665,7 @@
                     </h5>
 
 
-                    <!-- Products -->
+                    <!-- Products: line total = quantity x price, with the variant price struck through when discounted -->
                     <div class="d-flex flex-column gap-3 mb-3">
 
 
@@ -696,6 +696,8 @@
 
                                 <div class="small text-muted">
 
+                                    {{ cart.variant.name }}
+                                    ·
                                     SKU:
                                     {{ cart.variant.sku }}
 
@@ -707,8 +709,21 @@
                                 <div class="small text-muted-custom">
 
                                     Qty {{ cart.quantity }}
+                                    ×
+                                    RS {{ cart.unit_final|floatformat:2 }}
 
                                 </div>
+
+
+                                {% if cart.product.free_shipping %}
+
+                                <div class="small text-success">
+
+                                    <i class="bi bi-truck me-1"></i>Free shipping
+
+                                </div>
+
+                                {% endif %}
 
                             </div>
 
@@ -716,46 +731,34 @@
                             <!-- Price -->
                             <div class="text-end">
 
+                                <div class="small fw-semibold {% if cart.line_saved %}text-danger{% endif %}">
 
-                                {% if cart.product.has_discount %}
+                                    RS {{ cart.line_final|floatformat:2 }}
 
-                                    <div class="small fw-semibold">
-
-                                        RS
-                                        {{ cart.product.final_price|floatformat:2 }}
-
-                                    </div>
+                                </div>
 
 
-                                    <small class="text-decoration-line-through text-muted">
+                                {% if cart.line_saved %}
 
-                                        RS
+                                    <small class="text-decoration-line-through text-muted d-block">
 
-                                        {% if cart.variant %}
-                                            {{ cart.variant.price|floatformat:2 }}
-                                        {% else %}
-                                            {{ cart.product.price|floatformat:2 }}
-                                        {% endif %}
+                                        RS {{ cart.line_original|floatformat:2 }}
 
                                     </small>
 
 
-                                {% else %}
+                                    <span class="badge badge-sale">
+                                        -{{ cart.percent_off|floatformat:"-2" }}%
+                                    </span>
 
-                                    <div class="small fw-semibold">
 
-                                        RS
+                                    <div class="small text-success">
 
-                                        {% if cart.variant %}
-                                            {{ cart.variant.price|floatformat:2 }}
-                                        {% else %}
-                                            {{ cart.product.price|floatformat:2 }}
-                                        {% endif %}
+                                        Save RS {{ cart.line_saved|floatformat:2 }}
 
                                     </div>
 
                                 {% endif %}
-
 
                             </div>
 
@@ -769,7 +772,7 @@
                     <hr>
 
 
-                    <!-- Subtotal -->
+                    <!-- Subtotal (at list / variant prices) -->
                     <div class="summary-row d-flex justify-content-between">
 
                         <span>
@@ -783,31 +786,17 @@
                     </div>
 
 
-                    <!-- Shipping -->
-                    <div class="summary-row d-flex justify-content-between">
+                    <!-- Saved amount -->
+                    {% if items.total_off_price > 0 %}
+
+                    <div class="summary-row d-flex justify-content-between text-success">
 
                         <span>
-                            Shipping
+                            You Saved
                         </span>
 
                         <span>
-                            RS {{ items.shipping_total|floatformat:2 }}
-                        </span>
-
-                    </div>
-
-
-                    <!-- Additional Shipping -->
-                    {% if items.additional_total > 0 %}
-
-                    <div class="summary-row d-flex justify-content-between">
-
-                        <span>
-                            Additional Shipping
-                        </span>
-
-                        <span>
-                            RS {{ items.additional_total|floatformat:2 }}
+                            -RS {{ items.total_off_price|floatformat:2 }}
                         </span>
 
                     </div>
@@ -815,18 +804,36 @@
                     {% endif %}
 
 
-                    <!-- Discount -->
-                    {% if items.total_off_price > 0 %}
-
-                    <div class="summary-row d-flex justify-content-between text-success">
+                    <!-- Shipping: sum of the lines, free-shipping products add 0, never above the cap -->
+                    <div class="summary-row d-flex justify-content-between">
 
                         <span>
-                            Discount
+                            Shipping
                         </span>
 
                         <span>
-                            -RS {{ items.total_off_price|floatformat:2 }}
+
+                            {% if items.shipping_capped %}
+                                <small class="text-decoration-line-through text-muted me-1">
+                                    RS {{ items.shipping_raw|floatformat:2 }}
+                                </small>
+                            {% endif %}
+
+                            {% if items.shipping_total > 0 %}
+                                RS {{ items.shipping_total|floatformat:2 }}
+                            {% else %}
+                                <strong class="text-success">FREE</strong>
+                            {% endif %}
+
                         </span>
+
+                    </div>
+
+                    {% if items.shipping_capped %}
+
+                    <div class="small text-muted mb-2">
+
+                        Shipping is capped at RS {{ items.max_shipping|floatformat:0 }}.
 
                     </div>
 

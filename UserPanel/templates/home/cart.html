@@ -6,7 +6,7 @@
   <section class="py-4 border-bottom" style="border-color:var(--border) !important;">
     <div class="container-xl">
       <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
-        <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
         <li class="breadcrumb-item active">Cart</li>
       </ol></nav>
       <h1 class="font-display mb-0">Your Cart</h1>
@@ -36,13 +36,11 @@
             <a href="{% url 'home:home' %}" class="btn btn-brass mt-2">Continue Shopping</a>
           </div>
 
-          {% if cart and cart.items.all %}
+          {% if cart and items %}
 
-            {% for item in cart.items.all %}
+            {% for item in items %}
 
-            <div class="cart-item border rounded-4 p-3 mb-3"
-                 data-id="{{ item.id }}"
-                 data-price="{% if item.product.has_discount %}{{ item.product.final_price }}{% else %}{{ item.variant.price }}{% endif %}">
+            <div class="cart-item border rounded-4 p-3 mb-3" data-id="{{ item.id }}">
 
                 <div class="row align-items-center">
 
@@ -54,8 +52,7 @@
                               value="{{ item.id }}"
                               data-itemid="{{ item.id }}"
                               data-productid="{{ item.product.id }}"
-                              data-variantid="{% if item.variant %}{{ item.variant.id }}{% endif %}"
-                              data-price="{% if item.product.has_discount %}{{ item.product.final_price }}{% else %}{{ item.variant.price }}{% endif %}">
+                              data-variantid="{% if item.variant %}{{ item.variant.id }}{% endif %}">
                     </div>
 
                     <!-- Product Image -->
@@ -81,14 +78,12 @@
                             SKU: {{ item.variant.sku }}
                         </small>
                         <br>
+                        <small>{{ item.variant.name }}</small>
+                        <br>
                         {% endif %}
 
-                        {% if item.variant.color %}
-                            <small>Color : {{ item.variant.color }}</small><br>
-                        {% endif %}
-
-                        {% if item.variant.size %}
-                            <small>Size : {{ item.variant.size }}</small>
+                        {% if item.product.free_shipping %}
+                            <small class="text-success"><i class="bi bi-truck me-1"></i>Free shipping</small>
                         {% endif %}
 
                     </div>
@@ -120,26 +115,24 @@
 
                     </div>
 
-                    <!-- Price -->
+                    <!-- Price (per unit: variant price, promotion price, saving) -->
                     <div class="col-md-2 text-center">
 
-                        {% if item.product.has_discount %}
+                        <div class="fw-bold line-final {% if item.unit_saved %}text-danger{% endif %}">
+                            RS {{ item.unit_final|floatformat:2 }}
+                        </div>
 
-                            <div class="fw-bold text-danger line-total">
-                                RS {{ item.product.final_price|floatformat:2 }}
-                            </div>
+                        <small class="text-decoration-line-through text-muted line-was {% if not item.unit_saved %}d-none{% endif %}">
+                            RS {{ item.unit_price|floatformat:2 }}
+                        </small>
 
-                            <small class="text-decoration-line-through text-muted">
-                                RS {{ item.variant.price|floatformat:2 }}
-                            </small>
+                        <span class="badge badge-sale line-badge {% if not item.unit_saved %}d-none{% endif %}">-{{ item.percent_off|floatformat:"-2" }}%</span>
 
-                        {% else %}
+                        <div class="small text-success line-saved {% if not item.unit_saved %}d-none{% endif %}">
+                            You save RS {{ item.line_saved|floatformat:2 }}
+                        </div>
 
-                            <div class="fw-bold line-total">
-                                RS {{ item.variant.price|floatformat:2 }}
-                            </div>
-
-                        {% endif %}
+                        <div class="small text-muted-custom line-hint d-none"></div>
 
                     </div>
 
@@ -174,7 +167,7 @@
         </div>
 
         <!-- Order summary -->
-         {% if cart and cart.items.all %}
+         {% if cart and items %}
         <div class="col-lg-4">
           <div class="card rounded-4 shadow-sm">
 
@@ -184,6 +177,7 @@
                     Order Summary
                 </h5>
 
+                <!-- Subtotal at list (variant) prices -->
                 <div class="d-flex justify-content-between mb-2">
 
                     <span>Subtotal</span>
@@ -194,28 +188,8 @@
 
                 </div>
 
-                <div class="d-flex justify-content-between mb-2">
-
-                    <span>Shipping</span>
-
-                    <strong id="summaryShipping">
-                        RS {{ shipping_total|floatformat:2 }}
-                    </strong>
-
-                </div>
-
-                <div class="d-flex justify-content-between mb-2">
-
-                    <span>Additional Shipping</span>
-
-                    <strong id="summaryAdditional">
-                        RS {{ additional_total|floatformat:2 }}
-                    </strong>
-
-                </div>
-
-                <div class="d-flex justify-content-between mb-2 text-success" id="summaryDiscountRow"
-                     {% if not total_off_price or total_off_price == 0 %}style="display:none"{% endif %}>
+                <!-- Promotion savings -->
+                <div class="d-flex justify-content-between mb-2 text-success {% if not total_off_price %}d-none{% endif %}" id="summaryDiscountRow">
 
                     <span>You Saved</span>
 
@@ -223,6 +197,25 @@
                         -RS {{ total_off_price|floatformat:2 }}
                     </strong>
 
+                </div>
+
+                <!-- Shipping: sum of the lines, free-shipping products add 0, never above the cap -->
+                <div class="d-flex justify-content-between mb-1">
+
+                    <span>Shipping</span>
+
+                    <span>
+                        <small class="text-decoration-line-through text-muted me-1 {% if not shipping_capped %}d-none{% endif %}" id="summaryShippingWas">
+                            RS {{ shipping_raw|floatformat:2 }}
+                        </small>
+                        <strong id="summaryShipping" class="{% if shipping_total == 0 %}text-success{% endif %}">
+                            {% if shipping_total > 0 %}RS {{ shipping_total|floatformat:2 }}{% else %}FREE{% endif %}
+                        </strong>
+                    </span>
+
+                </div>
+                <div class="small text-muted mb-2 {% if not shipping_capped %}d-none{% endif %}" id="summaryShippingNote">
+                    Shipping is capped at RS {{ max_shipping|floatformat:0 }}.
                 </div>
 
                 <hr>
@@ -237,7 +230,7 @@
 
                 </div>
 
-                
+
                   <p class="small text-muted mt-3">
 
                       Estimated Delivery :
@@ -247,9 +240,9 @@
 
                   </p>
                   <button type="button" class="checkout-btn  btn btn-brass w-100">Proceed to Checkout</button>
-                  
+
                 </div>
-                
+
               </div>
             </div>
           {% endif %}
@@ -265,7 +258,6 @@
 
 {% block extra_js %}
 <script>
-  
 
   function showAlert(message, type) {
     if (typeof window.showAlert === "function" && window.showAlert !== showAlert) {
@@ -275,20 +267,139 @@
     alert(message);
   }
 
+  // ============ PRICING RULES (from the server) ============
+  // CART.lines[itemId] = { price, promo_price, promo_percent, min_qty, shipping, stock }
+  //   price         variant price (product price if there is no variant)
+  //   promo_price   price after the promotion, or null when no promotion is running
+  //   min_qty       the promotion only applies once quantity >= min_qty (0/1 = any quantity)
+  //   shipping      shipping + additional shipping for the line, 0 when the product ships free
+  // CART.max_shipping = the cap on the shipping sum
+  const CART = {{ cart_json|safe }};
 
-  // ---------- Select all ----------
+  const money = (n) => `RS ${(Math.round(Number(n) * 100) / 100).toFixed(2)}`;
+  const qtyOf = (row) => Math.max(1, parseInt(row.querySelector(".qty-select").value, 10) || 1);
+
+  function unitPricing(line, qty) {
+    const hasPromo = line.promo_price !== null && line.promo_price !== undefined;
+    if (hasPromo && qty >= line.min_qty) {
+      return { final: line.promo_price, was: line.price, percent: line.promo_percent, applied: true };
+    }
+    return { final: line.price, was: null, percent: 0, applied: false };
+  }
+
+  // Re-draw one row's price block for its current quantity
+  function renderRow(row) {
+    const line = CART.lines[row.dataset.id];
+    if (!line) return;
+
+    const qty = qtyOf(row);
+    const p = unitPricing(line, qty);
+
+    const finalEl = row.querySelector(".line-final");
+    const wasEl   = row.querySelector(".line-was");
+    const badgeEl = row.querySelector(".line-badge");
+    const savedEl = row.querySelector(".line-saved");
+    const hintEl  = row.querySelector(".line-hint");
+
+    finalEl.textContent = money(p.final);
+    finalEl.classList.toggle("text-danger", !!p.was);
+
+    if (p.was) {
+      wasEl.textContent = money(p.was);
+      badgeEl.textContent = `-${p.percent}%`;
+      savedEl.textContent = `You save ${money((p.was - p.final) * qty)}`;
+    }
+    wasEl.classList.toggle("d-none", !p.was);
+    badgeEl.classList.toggle("d-none", !p.was);
+    savedEl.classList.toggle("d-none", !p.was);
+
+    // A promotion exists but the quantity is too low: say what unlocks it
+    const hasPromo = line.promo_price !== null && line.promo_price !== undefined;
+    if (hasPromo && !p.applied) {
+      hintEl.textContent = `Buy ${line.min_qty}+ and pay ${money(line.promo_price)} each`;
+      hintEl.classList.remove("d-none");
+    } else {
+      hintEl.classList.add("d-none");
+    }
+  }
+
+  // ---------- Live summary (only the selected items) ----------
+  function recomputeSummary() {
+    if (!document.getElementById("summaryTotal")) return;   // empty cart: no summary card
+
+    let original = 0;     // list price of the selected lines
+    let discount = 0;     // promotion savings
+    let shippingRaw = 0;  // sum of shipping before the cap (free-shipping lines add 0)
+
+    document.querySelectorAll(".cart-item").forEach(row => {
+      renderRow(row);
+
+      const check = row.querySelector(".cart-item-check");
+      const line = CART.lines[row.dataset.id];
+      if (!check || !check.checked || !line) return;
+
+      const qty = qtyOf(row);
+      const p = unitPricing(line, qty);
+
+      original    += line.price * qty;
+      discount    += p.was ? (p.was - p.final) * qty : 0;
+      shippingRaw += line.shipping;
+    });
+
+    const shipping = Math.min(shippingRaw, CART.max_shipping);
+    const capped = shippingRaw > CART.max_shipping;
+    const total = original - discount + shipping;
+    const isFree = original > 0 && shipping === 0;
+
+    document.getElementById("summarySubtotal").textContent = money(original);
+
+    document.getElementById("summaryDiscountRow").classList.toggle("d-none", discount <= 0);
+    document.getElementById("summaryDiscount").textContent = `-${money(discount)}`;
+
+    const shippingEl = document.getElementById("summaryShipping");
+    shippingEl.textContent = isFree ? "FREE" : money(shipping);
+    shippingEl.classList.toggle("text-success", isFree);
+
+    document.getElementById("summaryShippingWas").textContent = money(shippingRaw);
+    document.getElementById("summaryShippingWas").classList.toggle("d-none", !capped);
+    document.getElementById("summaryShippingNote").classList.toggle("d-none", !capped);
+
+    document.getElementById("summaryTotal").textContent = money(total);
+  }
+
+  // ---------- Select all / single item ----------
+  function syncSelectAll() {
+    const all = Array.from(document.querySelectorAll(".cart-item-check"));
+    document.getElementById("selectAll").checked = all.length > 0 && all.every(c => c.checked);
+  }
+
   $("#selectAll").change(function () {
     $(".cart-item-check").prop("checked", $(this).prop("checked"));
     recomputeSummary();
   });
 
-  // ---------- Quantity +/- ----------
+  document.querySelectorAll(".cart-item-check").forEach(cb => {
+    cb.addEventListener("change", () => {
+      syncSelectAll();
+      recomputeSummary();
+    });
+  });
+
+  // ---------- Quantity +/- (capped at stock; promotion re-evaluated on every change) ----------
   document.querySelectorAll(".qty-minus, .qty-plus").forEach(btn => {
     btn.addEventListener("click", function () {
       const id = this.dataset.id;
+      const line = CART.lines[id];
       const qtyInput = document.querySelector(`.qty-select[data-id="${id}"]`);
-      let qty = parseInt(qtyInput.value, 10) || 1;
-      qty = this.classList.contains("qty-plus") ? qty + 1 : Math.max(1, qty - 1);
+      const before = parseInt(qtyInput.value, 10) || 1;
+      const max = Math.max(1, line ? line.stock : Infinity);
+
+      const qty = this.classList.contains("qty-plus")
+        ? Math.min(before + 1, max)
+        : Math.max(1, before - 1);
+
+      if (qty === before) return;
+
       qtyInput.value = qty;
       recomputeSummary();
       updateCartItemQuantity(id, qty); // fire-and-forget persist — see stub below
@@ -316,7 +427,11 @@
       const row = this.closest(".cart-item");
       removeCartItem(id)
       row.remove();
+      syncSelectAll();
       recomputeSummary();
+      if (!document.querySelector(".cart-item")) {
+        document.getElementById("cartEmptyState")?.classList.remove("d-none");
+      }
       removeCartItemFromServer(id); // fire-and-forget persist — see stub below
     });
   });
@@ -354,66 +469,27 @@
     }).catch(() => showAlert("Couldn't remove the item — please refresh.", "danger"));
   }
 
-  // ---------- Live summary recompute ----------
-  // Shipping / additional shipping / discount are scaled from the server-rendered
-  // totals in proportion to what's currently selected, since no live quote endpoint
-  // was provided. Swap this for a real AJAX quote call if you have one.
-  const SERVER_SUBTOTAL = parseFloat("{{ subtotal|default:0 }}") || 0;
-  const SERVER_SHIPPING = parseFloat("{{ shipping_total|default:0 }}") || 0;
-  const SERVER_ADDITIONAL = parseFloat("{{ additional_total|default:0 }}") || 0;
-  const SERVER_DISCOUNT = parseFloat("{{ total_off_price|default:0 }}") || 0;
-
-  function recomputeSummary() {
-    let subtotal = 0;
-
-    document.querySelectorAll(".cart-item").forEach(row => {
-      const check = row.querySelector(".cart-item-check");
-      const qtyInput = row.querySelector(".qty-select");
-      if (!check || !qtyInput) return;
-
-      const qty = parseInt(qtyInput.value, 10) || 1;
-      const unitPrice = parseFloat(row.dataset.price) || 0;
-
-      if (check.checked) subtotal += unitPrice * qty;
-    });
-
-    const ratio = SERVER_SUBTOTAL > 0 ? subtotal / SERVER_SUBTOTAL : 0;
-    const shipping = subtotal === 0 ? 0 : SERVER_SHIPPING;
-    const additional = subtotal === 0 ? 0 : SERVER_ADDITIONAL * ratio;
-    const discount = SERVER_DISCOUNT * ratio;
-    const total = Math.max(0, subtotal + shipping + additional - discount);
-
-    document.getElementById("summarySubtotal").textContent = `RS ${subtotal.toFixed(2)}`;
-    document.getElementById("summaryShipping").textContent = `RS ${shipping.toFixed(2)}`;
-    document.getElementById("summaryAdditional").textContent = `RS ${additional.toFixed(2)}`;
-    document.getElementById("summaryTotal").textContent = `RS ${total.toFixed(2)}`;
-
-    const discountRow = document.getElementById("summaryDiscountRow");
-    if (discount > 0) {
-      discountRow.style.display = "flex";
-      document.getElementById("summaryDiscount").textContent = `-RS ${discount.toFixed(2)}`;
-    } else {
-      discountRow.style.display = "none";
-    }
-  }
-
+  // ---------- Init ----------
+  syncSelectAll();
   recomputeSummary();
 
   // ---------- Checkout button ----------
-  document.querySelector(".checkout-btn").addEventListener("click", function (e) {
+  document.querySelector(".checkout-btn")?.addEventListener("click", function (e) {
     e.preventDefault();
     const selectedItems = [];
 
     document.querySelectorAll(".item-check:checked").forEach(check => {
       const cartItem = check.closest(".cart-item");
+      const line = CART.lines[cartItem.dataset.id];
+      const quantity = qtyOf(cartItem);
+
       selectedItems.push({
         cart_item_id: check.dataset.itemid || null,
         product_id: check.dataset.productid || null,
         variant_id: check.dataset.variantid || null,
-        quantity: parseInt(
-          cartItem.querySelector(".qty-select").value
-        ),
-        price: parseFloat(check.dataset.price)
+        quantity: quantity,
+        // Display value only — the server must recompute the price itself
+        price: line ? unitPricing(line, quantity).final : 0
       });
     });
 
