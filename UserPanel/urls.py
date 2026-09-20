@@ -39,6 +39,8 @@ urlpatterns = [
         path("track-order/", views.TrackOrderPageView.as_view(), name="track-order"),
         path("api/track-order/", views.TrackOrderAPIView.as_view(), name="track-order-api"),
         path("api/track-order/<str:number>/", views.TrackOrderAPIView.as_view(), name="track-order-api-detail"),
+             path("api/topbar/", views.topbar_items, name="topbar-items"),
+
 ]
 
 # In your project urls.py:

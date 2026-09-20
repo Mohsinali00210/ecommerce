@@ -1,0 +1,5 @@
+{% comment %} templates/partials/topbar_item.html — one topbar entry. Expects `item` and `side` ("left" / "right"). {% endcomment %}
+{% if item.kind == "divider" %}<span class="divider {{ item.css_inline }}">|</span>
+{% elif item.kind == "link" and item.href %}<a href="{{ item.href }}" class="{% if side == 'left' %}topbar-perk {{ item.css_flex }}{% else %}{{ item.css_inline }}{% endif %}"{% if item.open_in_new_tab %} target="_blank" rel="noopener noreferrer"{% endif %}>{% if item.icon %}<i class="bi {{ item.icon }}"></i> {% endif %}{{ item.label }}</a>
+{% else %}<span class="topbar-perk {{ item.css_flex }}">{% if item.icon %}<i class="bi {{ item.icon }}"></i> {% endif %}{{ item.label }}</span>
+{% endif %}

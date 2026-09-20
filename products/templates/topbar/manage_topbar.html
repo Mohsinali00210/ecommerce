@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+{# templates/home/manage/topbar.html #}
+
+{% block title %}Topbar — Manage{% endblock %}
+
+{% block content %}
+
+<!-- ============ PAGE HEADER ============ -->
+<section class="py-4 border-bottom" style="border-color:var(--border) !important;">
+  <div class="container-xl d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+      <h1 class="font-display mb-1">Topbar</h1>
+      <p class="text-muted-custom small mb-0">
+        The strip at the very top of every page (you can see it above).
+        Drag <i class="bi bi-grip-vertical"></i> to reorder, or drag between the two columns to move an item to the other side.
+      </p>
+    </div>
+    <button type="button" class="btn btn-dark" id="addItemBtn">
+      <i class="bi bi-plus-lg me-1"></i> Add item
+    </button>
+  </div>
+</section>
+
+<!-- ============ ITEMS ============ -->
+<section class="py-4">
+  <div class="container-xl">
+
+    {% if not has_items %}
+    <div class="alert alert-light border d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <span>The topbar is empty, so nothing is shown on the site.</span>
+      <button type="button" class="btn btn-sm btn-outline-ink" id="seedBtn">
+        Add the starter items
+      </button>
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+      {% for side, title, rows in columns %}
+      <div class="col-lg-6">
+        <h5 class="font-display mb-2">{{ title }}</h5>
+
+        <ul class="topbar-list list-unstyled p-2 border rounded mb-0"
+            data-side="{{ side }}"
+            style="min-height:68px; border-style:dashed !important;">
+
+          {% for item in rows %}
+          <li class="topbar-row d-flex align-items-center gap-2 p-2 border rounded mb-2 {% if not item.is_active %}opacity-50{% endif %}"
+              style="background:var(--bg-elevated);"
+              data-id="{{ item.id }}">
+
+            <span class="drag-handle text-muted-custom px-1" style="cursor:grab;" title="Drag to reorder">
+              <i class="bi bi-grip-vertical"></i>
+            </span>
+
+            <span style="width:1.5rem; text-align:center;">
+              {% if item.icon %}<i class="bi {{ item.icon }}"></i>{% endif %}
+            </span>
+
+            <div class="flex-grow-1 small" style="min-width:0;">
+              {% if item.kind == "divider" %}
+                <em class="text-muted-custom">Divider &nbsp;|</em>
+              {% else %}
+                <strong>{{ item.label }}</strong>
+                {% if item.kind == "link" %}
+                  <div class="text-muted-custom text-truncate">{{ item.href }}</div>
+                {% endif %}
+              {% endif %}
+            </div>
+
+            <span class="badge bg-secondary">{{ item.get_kind_display }}</span>
+            {% if item.visible_from != "always" %}
+              <span class="badge bg-light text-dark border">{{ item.visible_from }}+</span>
+            {% endif %}
+
+            <div class="form-check form-switch mb-0" title="Show on the site">
+              <input class="form-check-input js-toggle" type="checkbox" {% if item.is_active %}checked{% endif %}>
+            </div>
+
+            <button type="button" class="btn btn-sm btn-outline-secondary js-edit" title="Edit">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger js-delete" title="Delete">
+              <i class="bi bi-trash"></i>
+            </button>
+          </li>
+          {% endfor %}
+
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============ ADD / EDIT MODAL ============ -->
+<div class="modal fade" id="topbarModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title font-display" id="topbarModalTitle">Add item</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="fId">
+
+        <div class="row g-3">
+
+          <div class="col-md-6">
+            <label class="form-label" for="fKind">Type</label>
+            <select class="form-select" id="fKind">
+              {% for value, label in kinds %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label" for="fSide">Position</label>
+            <select class="form-select" id="fSide">
+              {% for value, label in sides %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+
+          <!-- Text: for "text" and "link" -->
+          <div class="col-12" data-show-for="text link">
+            <label class="form-label" for="fLabel">Text</label>
+            <input type="text" class="form-control" id="fLabel" maxlength="120"
+                   placeholder="e.g. Free Delivery on Orders over PKR 3,500">
+          </div>
+
+          <!-- Icon: for "text" and "link" -->
+          <div class="col-12" data-show-for="text link">
+            <label class="form-label" for="fIcon">Icon <span class="fw-normal text-muted-custom">(optional)</span></label>
+            <div class="input-group">
+              <span class="input-group-text" style="min-width:3rem; justify-content:center;">
+                <i id="iconPreview" class="bi"></i>
+              </span>
+              <input type="text" class="form-control" id="fIcon" placeholder="bi-truck" autocomplete="off">
+              <button type="button" class="btn btn-outline-secondary" id="iconBrowseBtn">Browse icons</button>
+              <button type="button" class="btn btn-outline-secondary" id="iconClearBtn" title="No icon">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <div id="iconPicker" class="border rounded p-2 mt-2 d-none">
+              <input type="search" class="form-control form-control-sm mb-2" id="iconSearch" placeholder="Search icons…">
+              <div id="iconGrid" class="d-flex flex-wrap gap-1" style="max-height:170px; overflow:auto;"></div>
+              <div class="small text-muted-custom mt-2">
+                Any name from
+                <a href="https://icons.getbootstrap.com/" target="_blank" rel="noopener noreferrer">icons.getbootstrap.com</a>
+                works — type it above (with or without <code>bi-</code>).
+              </div>
+            </div>
+          </div>
+
+          <!-- Link: only for "link" -->
+          <div class="col-12" data-show-for="link">
+            <label class="form-label" for="fHref">Link (where it goes)</label>
+            <input type="text" class="form-control" id="fHref"
+                   placeholder="/shop/   ·   #reviews   ·   https://…   ·   tel:+92…">
+            <div class="d-flex flex-wrap gap-2 mt-2">
+              <span class="small text-muted-custom align-self-center">Quick fill:</span>
+              <button type="button" class="btn btn-sm btn-outline-secondary js-prefix" data-prefix="tel:">
+                <i class="bi bi-telephone me-1"></i>Phone
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary js-prefix" data-prefix="mailto:">
+                <i class="bi bi-envelope me-1"></i>Email
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary js-prefix" data-prefix="https://wa.me/">
+                <i class="bi bi-whatsapp me-1"></i>WhatsApp
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary js-prefix" data-prefix="#">
+                <i class="bi bi-hash me-1"></i>Anchor
+              </button>
+            </div>
+            <div class="form-check mt-3">
+              <input class="form-check-input" type="checkbox" id="fNewTab">
+              <label class="form-check-label small" for="fNewTab">Open in a new tab</label>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label" for="fVisible">Show on</label>
+            <select class="form-select" id="fVisible">
+              {% for value, label in visibilities %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-6 d-flex align-items-end">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="fActive" checked>
+              <label class="form-check-label" for="fActive">Show on the site</label>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="text-danger small mt-3 d-none" id="formError"></div>
+      </div>
+
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-ink" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-brass" id="saveItemBtn">Save</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{{ items_json|json_script:"topbarData" }}
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script>
+(function () {
+  const CSRF = "{{ csrf_token }}";
+  const URL_SAVE    = "{% url 'topbar_save' %}";
+  const URL_REORDER = "{% url 'topbar_reorder' %}";
+  const URL_SEED    = "{% url 'topbar_seed' %}";
+  const urlDelete = (id) => "{% url 'topbar_delete' 0 %}".replace("/0/", `/${id}/`);
+  const urlToggle = (id) => "{% url 'topbar_toggle' 0 %}".replace("/0/", `/${id}/`);
+
+  const items = JSON.parse(document.getElementById("topbarData").textContent);
+  const byId = Object.fromEntries(items.map(i => [i.id, i]));
+
+  const $ = (id) => document.getElementById(id);
+  const notify = (msg, type) => (window.showToast ? window.showToast(msg, type) : alert(msg));
+
+  // A handy set of icons for a shop; any other Bootstrap Icons name can be typed in.
+  const ICONS = [
+    "truck","box-seam","bag-check","cart","cash-coin","cash-stack","credit-card","wallet2","percent","tag","tags","gift",
+    "arrow-repeat","arrow-return-left","shield-check","patch-check","award","star","star-fill","heart","lightning-charge",
+    "geo-alt","telephone","telephone-fill","envelope","whatsapp","facebook","instagram","tiktok","youtube","twitter-x",
+    "chat-dots","headset","question-circle","info-circle","clock","calendar-event","megaphone","bell","fire",
+    "globe","house","person","search","check2-circle","emoji-smile"
+  ].map(n => "bi-" + n);
+
+  function post(url, body) {
+    return fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+      body: JSON.stringify(body || {})
+    }).then(res => res.json().catch(() => ({})).then(data => ({ ok: res.ok, data })));
+  }
+
+  // ---------------- modal ----------------
+  const modal = new bootstrap.Modal($("topbarModal"));
+
+  function applyKind() {
+    const kind = $("fKind").value;
+    document.querySelectorAll("[data-show-for]").forEach(el => {
+      el.classList.toggle("d-none", !el.dataset.showFor.split(" ").includes(kind));
+    });
+  }
+
+  function previewIcon() {
+    let name = $("fIcon").value.trim().toLowerCase().replace(/^bi\s+/, "");
+    if (name && !name.startsWith("bi-")) name = "bi-" + name;
+    $("iconPreview").className = "bi " + name;
+  }
+
+  function showError(msg) {
+    const el = $("formError");
+    el.textContent = msg || "";
+    el.classList.toggle("d-none", !msg);
+  }
+
+  function openModal(item) {
+    const i = item || { id: "", side: "left", kind: "text", label: "", icon: "", href: "",
+                        open_in_new_tab: false, visible_from: "always", is_active: true };
+    $("topbarModalTitle").textContent = item ? "Edit item" : "Add item";
+    $("fId").value = i.id || "";
+    $("fSide").value = i.side;
+    $("fKind").value = i.kind;
+    $("fLabel").value = i.label;
+    $("fIcon").value = i.icon;
+    $("fHref").value = i.href;
+    $("fNewTab").checked = !!i.open_in_new_tab;
+    $("fVisible").value = i.visible_from;
+    $("fActive").checked = !!i.is_active;
+    $("iconPicker").classList.add("d-none");
+    showError("");
+    applyKind();
+    previewIcon();
+    modal.show();
+  }
+
+  $("addItemBtn").addEventListener("click", () => openModal(null));
+  $("fKind").addEventListener("change", applyKind);
+  $("fIcon").addEventListener("input", previewIcon);
+
+  // quick-fill buttons for the link field
+  document.querySelectorAll(".js-prefix").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const field = $("fHref");
+      const prefix = btn.dataset.prefix;
+      const keep = /^(tel:|mailto:|https:\/\/wa\.me\/|#)/i.test(field.value) ? "" : field.value;
+      field.value = prefix + keep;
+      field.focus();
+    });
+  });
+
+  // ---------------- icon picker ----------------
+  function renderIcons(filter) {
+    const q = (filter || "").trim().toLowerCase();
+    $("iconGrid").innerHTML = ICONS
+      .filter(n => !q || n.includes(q))
+      .map(n => `<button type="button" class="btn btn-sm btn-outline-secondary icon-pick" data-icon="${n}" title="${n}">
+                   <i class="bi ${n}"></i></button>`)
+      .join("") || '<span class="small text-muted-custom">No match — type the name above instead.</span>';
+  }
+
+  $("iconBrowseBtn").addEventListener("click", () => {
+    renderIcons("");
+    $("iconSearch").value = "";
+    $("iconPicker").classList.toggle("d-none");
+  });
+  $("iconSearch").addEventListener("input", (e) => renderIcons(e.target.value));
+  $("iconGrid").addEventListener("click", (e) => {
+    const btn = e.target.closest(".icon-pick");
+    if (!btn) return;
+    $("fIcon").value = btn.dataset.icon;
+    previewIcon();
+  });
+  $("iconClearBtn").addEventListener("click", () => { $("fIcon").value = ""; previewIcon(); });
+
+  // ---------------- save ----------------
+  $("saveItemBtn").addEventListener("click", () => {
+    showError("");
+    const btn = $("saveItemBtn");
+    btn.disabled = true;
+
+    post(URL_SAVE, {
+      id: $("fId").value || null,
+      side: $("fSide").value,
+      kind: $("fKind").value,
+      label: $("fLabel").value,
+      icon: $("fIcon").value,
+      href: $("fHref").value,
+      open_in_new_tab: $("fNewTab").checked,
+      visible_from: $("fVisible").value,
+      is_active: $("fActive").checked
+    })
+    .then(({ ok, data }) => {
+      if (ok && data.success) {
+        location.reload();
+        return;
+      }
+      const errors = data.errors
+        ? Object.values(data.errors).flat().join(" ")
+        : (data.message || "Could not save. Please try again.");
+      showError(errors);
+      btn.disabled = false;
+    })
+    .catch(() => { showError("Connection failed. Please try again."); btn.disabled = false; });
+  });
+
+  // ---------------- row actions: edit / delete / show-hide ----------------
+  document.querySelectorAll(".topbar-list").forEach(list => {
+    list.addEventListener("click", (e) => {
+      const row = e.target.closest(".topbar-row");
+      if (!row) return;
+      const id = row.dataset.id;
+
+      if (e.target.closest(".js-edit")) {
+        openModal(byId[id]);
+      }
+
+      if (e.target.closest(".js-delete")) {
+        if (!confirm("Delete this item from the topbar?")) return;
+        post(urlDelete(id)).then(({ ok }) => {
+          if (ok) location.reload();
+          else notify("Could not delete the item.", "danger");
+        });
+      }
+    });
+
+    list.addEventListener("change", (e) => {
+      const box = e.target.closest(".js-toggle");
+      if (!box) return;
+      const row = box.closest(".topbar-row");
+      post(urlToggle(row.dataset.id)).then(({ ok, data }) => {
+        if (ok && data.success) {
+          row.classList.toggle("opacity-50", !data.is_active);
+          byId[row.dataset.id].is_active = data.is_active;
+        } else {
+          box.checked = !box.checked;            // put the switch back
+          notify("Could not change the item.", "danger");
+        }
+      });
+    });
+  });
+
+  // ---------------- drag to reorder (also between the two sides) ----------------
+  function currentOrder() {
+    const out = { left: [], right: [] };
+    document.querySelectorAll(".topbar-list").forEach(list => {
+      out[list.dataset.side] = [...list.querySelectorAll(".topbar-row")].map(li => Number(li.dataset.id));
+    });
+    return out;
+  }
+
+  document.querySelectorAll(".topbar-list").forEach(list => {
+    Sortable.create(list, {
+      group: "topbar",
+      handle: ".drag-handle",
+      animation: 150,
+      ghostClass: "opacity-50",
+      onEnd: () => {
+        const order = currentOrder();
+        post(URL_REORDER, order).then(({ ok }) => {
+          if (!ok) { notify("Could not save the new order.", "danger"); return; }
+          Object.entries(order).forEach(([side, ids]) => ids.forEach(id => { byId[id].side = side; }));
+        });
+      }
+    });
+  });
+
+  // ---------------- starter items ----------------
+  const seedBtn = $("seedBtn");
+  if (seedBtn) {
+    seedBtn.addEventListener("click", () => {
+      seedBtn.disabled = true;
+      post(URL_SEED).then(({ ok, data }) => {
+        if (ok && data.success) location.reload();
+        else { notify(data.message || "Could not add the starter items.", "danger"); seedBtn.disabled = false; }
+      });
+    });
+  }
+})();
+</script>
+{% endblock %}

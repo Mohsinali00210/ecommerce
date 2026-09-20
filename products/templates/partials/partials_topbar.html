@@ -1,0 +1,22 @@
+{% comment %}
+  templates/partials/topbar.html
+
+  Include it in base2.html where the hard-coded topbar used to be:
+      {% include "partials/topbar.html" %}
+
+  Items come from the database (context processor `topbar_context`) and are edited at /manage/topbar/.
+  If there are no active items the whole bar is left out.
+{% endcomment %}
+{% if topbar_left or topbar_right %}
+<!-- ============ TOPBAR ============ -->
+<div class="topbar">
+  <div class="container-xl d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="d-flex gap-4 flex-wrap">
+      {% for item in topbar_left %}{% include "partials/topbar_item.html" with side="left" %}{% endfor %}
+    </div>
+    <div class="d-none d-md-flex align-items-center gap-3">
+      {% for item in topbar_right %}{% include "partials/topbar_item.html" with side="right" %}{% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}

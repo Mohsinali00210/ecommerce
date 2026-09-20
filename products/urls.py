@@ -1,6 +1,17 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import BlogCategoryViewSet,toggle_promotion_status,Blog_post,BlogPostViewSet,variant_bulk_create,product_list,product_form_view,variant_add_modal,variant_edit_modal,variant_delete,image_modal,image_delete,promotion_modal,promotion_modal,promotion_delete,tag_modal,tag_remove,wish_to_buy_admin,wish_to_buy_list,picture_page,PictureViewSet,OrdersByStatus,inventory_page,VariantInventoryViewSet,ProductVariantViewSet,promotions_page,PromotionsViewSet,wishlist_page,admin_reviews_page,AdminReviewListAPIView,AdminReviewUpdateAPIView,AdminOrderRequestUpdateAPIView,support_ticket_list_view,OrderDetailAPIView,OrderUpdateStatusAPIView,OrdersListAPIView,orders,ProductPreview,editProduct,products,addProduct,CategoryViewSet,categories,ProductAttributeViewSet,attributes,AttributeTypesViewSet,BrandViewSet,brands,ProductViewSet,PromotionViewSet 
+from .views import (BlogCategoryViewSet,toggle_promotion_status,Blog_post,BlogPostViewSet,
+                    variant_bulk_create,product_list,product_form_view,variant_add_modal,
+                    variant_edit_modal,variant_delete,image_modal,image_delete,promotion_modal,
+                    promotion_modal,promotion_delete,tag_modal,tag_remove,wish_to_buy_admin,
+                    wish_to_buy_list,picture_page,PictureViewSet,OrdersByStatus,inventory_page,
+                    VariantInventoryViewSet,ProductVariantViewSet,promotions_page,PromotionsViewSet,
+                    wishlist_page,admin_reviews_page,AdminReviewListAPIView,AdminReviewUpdateAPIView,
+                    AdminOrderRequestUpdateAPIView,support_ticket_list_view,OrderDetailAPIView,
+                    OrderUpdateStatusAPIView,OrdersListAPIView,orders,ProductPreview,editProduct,
+                    products,addProduct,CategoryViewSet,categories,ProductAttributeViewSet,attributes,
+                    AttributeTypesViewSet,BrandViewSet,brands,ProductViewSet,PromotionViewSet,
+                    topbar_delete,topbar_toggle,topbar_seed,topbar_reorder,topbar_save,topbar_manage )
 
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet, basename='category')
@@ -74,4 +85,13 @@ urlpatterns = [
 
     path("Blog-post/", Blog_post,name='Blog-post'),
 
+
+
+
+        path("topbar/", topbar_manage, name="topbar_manage"),
+        path("topbar/save/", topbar_save, name="topbar_save"),
+        path("topbar/reorder/", topbar_reorder, name="topbar_reorder"),
+        path("topbar/seed/", topbar_seed, name="topbar_seed"),
+        path("topbar/<int:pk>/delete/", topbar_delete, name="topbar_delete"),
+        path("topbar/<int:pk>/toggle/", topbar_toggle, name="topbar_toggle"),
 ]

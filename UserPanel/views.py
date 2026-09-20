@@ -95,6 +95,22 @@ def header_counts(request):
         "wishlist_count": _wishlist_count(request),
         "notification_count": _unread_notification_count(request),
     })
+from django.views.decorators.http import require_GET, require_POST
+from .models import TopbarItem
+@require_GET
+def topbar_items(request):
+    """GET -> {"left": [...], "right": [...]} with only the active items, already in order."""
+    data = {"left": [], "right": []}
+    for i in TopbarItem.objects.filter(is_active=True):     # ordered by side, order
+        data[i.side].append({
+            "kind": i.kind,
+            "label": i.label,
+            "icon": i.icon,
+            "href": i.href,
+            "open_in_new_tab": i.open_in_new_tab,
+            "visible_from": i.visible_from,
+        })
+    return JsonResponse(data)
 from django.db.models import Exists, OuterRef
 from products.models import Wishlist as WishlistModel
 from django.utils import timezone
@@ -1954,3 +1970,5 @@ class TrackOrderAPIView(APIView):
  
 class TrackOrderPageView(TemplateView):
     template_name = "orders/track_order.html"
+
+

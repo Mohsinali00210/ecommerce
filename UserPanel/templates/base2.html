@@ -452,21 +452,8 @@
 <body>
 
 <!-- ============ TOPBAR ============ -->
-<div class="topbar">
-  <div class="container-xl d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div class="d-flex gap-4 flex-wrap">
-      <span class="topbar-perk"><i class="bi bi-truck"></i> Free Delivery on Orders over PKR 3,500</span>
-      <span class="topbar-perk d-none d-md-flex"><i class="bi bi-cash-coin"></i> Cash on Delivery Available</span>
-      <span class="topbar-perk d-none d-lg-flex"><i class="bi bi-arrow-repeat"></i> Easy 7 Days Returns</span>
-    </div>
-    <div class="d-none d-md-flex align-items-center gap-3">
-      <a href="#"><i class="bi bi-geo-alt"></i> Track Order</a>
-      <a href="#">Help Center</a>
-      <span class="divider">|</span>
-      <a href="tel:+923090900926"><i class="bi bi-telephone"></i> +92 3090900926</a>
-    </div>
-  </div>
-</div>
+<!-- ============ TOPBAR (loaded with fetch from /api/topbar/, edited at /manage/topbar/) ============ -->
+<div class="topbar" id="topbar" style="min-height:2.35rem;"></div>
 
 <!-- ============ HEADER ============ -->
 <header class="site-header">
@@ -1020,25 +1007,122 @@ function executeScripts(container) {
 <script>
  
  
-  function applyHeaderCounts(data) {
+    function applyHeaderCounts(data) {
     window.HeaderCounts.cart = data.cart_count || 0;
     window.HeaderCounts.wishlist = data.wishlist_count || 0;
     window.HeaderCounts.notifications = data.notification_count || 0;
- 
+
     document.querySelectorAll("[data-cart-count]").forEach(el => {
       el.textContent = window.HeaderCounts.cart;
     });
- 
+
     document.querySelectorAll("[data-wishlist-count]").forEach(el => {
       el.textContent = window.HeaderCounts.wishlist;
     });
- 
+
     const notifBadge = document.getElementById("notificationCount");
     if (notifBadge) {
       notifBadge.textContent = window.HeaderCounts.notifications;
       notifBadge.classList.toggle("d-none", window.HeaderCounts.notifications === 0);
     }
   }
+
+
+  // ============ TOPBAR (fetched) ============
+  const TOPBAR_CACHE_KEY = "topbar:v1";
+  const TOPBAR_SAFE_HREF = /^(#|\/|https?:\/\/|tel:|mailto:|sms:)/i;   // never put javascript: in an href
+  const TOPBAR_SAFE_ICON = /^bi-[a-z0-9-]+$/;
+
+  // Hide below a breakpoint, e.g. "md" -> d-none d-md-flex (spans / anchors use flex / inline)
+  function topbarVisibility(visibleFrom, display) {
+    return (!visibleFrom || visibleFrom === "always") ? [] : ["d-none", `d-${visibleFrom}-${display}`];
+  }
+
+  // Built with createElement / textContent, so a label can never inject HTML
+  function buildTopbarItem(item, side) {
+    if (item.kind === "divider") {
+      const divider = document.createElement("span");
+      divider.className = "divider";
+      divider.classList.add(...topbarVisibility(item.visible_from, "inline"));
+      divider.textContent = "|";
+      return divider;
+    }
+
+    const isLink = item.kind === "link" && item.href && TOPBAR_SAFE_HREF.test(item.href);
+    const el = document.createElement(isLink ? "a" : "span");
+
+    if (isLink) {
+      el.href = item.href;
+      if (item.open_in_new_tab) {
+        el.target = "_blank";
+        el.rel = "noopener noreferrer";
+      }
+    }
+
+    // left items (and plain text) use .topbar-perk; right-hand links are plain anchors
+    if (isLink && side === "right") {
+      el.classList.add(...topbarVisibility(item.visible_from, "inline"));
+    } else {
+      el.classList.add("topbar-perk", ...topbarVisibility(item.visible_from, "flex"));
+    }
+
+    if (item.icon && TOPBAR_SAFE_ICON.test(item.icon)) {
+      const icon = document.createElement("i");
+      icon.className = "bi " + item.icon;
+      el.append(icon, " ");
+    }
+    el.append(item.label || "");
+    return el;
+  }
+
+  function renderTopbar(data) {
+    const bar = document.getElementById("topbar");
+    if (!bar) return;
+
+    const left = (data && data.left) || [];
+    const right = (data && data.right) || [];
+
+    if (!left.length && !right.length) {          // nothing to show: no empty green strip
+      bar.hidden = true;
+      bar.replaceChildren();
+      return;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "container-xl d-flex justify-content-between align-items-center flex-wrap gap-2";
+
+    const leftBox = document.createElement("div");
+    leftBox.className = "d-flex gap-4 flex-wrap";
+    left.forEach(item => leftBox.append(buildTopbarItem(item, "left")));
+
+    const rightBox = document.createElement("div");
+    rightBox.className = "d-none d-md-flex align-items-center gap-3";
+    right.forEach(item => rightBox.append(buildTopbarItem(item, "right")));
+
+    wrap.append(leftBox, rightBox);
+    bar.replaceChildren(wrap);
+    bar.hidden = false;
+  }
+
+  function loadTopbar() {
+    // 1) draw the last known bar straight away (no blank flash on later pages)
+    try {
+      const cached = localStorage.getItem(TOPBAR_CACHE_KEY);
+      if (cached) renderTopbar(JSON.parse(cached));
+    } catch (e) { /* storage blocked or bad JSON: just wait for the fetch */ }
+
+    // 2) fetch the current bar, redraw, and remember it
+    return fetch("{% url 'home:topbar-items' %}")
+      .then(res => res.json())
+      .then(data => {
+        renderTopbar(data);
+        try { localStorage.setItem(TOPBAR_CACHE_KEY, JSON.stringify(data)); } catch (e) {}
+      })
+      .catch(err => console.error("Failed to load topbar", err));
+  }
+  window.loadTopbar = loadTopbar;
+
+  document.addEventListener("DOMContentLoaded", loadTopbar);
  
   function refreshHeaderCounts() {
     return fetch("{% url 'home:header-counts' %}")

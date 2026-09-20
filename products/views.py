@@ -1642,3 +1642,173 @@ class BlogPostViewSet(viewsets.ModelViewSet):
 
 def Blog_post(request):
     return render(request, "Other/BlogPostsAdmin.html")
+
+
+
+import json
+ 
+from django.contrib.auth.decorators import user_passes_test
+from django.db.models import Max
+ 
+from UserPanel.models import DEFAULT_TOPBAR_ITEMS, TopbarItem
+from UserPanel.forms import TopbarItemForm  
+
+manager_required = user_passes_test(
+    lambda u: u.is_active and u.is_staff,
+    login_url="login",
+)
+ 
+ 
+# ---------------------------------------------------------------------------
+# Public side: makes the bar available to EVERY page
+# ---------------------------------------------------------------------------
+def topbar_context(request):
+    """Context processor: {{ topbar_left }} and {{ topbar_right }} in every template."""
+    items = list(TopbarItem.objects.filter(is_active=True))   # already ordered by side, order
+    return {
+        "topbar_left": [i for i in items if i.side == "left"],
+        "topbar_right": [i for i in items if i.side == "right"],
+    }
+ 
+ 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+def _item_dict(i):
+    return {
+        "id": i.id,
+        "side": i.side,
+        "kind": i.kind,
+        "label": i.label,
+        "icon": i.icon,
+        "href": i.href,
+        "open_in_new_tab": i.open_in_new_tab,
+        "visible_from": i.visible_from,
+        "is_active": i.is_active,
+    }
+ 
+ 
+def _json_body(request):
+    try:
+        data = json.loads(request.body or "{}")
+        return data if isinstance(data, dict) else None
+    except ValueError:
+        return None
+ 
+ 
+def _bad_request(message="Invalid request."):
+    return JsonResponse({"success": False, "message": message}, status=400)
+ 
+ 
+# ---------------------------------------------------------------------------
+# Editor
+# ---------------------------------------------------------------------------
+@manager_required
+def topbar_manage(request):
+    items = list(TopbarItem.objects.all())          # includes hidden (inactive) items
+    left = [i for i in items if i.side == "left"]
+    right = [i for i in items if i.side == "right"]
+ 
+    return render(request, "topbar/manage_topbar.html", {
+        "columns": [
+            ("left", "Left side", left),
+            ("right", "Right side", right),
+        ],
+        "has_items": bool(items),
+        "items_json": [_item_dict(i) for i in items],
+        "sides": TopbarItem.SIDE_CHOICES,
+        "kinds": TopbarItem.KIND_CHOICES,
+        "visibilities": TopbarItem.VISIBLE_CHOICES,
+    })
+ 
+ 
+@manager_required
+@require_POST
+def topbar_save(request):
+    """Create (no id) or update (id) an item."""
+    data = _json_body(request)
+    if data is None:
+        return _bad_request()
+ 
+    instance = None
+    if data.get("id"):
+        instance = get_object_or_404(TopbarItem, pk=data["id"])
+ 
+    form = TopbarItemForm(data, instance=instance)
+    if not form.is_valid():
+        return JsonResponse(
+            {
+                "success": False,
+                "errors": {
+                    field: [str(e) for e in errs] for field, errs in form.errors.items()
+                },
+            },
+            status=400,
+        )
+ 
+    item = form.save(commit=False)
+    if instance is None:                            # new items go to the end of their side
+        last = TopbarItem.objects.filter(side=item.side).aggregate(m=Max("order"))["m"]
+        item.order = 0 if last is None else last + 1
+    item.save()
+ 
+    return JsonResponse({"success": True, "item": _item_dict(item)})
+ 
+ 
+@manager_required
+@require_POST
+def topbar_delete(request, pk):
+    get_object_or_404(TopbarItem, pk=pk).delete()
+    return JsonResponse({"success": True})
+ 
+ 
+@manager_required
+@require_POST
+def topbar_toggle(request, pk):
+    item = get_object_or_404(TopbarItem, pk=pk)
+    item.is_active = not item.is_active
+    item.save(update_fields=["is_active", "updated_at"])
+    return JsonResponse({"success": True, "is_active": item.is_active})
+ 
+ 
+@manager_required
+@require_POST
+def topbar_reorder(request):
+    """Body: {"left": [ids in order], "right": [ids in order]}. Moving an id to the other list moves the item."""
+    data = _json_body(request)
+    if data is None:
+        return _bad_request()
+ 
+    try:
+        columns = {
+            side: [int(pk) for pk in data.get(side, [])]
+            for side in ("left", "right")
+        }
+    except (TypeError, ValueError):
+        return _bad_request()
+ 
+    with transaction.atomic():
+        for side, ids in columns.items():
+            for position, pk in enumerate(ids):
+                TopbarItem.objects.filter(pk=pk).update(side=side, order=position)
+ 
+    return JsonResponse({"success": True})
+ 
+ 
+@manager_required
+@require_POST
+def topbar_seed(request):
+    """One click: create the bar exactly as it was before it became editable."""
+    if TopbarItem.objects.exists():
+        return _bad_request("The topbar already has items.")
+ 
+    counters = {"left": 0, "right": 0}
+    rows = []
+    for spec in DEFAULT_TOPBAR_ITEMS:
+        rows.append(TopbarItem(order=counters[spec["side"]], **spec))
+        counters[spec["side"]] += 1
+    TopbarItem.objects.bulk_create(rows)
+ 
+    return JsonResponse({"success": True})
+ 
+ 
