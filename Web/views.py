@@ -768,7 +768,7 @@ def OrderConfirmation(request):
         "order": order,
         "order_items": order.items.all(),
     }
-    return render(request, "Web/OrderConfirmation.html", context)
+    return render(request, "Web/Orderconfirmation.html", context)
 
 # ---------------------------------------------------------------------------
 # 3) View

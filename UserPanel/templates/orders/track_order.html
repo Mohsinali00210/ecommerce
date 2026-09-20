@@ -1,0 +1,119 @@
+ {% extends "base2.html" %}
+{% load static %}
+{% block content %}
+ <style>
+    .track-steps { display: flex; justify-content: space-between; margin: 2rem 0; }
+    .track-step { flex: 1; text-align: center; position: relative; font-size: .85rem; color: #6c757d; }
+    .track-step::before { content: ""; position: absolute; top: 15px; left: -50%; width: 100%; height: 3px; background: #dee2e6; z-index: 0; }
+    .track-step:first-child::before { display: none; }
+    .track-dot { width: 32px; height: 32px; border-radius: 50%; background: #dee2e6; margin: 0 auto .4rem;
+                 display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; color: #fff; }
+    .track-step.done, .track-step.current { color: #212529; }
+    .track-step.done .track-dot { background: #198754; }
+    .track-step.done::before, .track-step.current::before { background: #198754; }
+    .track-step.current .track-dot { background: #0d6efd; }
+    .track-step.stopped .track-dot { background: #dc3545; }
+    .item-img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; }
+  </style>
+<div class="container py-5" style="max-width: 760px;">
+  <h3 class="mb-3">Track your order</h3>
+
+  <form id="track-form" class="input-group mb-4">
+    <input id="track-input" class="form-control" placeholder="Order number or tracking number" maxlength="100" required>
+    <button class="btn btn-primary" type="submit">Track</button>
+  </form>
+
+  <div id="track-result"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const API = "{% url 'home:track-order-api' %}";
+  const form = document.getElementById("track-form");
+  const input = document.getElementById("track-input");
+  const result = document.getElementById("track-result");
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const money = (v) => "Rs " + Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const when = (v) => (v ? new Date(v).toLocaleString() : "-");
+
+  function showError(msg) {
+    result.innerHTML = `<div class="alert alert-danger">${esc(msg)}</div>`;
+  }
+
+  function render(o) {
+    const steps = o.timeline.map((s) => `
+      <div class="track-step ${esc(s.state)}">
+        <div class="track-dot">${s.state === "done" ? "&#10003;" : s.state === "stopped" ? "&#10005;" : ""}</div>
+        ${esc(s.label)}
+      </div>`).join("");
+
+    const items = o.items.map((i) => `
+      <tr>
+        <td style="width:64px">${i.product_image ? `<img class="item-img" src="${esc(i.product_image)}" alt="">` : ""}</td>
+        <td>${esc(i.product_name)}${i.variant ? `<div class="small text-muted">${esc(i.variant)}</div>` : ""}</td>
+        <td class="text-center">${esc(i.quantity)}</td>
+        <td class="text-end">${money(i.total)}</td>
+      </tr>`).join("");
+
+    const addr = o.shipping_address
+      ? `<p class="mb-0 small text-muted">Ship to: ${esc(o.shipping_address.street_address)}, ${esc(o.shipping_address.city)}, ${esc(o.shipping_address.state)}, ${esc(o.shipping_address.country)}</p>`
+      : "";
+
+    result.innerHTML = `
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="d-flex justify-content-between flex-wrap gap-2">
+          <div>
+            <div class="fw-semibold">${esc(o.order_number)}</div>
+            <div class="small text-muted">Tracking: ${esc(o.tracking_number || "Not assigned yet")}</div>
+          </div>
+          <span class="badge bg-primary align-self-start">${esc(o.status_label)}</span>
+        </div>
+
+        <div class="track-steps">${steps}</div>
+
+        <div class="row small mb-3">
+          <div class="col-6">Placed: ${when(o.placed_at)}</div>
+          <div class="col-6">Delivered: ${when(o.delivered_at)}</div>
+          <div class="col-6">Payment: ${esc(o.payment_method_label)}</div>
+          <div class="col-6">Payment status: ${esc(o.payment_status_label)}</div>
+        </div>
+
+        <table class="table table-sm align-middle">
+          <thead><tr><th></th><th>Item</th><th class="text-center">Qty</th><th class="text-end">Total</th></tr></thead>
+          <tbody>${items}</tbody>
+          <tfoot>
+            <tr><td colspan="3" class="text-end">Subtotal</td><td class="text-end">${money(o.subtotal)}</td></tr>
+            <tr><td colspan="3" class="text-end">Shipping</td><td class="text-end">${money(o.shipping_charges)}</td></tr>
+            <tr class="fw-bold"><td colspan="3" class="text-end">Total</td><td class="text-end">${money(o.total_amount)}</td></tr>
+          </tfoot>
+        </table>
+        ${addr}
+      </div></div>`;
+  }
+
+  async function track(q) {
+    result.innerHTML = '<div class="text-center py-4"><div class="spinner-border"></div></div>';
+    try {
+      const res = await fetch(`${API}?q=${encodeURIComponent(q)}`, { headers: { Accept: "application/json" } });
+      const data = await res.json();
+      if (!res.ok) return showError(data.message || data.detail || "Something went wrong.");
+      render(data.order);
+    } catch (e) {
+      showError("Network error. Please try again.");
+    }
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const q = input.value.trim();
+    if (q) track(q);
+  });
+
+  // /track-order/?q=ORD-XXXX opens straight to the result
+  const initial = new URLSearchParams(location.search).get("q");
+  if (initial) { input.value = initial; track(initial); }
+</script>
+{% endblock %}

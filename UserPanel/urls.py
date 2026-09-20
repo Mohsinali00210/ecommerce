@@ -36,7 +36,9 @@ urlpatterns = [
         path("header-counts/",views.header_counts,name="header-counts"),
         path("review/submit/", views.submit_review, name="SubmitReview"),
         path('question/submit/', views.submit_question, name='SubmitQuestion'),
-
+        path("track-order/", views.TrackOrderPageView.as_view(), name="track-order"),
+        path("api/track-order/", views.TrackOrderAPIView.as_view(), name="track-order-api"),
+        path("api/track-order/<str:number>/", views.TrackOrderAPIView.as_view(), name="track-order-api-detail"),
 ]
 
 # In your project urls.py:

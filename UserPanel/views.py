@@ -1899,3 +1899,58 @@ def mark_all_notifications_read(request):
         is_read=True, seen_at=timezone.now()
     )
     return JsonResponse({"success": True})
+
+
+
+
+
+
+from .serializer import TrackOrderThrottle,TrackOrderSerializer
+from rest_framework.authentication import SessionAuthentication
+from rest_framework.permissions import AllowAny
+from django.views.generic import TemplateView
+from rest_framework.response import Response
+
+# ---------------------------------------------------------------------------
+# Views
+# ---------------------------------------------------------------------------
+class TrackOrderAPIView(APIView):
+    """
+    GET /api/track-order/?q=ORD-1A2B3C4D
+    GET /api/track-order/ORD-1A2B3C4D/
+    `q` can be the order number or the tracking number.
+    """
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [AllowAny]
+    throttle_classes = [TrackOrderThrottle]
+ 
+    def get(self, request, number=None):
+        number = (number or request.query_params.get("q") or "").strip()
+ 
+        if not number or len(number) > 100:
+            return Response(
+                {"success": False, "message": "Enter an order number or tracking number."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+ 
+        order = (
+            Order.objects  # noqa: F821
+            .filter(is_deleted=False)
+            .filter(Q(order_number__iexact=number) | Q(tracking_number__iexact=number))
+            .select_related("shipping_address")
+            .prefetch_related("items__product__images", "items__variant")
+            .first()
+        )
+ 
+        if not order:
+            return Response(
+                {"success": False, "message": "No order found with this order or tracking number."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+ 
+        data = TrackOrderSerializer(order, context={"request": request}).data
+        return Response({"success": True, "order": data})
+ 
+ 
+class TrackOrderPageView(TemplateView):
+    template_name = "orders/track_order.html"
