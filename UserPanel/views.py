@@ -939,7 +939,12 @@ def MyCart(request):
         item.unit_saved = line["applied"]["off"]
         item.percent_off = line["applied"]["percent_off"]
         item.line_saved = line["line_saved"]
- 
+        if item.product.free_shipping == True:
+            item.shipping_display = "FREE"
+            item.shipping_amount = 0
+        else:
+            item.shipping_display = line["shipping"]
+            item.shipping_amount = line["shipping"]
         product, variant = item.product, item.variant
         handling_days.append(product.handling_time)
  
