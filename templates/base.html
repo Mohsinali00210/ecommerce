@@ -293,11 +293,14 @@
     <a href="#ordersSubmenu" data-bs-toggle="collapse" class="collapsed">
         <i class="bi bi-receipt"></i>
         <span class="menu-text">Orders</span>
+        {% if unseen_orders_count > 0 %}
+            <span class="badge bg-danger ms-auto">{{ unseen_orders_count }}</span>
+        {% endif %}
         <i class="bi bi-chevron-down caret-icon"></i>
 
     </a>
     <div class="collapse" id="ordersSubmenu">
-        <a href="{% url 'Orders' %}" class="submenu-link">All Orders</a>
+        <a href="{% url 'Orders' %}" class="submenu-link">All Orders </a>
         <a href="{% url 'OrdersByStatus' 'pending' %}" class="submenu-link">Pending</a>
         <a href="{% url 'OrdersByStatus' 'processing' %}" class="submenu-link">Processing</a>
         <a href="{% url 'OrdersByStatus' 'shipped' %}" class="submenu-link">Shipped</a>
@@ -388,8 +391,8 @@
                 <i class="bi bi-person-circle"></i>
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="#">Profile</a></li>
-                <li><a class="dropdown-item" href="#">Change Password</a></li>
+                <li><a class="dropdown-item" href="{% url 'home:user-profile' %}">Profile</a></li>
+                <li><a class="dropdown-item" href="{% url 'forgot-password' %}">Change Password</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item text-danger" href="#">Logout</a></li>
             </ul>

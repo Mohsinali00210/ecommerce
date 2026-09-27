@@ -106,7 +106,7 @@
 
 {% block extra_js %}
   <script>
-    function getCookie(name) {
+    {% comment %} function getCookie(name) {
       let cookieValue = null;
       if (document.cookie && document.cookie !== "") {
         const cookies = document.cookie.split(";");
@@ -120,7 +120,7 @@
       }
       return cookieValue;
     }
-    const csrftoken = getCookie("csrftoken");
+    const csrftoken = getCookie("csrftoken"); {% endcomment %}
 
     function updateWishlistCountBadges() {
       const count = document.querySelectorAll("#wishlistGrid [data-wish-card]").length;

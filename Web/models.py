@@ -50,6 +50,8 @@ class Order(BaseAuditModel):
         ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled'),
         ('returned', 'Cancelled'),
+        ('dispatch', 'Dispatch'),
+        ('ordersuccessfull', 'Order Success Full'),
         ('failed', 'Payment Failed'),
     ]
 

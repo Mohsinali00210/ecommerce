@@ -637,3 +637,9 @@ body{
 .size-pill.sold-out, .variant-swatch.sold-out{ opacity:.4; cursor:not-allowed; }
 .size-pill.sold-out{ text-decoration: line-through; }
 
+.header-profile-pic {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+}

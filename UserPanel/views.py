@@ -979,6 +979,8 @@ from Web.models import OrderRequest, Order
 
 @login_required
 def MyOrders(request):
+    type_filter = request.GET.get("f", "")
+
     orders = (
         Order.objects
         .filter(user=request.user)
@@ -987,7 +989,8 @@ def MyOrders(request):
     )
 
     return render(request, "home/orders.html", {
-        "orders": orders
+        "orders": orders,
+        "type_filter":type_filter
     })
 
 @login_required
@@ -1785,71 +1788,145 @@ from django.db.models import Q, OuterRef, Subquery, Value, BooleanField
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
-
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.core.paginator import Paginator
+from django.urls import reverse
+@login_required
 def user_notifications(request):
 
-    if not request.user.is_authenticated:
-        return JsonResponse({
-            "success": False,
-            "message": "Authentication required",
-            "notifications": []
-        }, status=401)
+    # ==========================================
+    # Fetch ONLY unread notifications
+    # ==========================================
 
-    user = request.user
-
-    recipient_subquery = NotificationRecipient.objects.filter(
-        notification=OuterRef("pk"),
-        user=user
-    ).values("is_read")[:1]
-
-    now = timezone.now()
-
-    notifications = (
-        Notification.objects
-        .filter(is_active=True)
+    recipients = (
+        NotificationRecipient.objects
         .filter(
-            Q(is_general=True) |
-            Q(order__user=user)
+            user=request.user,
+            is_read=False,
+            notification__is_active=True,
         )
-        .filter(
-            ~Q(
-                notification_type="promotion"
-            )
-            |
-            Q(
-                notification_type="promotion",
-                promotion__is_active=True,
-                promotion__end_date__gte=now
-            )
+        .select_related(
+            "notification",
+            "notification__order",
+            "notification__promotion",
         )
-        .annotate(
-            is_read=Coalesce(
-                Subquery(
-                    recipient_subquery,
-                    output_field=BooleanField()
-                ),
-                Value(False)
-            )
-        )
-        .order_by("-created_at")
+        .order_by("-notification__created_at")
     )
+
+    # ==========================================
+    # Build JSON
+    # ==========================================
 
     data = []
 
-    for notification in notifications:
+    for recipient in recipients:
+
+        notification = recipient.notification
+
+        # ------------------------------------------
+        # Order
+        # ------------------------------------------
+
+        order_url = ""
+        order_number = ""
+
+        if notification.order:
+
+            order_number = notification.order.order_number
+
+            order_url = request.build_absolute_uri(
+                reverse(
+                    "home:order-detail",
+                    args=[notification.order.order_number]
+                )
+            )
+
+        # ------------------------------------------
+        # Promotion
+        # ------------------------------------------
+
+        promotion_url = ""
+
+        if notification.promotion:
+
+            promotion_url = request.build_absolute_uri(
+                reverse("best-deals")
+            )
+
+        # ------------------------------------------
+        # Notification data
+        # ------------------------------------------
+
         data.append({
-            "id": notification.id,
+
+            # NotificationRecipient ID
+            # Used when marking notification as read
+            "id": recipient.id,
+
+            # Notification ID
+            "notification_id": notification.id,
+
             "title": notification.title,
+
             "message": notification.message,
+
             "notification_type": notification.notification_type,
-            "is_read": notification.is_read,
-            "created_at": notification.created_at.isoformat()
-                if notification.created_at else None,
+
+            "notification_type_display":
+                notification.get_notification_type_display(),
+
+            # Always False because API only returns unread
+            "is_read": recipient.is_read,
+
+            "created_at":
+                notification.created_at.isoformat()
+                if notification.created_at
+                else None,
+
+            "created_at_display":
+                notification.created_at.strftime(
+                    "%b %d, %Y - %H:%M"
+                )
+                if notification.created_at
+                else "",
+
+            # Order
+            "order_url": order_url,
+
+            "order_number": order_number,
+
+            # Promotion
+            "promotion_url": promotion_url,
         })
 
+    # ==========================================
+    # Current unread count
+    # ==========================================
+
+    unread_count = (
+        NotificationRecipient.objects
+        .filter(
+            user=request.user,
+            is_read=False,
+            notification__is_active=True,
+        )
+        .count()
+    )
+
+    # ==========================================
+    # Response
+    # ==========================================
+
     return JsonResponse({
+
         "success": True,
-        "notifications": data
+
+        "notifications": data,
+
+        "unread_count": unread_count,
+
+        "total_count": len(data),
     })
 
 from django.contrib.auth.decorators import login_required

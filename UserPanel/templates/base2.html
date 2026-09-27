@@ -447,6 +447,14 @@
   padding: 0;
 }
 .header-account-btn { border: none; background: none; }
+
+
+.header-profile-pic {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+}
 </style>
 </head>
 <body>
@@ -487,10 +495,10 @@
       <button class="mobile-search-toggle d-lg-none" id="mobileSearchToggle" aria-label="Search">
         <i class="bi bi-search"></i>
       </button>
-
+{% comment %} 
       <button class="btn-icon theme-toggle d-none d-md-inline-flex" aria-label="Toggle dark mode">
         <i class="bi bi-moon-stars"></i>
-      </button>
+      </button> {% endcomment %}
 
       <!-- Notifications -->
       <div class="dropdown">
@@ -525,25 +533,37 @@
       <!-- Account -->
       <div class="dropdown">
         <button class="btn-link nav-link dropdown-toggle d-flex align-items-center gap-1 text-decoration-none header-account-btn"
-                type="button" id="accountDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-          <i class="fa-solid fa-circle-user fs-5"></i>
-          <span class="d-none d-lg-flex flex-column lh-1 text-start">
-            {% if request.user.is_authenticated %}
-              <small class="text-muted-custom" style="font-size:.65rem;">Account</small>
-              <span>{{ request.user.full_name|default:request.user.email|truncatechars:14 }}</span>
-            {% else %}
-              <small class="text-muted-custom" style="font-size:.65rem;">Account</small>
-              <span>Login / Register</span>
-            {% endif %}
-          </span>
-        </button>
+              type="button"
+              id="accountDropdown"
+              data-bs-toggle="dropdown"
+              aria-expanded="false">
+          {% if request.user.is_authenticated %}
+              {% if request.user.avatar %}
+                  <img src="{{ request.user.avatar.url }}"
+                      alt="{{ request.user.full_name|default:'Profile' }}"
+                      class="header-profile-pic"> 
+              {% else %}
+                  <i class="fa-solid fa-circle-user fs-5"></i> 
+              {% endif %}
+              <span class="d-none d-lg-flex flex-column lh-1 text-start">
+                  <small class="text-muted-custom" style="font-size:.65rem;">Account</small>
+                  <span>{{ request.user.full_name|default:request.user.email|truncatechars:14 }}</span>
+              </span>
+          {% else %}
+              <i class="fa-solid fa-circle-user fs-5"></i>
+              <span class="d-none d-lg-flex flex-column lh-1 text-start">
+                  <small class="text-muted-custom" style="font-size:.65rem;">Account</small>
+                  <span>Login / Register</span>
+              </span>
+          {% endif %}
+      </button>
         <ul class="dropdown-menu dropdown-menu-end p-3 shadow" aria-labelledby="accountDropdown" style="min-width:230px;">
           {% if request.user.is_authenticated %}
             <li class="px-1 pb-2 mb-2 border-bottom">
               <div class="fw-semibold text-truncate">{{ request.user.full_name|default:"Welcome" }}</div>
               <div class="small text-muted-custom text-truncate">{{ request.user.email }}</div>
             </li>
-            <li><a class="dropdown-item rounded" href="profile"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a></li>
+            <li><a class="dropdown-item rounded" href="user-profile"><i class="bi bi-person me-2"></i>Profile</a></li>
             <li><a class="dropdown-item rounded" href="{% url 'home:Orders' %}"><i class="bi bi-box-seam me-2"></i>Orders</a></li>
             <li><a class="dropdown-item rounded" href="{% url 'home:user-wallet' %}"><i class="bi bi-wallet2 me-2"></i>Wallet</a></li>
             <li><a class="dropdown-item rounded" href="{% url 'home:Wishlist' %}"><i class="bi bi-heart me-2"></i>Wishlist</a></li>
@@ -654,7 +674,7 @@
       </div>
       <div class="col-6 col-lg-2">
         <h6>Account</h6>
-        <ul><li><a href="user-profile">Dashboard</a></li><li><a href="{% url 'home:Orders' %}">Orders</a></li><li><a href="{% url 'home:user-wallet' %}">Wallet</a></li><li><a href="{% url 'home:user-address' %}">Addresses</a></li></ul>
+        <ul><li><a href="user-profile">profile</a></li><li><a href="{% url 'home:Orders' %}">Orders</a></li><li><a href="{% url 'home:user-wallet' %}">Wallet</a></li><li><a href="{% url 'home:user-address' %}">Addresses</a></li></ul>
       </div>
       <div class="col-6 col-lg-2">
         <h6>Support</h6>
@@ -889,7 +909,9 @@ function executeScripts(container) {
   </div>
 </div>
 {% endif %}
-
+{% if request.user.is_authenticated %}
+  {% include "home/partials/notification_detail_modal.html" %}
+{% endif %}
 {% if show_message_box %}
 <div class="chat-window" id="chatBox" data-product-id="{{ product.id|default:'0' }}">
   <div class="chat-header">
@@ -1194,43 +1216,163 @@ function executeScripts(container) {
       }
 
       function renderNotifications(notifications) {
+
         if (!notifications || notifications.length === 0) {
-          notificationList.innerHTML = `
-            <div class="p-4 text-center text-muted">
-              <i class="bi bi-bell-slash fs-4 d-block mb-2"></i>No notifications
-            </div>
-          `;
-          notificationCount.textContent = "0";
-          notificationCount.style.display = "none";
-          return;
+
+            notificationList.innerHTML = `
+                <div class="p-4 text-center text-muted">
+                    <i class="bi bi-bell-slash fs-4 d-block mb-2"></i>
+                    No notifications
+                </div>
+            `;
+
+            notificationCount.textContent = "0";
+            notificationCount.style.display = "none";
+
+            return;
         }
 
-        const unreadCount = notifications.filter(n => !n.is_read).length;
-        notificationCount.textContent = unreadCount > 99 ? "99+" : unreadCount;
-        notificationCount.style.display = unreadCount > 0 ? "inline-flex" : "none";
+
+        // -----------------------------
+        // Unread count
+        // -----------------------------
+
+        //const unreadCount = notifications.filter(n => !n.is_read).length;
+        //notificationCount.textContent = unreadCount > 99 ? "99+" : unreadCount;
+        //notificationCount.style.display = unreadCount > 0 ? "inline-flex" : "none";
+
+
+        // -----------------------------
+        // Render notifications
+        // -----------------------------
 
         notificationList.innerHTML = notifications.map(n => {
-          let icon = "bi-bell", iconClass = "";
-          switch (n.notification_type) {
-            case "order_placed": icon = "bi-bag-check"; iconClass = "text-primary"; break;
-            case "order_dispatched": icon = "bi-truck"; iconClass = "text-warning"; break;
-            case "order_delivered": icon = "bi-box-seam"; iconClass = "text-success"; break;
-            case "order_canceled": icon = "bi-x-circle"; iconClass = "text-danger"; break;
-            case "order_status": icon = "bi-info-circle"; iconClass = "text-primary"; break;
-            case "promotion": icon = "bi-lightning-charge"; iconClass = "text-warning"; break;
-          }
-          return `
-            <div class="notif-item ${n.is_read ? "" : "unread"}" data-notification-id="${n.id}">
-              <div class="notif-icon"><i class="bi ${icon} ${iconClass}"></i></div>
-              <div class="flex-grow-1">
-                <div class="fw-semibold small">${escapeHtml(n.title)}</div>
-                <small class="text-muted-custom">${escapeHtml(n.message)}</small>
-              </div>
-              ${!n.is_read ? `<span class="notification-dot"></span>` : ""}
-            </div>
-          `;
+
+            let icon = "bi-bell";
+            let iconClass = "";
+
+            switch (n.notification_type) {
+
+                case "order_placed":
+                    icon = "bi-bag-check";
+                    iconClass = "text-primary";
+                    break;
+
+                case "order_dispatched":
+                    icon = "bi-truck";
+                    iconClass = "text-warning";
+                    break;
+
+                case "order_delivered":
+                    icon = "bi-box-seam";
+                    iconClass = "text-success";
+                    break;
+
+                case "order_canceled":
+                    icon = "bi-x-circle";
+                    iconClass = "text-danger";
+                    break;
+
+                case "order_status":
+                    icon = "bi-info-circle";
+                    iconClass = "text-primary";
+                    break;
+
+                case "promotion":
+                    icon = "bi-lightning-charge";
+                    iconClass = "text-warning";
+                    break;
+            }
+
+
+            // -----------------------------
+            // Notification type
+            // -----------------------------
+
+            let notificationType =
+                n.notification_type_display ||
+                n.notification_type ||
+                "Notification";
+
+
+            // -----------------------------
+            // Created date
+            // -----------------------------
+
+            let created =
+                n.created_at_display ||
+                n.created_at ||
+                "";
+
+
+            // -----------------------------
+            // Return notification
+            // -----------------------------
+
+            return `
+                <div
+                    class="notif-item ${n.is_read ? "" : "unread"}"
+
+                    style="cursor:pointer;"
+
+                    onclick="openNotificationModal(this)"
+
+                    data-recipient-id="${n.id}"
+                    data-is-read="${n.is_read ? "1" : "0"}"
+
+                    data-title="${escapeHtml(n.title)}"
+                    data-message="${escapeHtml(n.message)}"
+
+                    data-type="${escapeHtml(notificationType)}"
+
+                    data-created="${escapeHtml(created)}"
+
+                    data-order-url="${escapeHtml(n.order_url || "")}"
+
+                    data-order-number="${escapeHtml(n.order_number || "")}"
+
+                    data-promotion-url="${escapeHtml(n.promotion_url || "")}"
+                >
+
+                    <div class="notif-icon">
+                        <i class="bi ${icon} ${iconClass}"></i>
+                    </div>
+
+
+                    <div class="flex-grow-1">
+
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+
+                            <div class="fw-semibold small">
+                                ${escapeHtml(n.title)}
+                            </div>
+
+                            ${
+                                !n.is_read
+                                ? `<span class="notification-dot"></span>`
+                                : ""
+                            }
+
+                        </div>
+
+
+                        <small class="text-muted-custom">
+                            ${escapeHtml(n.message)}
+                        </small>
+
+
+                        <div class="small text-muted-custom mt-1">
+                            ${escapeHtml(notificationType)}
+                            ${created ? ` · ${escapeHtml(created)}` : ""}
+                        </div>
+
+                    </div>
+
+                </div>
+            `;
+
         }).join("");
-      }
+    }
 
       function escapeHtml(value) {
         if (value === null || value === undefined) return "";

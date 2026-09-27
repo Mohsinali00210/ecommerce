@@ -20,7 +20,7 @@
         <!-- Account sidebar -->
         <div class="col-lg-3">
           <div class="account-sidebar p-3">
-            <a href="{% url 'home:user-profile' %}" class="account-nav-link"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+            <a href="{% url 'home:user-profile' %}" class="account-nav-link"><i class="bi bi-person me-2"></i>Profile</a>
             <a href="{% url 'home:Orders' %}" class="account-nav-link active"><i class="bi bi-box-seam me-2"></i>Orders</a>
             <a href="{% url 'home:user-wallet' %}" class="account-nav-link"><i class="bi bi-wallet2 me-2"></i>Wallet</a>
             <a href="{% url 'home:user-address' %}" class="account-nav-link"><i class="bi bi-geo-alt me-2"></i>Addresses</a>
@@ -73,7 +73,7 @@
           <!-- ============ Account stats ============ -->
           <div class="row g-3 mb-4">
             <div class="col-6 col-md-3">
-              <a href="my-orders" class="text-decoration-none">
+              <a href="{% url 'home:Orders' %}?f=all" class="text-decoration-none">
                 <div class="p-3 border rounded text-center h-100" style="border-color:var(--border) !important;">
                   <div class="fs-4 fw-semibold">{{ orders_count }}</div>
                   <div class="small text-muted-custom">Total Orders</div>
@@ -81,7 +81,7 @@
               </a>
             </div>
             <div class="col-6 col-md-3">
-              <a href="my-orders" class="text-decoration-none">
+              <a href="{% url 'home:Orders' %}?f=processing" class="text-decoration-none">
                 <div class="p-3 border rounded text-center h-100" style="border-color:var(--border) !important;">
                   <div class="fs-4 fw-semibold">{{ pending_orders_count }}</div>
                   <div class="small text-muted-custom">In Progress</div>
@@ -89,7 +89,7 @@
               </a>
             </div>
             <div class="col-6 col-md-3">
-              <a href="wishlist" class="text-decoration-none">
+              <a href="{% url 'home:Wishlist' %}" class="text-decoration-none">
                 <div class="p-3 border rounded text-center h-100" style="border-color:var(--border) !important;">
                   <div class="fs-4 fw-semibold">{{ wishlist_count }}</div>
                   <div class="small text-muted-custom">Wishlist Items</div>
@@ -97,7 +97,7 @@
               </a>
             </div>
             <div class="col-6 col-md-3">
-              <a href="wallet" class="text-decoration-none">
+              <a href="{% url 'home:user-wallet' %}" class="text-decoration-none">
                 <div class="p-3 border rounded text-center h-100" style="border-color:var(--border) !important;">
                   <div class="fs-4 fw-semibold">Rs. {{ wallet.balance|floatformat:0 }}</div>
                   <div class="small text-muted-custom">Wallet Balance</div>

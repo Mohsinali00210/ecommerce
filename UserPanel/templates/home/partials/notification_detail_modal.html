@@ -1,0 +1,102 @@
+
+  <!-- ============ Notification Detail Modal ============ -->
+  <div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="notificationModalLabel">Notification</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <span id="modalType" class="badge bg-secondary-subtle text-dark border mb-2"></span>
+          <h5 id="modalTitle" class="font-display"></h5>
+          <div class="small text-muted-custom mb-3" id="modalCreated"></div>
+          <p id="modalMessage" class="mb-0"></p>
+        </div>
+        <div class="modal-footer">
+          <a id="modalActionLink" href="#" class="btn btn-brass d-none">View Details</a>
+          <button type="button" class="btn btn-outline-ink" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="floating-stack">
+    <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+    <a href="https://wa.me/10000000000" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  </div>
+
+  <script>
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== "") {
+        for (let cookie of document.cookie.split(";")) {
+          cookie = cookie.trim();
+          if (cookie.startsWith(name + "=")) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    const csrftoken = getCookie("csrftoken");
+
+    const notificationModal = new bootstrap.Modal(document.getElementById("notificationModal"));
+
+    function openNotificationModal(el) {
+      const data = el.dataset;
+
+      document.getElementById("modalType").textContent = data.type;
+      document.getElementById("modalTitle").textContent = data.title;
+      document.getElementById("modalCreated").textContent = data.created;
+      document.getElementById("modalMessage").textContent = data.message;
+
+      const actionLink = document.getElementById("modalActionLink");
+      if (data.orderUrl) {
+        actionLink.href = data.orderUrl;
+        actionLink.textContent = `View Order ${data.orderNumber}`;
+        actionLink.classList.remove("d-none");
+      } else if (data.promotionUrl) {
+        actionLink.href = data.promotionUrl;
+        actionLink.textContent = "View Offer";
+        actionLink.classList.remove("d-none");
+      } else {
+        actionLink.classList.add("d-none");
+      }
+
+      notificationModal.show();
+
+      // Mark as read the first time it's opened
+      if (data.isRead === "0") {
+        data.isRead = "1";
+        el.classList.remove("bg-light");
+        const dot = el.querySelector(".bg-danger");
+        if (dot) dot.remove();
+        el.querySelector(".fw-semibold")?.classList.remove("fw-semibold");
+        window.HeaderCounts.notifications=window.HeaderCounts.notifications-1;
+        const notifBadge = document.getElementById("notificationCount");
+        if (notifBadge) {
+          notifBadge.textContent = window.HeaderCounts.notifications;
+          notifBadge.classList.toggle("d-none", window.HeaderCounts.notifications === 0);
+        }
+        const markUrl = "{% url 'home:mark-notification-read' 0 %}".replace("0", data.recipientId);
+        fetch(markUrl, {
+          method: "POST",
+          headers: { "X-CSRFToken": csrftoken }
+        }).catch(err => console.error("Failed to mark notification read", err));
+      }
+    }
+
+    function markAllRead() {
+      fetch("{% url 'home:mark-all-notifications-read' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": csrftoken }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) window.location.reload();
+        })
+        .catch(err => console.error("Failed to mark all as read", err));
+    }
+  </script>

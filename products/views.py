@@ -725,31 +725,55 @@ class OrderUpdateStatusAPIView(UpdateAPIView):
     def patch(self, request, *args, **kwargs):
         order = self.get_object()
 
-        order.status = request.data.get("status", order.status)
-        order.payment_status = request.data.get("payment_status", order.payment_status)
-        order.tracking_number = request.data.get("tracking_number", order.tracking_number)
-        order.save()
-        message_text = (
-                f"Your Order #{order.order_number} status "
-                f"has been change to {order.status}"
+        old_status = order.status
+
+        order.status = request.data.get(
+            "status",
+            order.status
+        )
+
+        order.payment_status = request.data.get(
+            "payment_status",
+            order.payment_status
+        )
+
+        # Convert empty tracking number to NULL
+        if "tracking_number" in request.data:
+            tracking_number = (
+                request.data.get("tracking_number") or ""
+            ).strip()
+
+            order.tracking_number = (
+                tracking_number if tracking_number else None
             )
-        notification = Notification.objects.create(
-            title=f"Order has been {order.status}",
-            message=message_text,
-            notification_type="order_status",
-            is_general=False,
-            is_active=True,
-            order=order
-        )
 
-        NotificationRecipient.objects.create(
-            notification=notification,
-            user=order.user,
-            is_read=False
-        )
+        order.save()
 
-        return Response({"message": "Order updated successfully"})
+        # Create notification only when status actually changes
+        if order.status != old_status:
+            message_text = (
+                f"Your Order #{order.order_number} status "
+                f"has been changed to {order.status}"
+            )
 
+            notification = Notification.objects.create(
+                title=f"Order has been {order.status}",
+                message=message_text,
+                notification_type="order_status",
+                is_general=False,
+                is_active=True,
+                order=order
+            )
+
+            NotificationRecipient.objects.create(
+                notification=notification,
+                user=order.user,
+                is_read=False
+            )
+
+        return Response({
+            "message": "Order updated successfully"
+        })
 # views.py
 from Web.models import SupportTicket
 

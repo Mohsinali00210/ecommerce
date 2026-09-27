@@ -50,13 +50,13 @@
                     await syncSessionWithToken();
 
                     setInterval(refreshToken, 50 * 60 * 1000);
-                    loadUserCartItemsCount();
-                    loadNotifications();
+                    //loadUserCartItemsCount();
+                    //loadNotifications();
                 });
                 window.onfocus = function() {
                     refreshToken();
-                    loadUserCartItemsCount(); 
-                    loadNotifications();
+                    //loadUserCartItemsCount(); 
+                    //loadNotifications();
                 };
                 async function refreshToken() {
                 const refresh = localStorage.getItem("refresh_token");
@@ -142,7 +142,7 @@
         <!-- Account sidebar -->
         <div class="col-lg-3">
           <div class="account-sidebar p-3">
-            <a href="{% url 'home:user-profile' %}" class="account-nav-link"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+            <a href="{% url 'home:user-profile' %}" class="account-nav-link"><i class="bi bi-person me-2"></i>Profile</a>
             <a href="{% url 'home:Orders' %}" class="account-nav-link active"><i class="bi bi-box-seam me-2"></i>Orders</a>
             <a href="{% url 'home:user-wallet' %}" class="account-nav-link"><i class="bi bi-wallet2 me-2"></i>Wallet</a>
             <a href="{% url 'home:user-address' %}" class="account-nav-link"><i class="bi bi-geo-alt me-2"></i>Addresses</a>
@@ -154,11 +154,12 @@
         <!-- Orders list -->
         <div class="col-lg-9">
           <div class="d-flex flex-wrap gap-2 mb-4" id="orderStatusFilters">
-            <button class="btn btn-sm btn-outline-ink filter-btn " data-filter="all">All</button>
-            <button class="btn btn-sm btn-outline-ink filter-btn active" data-filter="pending">Pending</button>
-            <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="processing">Processing</button>
-            <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="shipped">Shipped</button>
+            <button class="btn btn-sm btn-outline-ink filter-btn {% if type_filter == "all" %}active{% endif %}" data-filter="all">All</button>
+            <button class="btn btn-sm btn-outline-ink filter-btn {% if type_filter == "" %}active{% endif %}" data-filter="pending">Pending</button>
+            <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="ordersuccessfull">Order Successful</button>
             <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="delivered">Delivered</button>
+            <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="shipped">Shipped</button>
+            <button class="btn btn-sm btn-outline-ink filter-btn {% if type_filter == "processing" %}active{% endif %}" data-filter="processing">Processing</button>
             <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="cancelled">Cancelled</button>
           </div>
 
@@ -186,14 +187,18 @@
 
                     {% if order.status == "pending" %}
                       <span class="status-badge status-pending"><i class="bi bi-circle-fill"></i> Pending</span>
+                    {% elif order.status == "ordersuccessfull" %}
+                      <span class="status-badge status-delivered"><i class="bi bi-circle-fill"></i> Order Successful</span>
+                    {% elif order.status == "delivered" %}
+                      <span class="status-badge status-delivered"><i class="bi bi-circle-fill"></i> Delivered</span>
+                    {% elif order.status == "shipped" %}
+                      <span class="status-badge status-shipped"><i class="bi bi-circle-fill"></i> Shipped</span>
+                    {% elif order.status == "submited" %}
+                      <span class="status-badge status-pending"><i class="bi bi-circle-fill"></i> Submitted</span>
                     {% elif order.status == "submited" %}
                       <span class="status-badge status-pending"><i class="bi bi-circle-fill"></i> Submitted</span>
                     {% elif order.status == "processing" %}
                       <span class="status-badge status-processing"><i class="bi bi-circle-fill"></i> Processing</span>
-                    {% elif order.status == "shipped" %}
-                      <span class="status-badge status-shipped"><i class="bi bi-circle-fill"></i> Shipped</span>
-                    {% elif order.status == "delivered" %}
-                      <span class="status-badge status-delivered"><i class="bi bi-circle-fill"></i> Delivered</span>
                     {% elif order.status == "cancelled" %}
                       <span class="status-badge status-cancelled"><i class="bi bi-circle-fill"></i> Cancelled</span>
                     {% elif order.status == "returned" %}
@@ -343,7 +348,7 @@
     }
 
     // ---------- CSRF helper (session-auth, matches the plain Django views setup) ----------
-    function getCookie(name) {
+    {% comment %} function getCookie(name) {
       let cookieValue = null;
       if (document.cookie && document.cookie !== "") {
         const cookies = document.cookie.split(";");
@@ -356,8 +361,8 @@
         }
       }
       return cookieValue;
-    }
-    const csrftoken = getCookie("csrftoken");
+    } {% endcomment %}
+    //const csrftoken = getCookie("csrftoken");
 
     // ---------- Client-side status filtering over the server-rendered cards ----------
     function applyOrderFilter(filter) {
@@ -590,7 +595,7 @@
           showAlert("Failed to process cancellation. Please try again.", "warning");
         });
     }
-
-    applyOrderFilter("pending");
+    let fl = '{% if type_filter != "" %}{{type_filter}}{% else %}pending{% endif %}';
+    applyOrderFilter(fl);
   </script>
 {% endblock %}
