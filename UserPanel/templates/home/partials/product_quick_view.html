@@ -1,12 +1,24 @@
 {% load static %}
+<style>
+  /* Options with no stock (marked by JS) */
+  [data-product-quick-view] .sold-out { opacity: .35; cursor: not-allowed; position: relative; }
+  [data-product-quick-view] .size-pill.sold-out { text-decoration: line-through; }
+  [data-product-quick-view] .variant-swatch.sold-out::after {
+    content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px;
+    background: var(--text); transform: rotate(45deg);
+  }
+</style>
+
 <div class="row g-4" data-product-quick-view data-product-id="{{ product.id }}">
 
   <!-- Gallery -->
   <div class="col-md-6">
     <div class="pdp-main-media mb-2">
-      {% with first_image=images.0 %}
-        <img src="{{ first_image.image.url }}" alt="{{ product.name }}" class="qv-main-img">
-      {% endwith %}
+      {% if images %}
+        {% with first_image=images.0 %}
+          <img src="{{ first_image.image.url }}" alt="{{ product.name }}" class="qv-main-img">
+        {% endwith %}
+      {% endif %}
     </div>
     {% if images|length > 1 %}
       <div class="row g-2">
@@ -23,18 +35,48 @@
 
   <!-- Info -->
   <div class="col-md-6">
+
+    <!-- Badges (discount badge always rendered so JS can toggle it) -->
+    <div class="badge-stack mb-2 d-flex flex-wrap align-items-center gap-2" style="position:static;">
+      <span class="badge-tag badge-sale qv-discount-badge {% if not pricing.percent_off %}d-none{% endif %}">
+        <i class="bi bi-lightning-charge-fill me-1"></i>-{{ pricing.percent_off|floatformat:"-2" }}%
+      </span>
+      {% if product.free_shipping %}
+        <span class="badge-tag badge-ship"><i class="bi bi-truck me-1"></i>Free Shipping</span>
+      {% endif %}
+      {% if product.available_for_preorder %}
+        <span class="badge-tag badge-new"><i class="bi bi-clock-history me-1"></i>Pre-Order</span>
+      {% endif %}
+    </div>
+
     <div class="cat text-muted-custom">{{ product.category.first.name }}</div>
     <h4 class="font-display mb-2">{{ product.name }}</h4>
 
     <div class="price-row mb-2">
-      <span class="price-now fs-4 qv-price-now">RS {{ product.final_price|floatformat:2 }}</span>
-      {% if product.final_price != product.price %}
-        <span class="price-was qv-price-was">RS {{ product.price|floatformat:2 }}</span>
-      {% endif %}
+      <span class="price-now fs-4 qv-price-now">RS {{ pricing.final|floatformat:2 }}</span>
+      <span class="price-was qv-price-was {% if not pricing.was %}d-none{% endif %}">{% if pricing.was %}RS {{ pricing.was|floatformat:2 }}{% endif %}</span>
     </div>
+
+    <!-- Shipping line -->
+    {% if product.shipping_enabled %}
+      <div class="small mb-2">
+        <i class="bi bi-truck me-1"></i> Shipping:
+        {% if product.free_shipping %}
+          {% if product.shipping_charges > 0 %}
+            <span class="price-was">RS {{ product.shipping_charges|floatformat:2 }}</span>
+          {% endif %}
+          <strong class="text-success">FREE</strong>
+        {% elif product.shipping_charges > 0 %}
+          <strong>RS {{ product.shipping_charges|floatformat:2 }}</strong>
+        {% else %}
+          <span class="text-muted-custom">Calculated at checkout</span>
+        {% endif %}
+      </div>
+    {% endif %}
 
     <p class="text-muted-custom small mb-3">{{ product.description|striptags|truncatewords:30 }}</p>
 
+    <!-- Variant option groups -->
     {% regroup options by option_name as grouped_options %}
     {% for group in grouped_options %}
       <div class="mb-3">
@@ -50,7 +92,7 @@
                     style="background:{{ item.value|default:'#ccc' }}"
                     data-value="{{ item.option }}"></span>
             {% else %}
-              <span class="size-pill {% if forloop.first %}active{% endif %} {% if not item.in_stock %}disabled{% endif %}"
+              <span class="size-pill {% if forloop.first %}active{% endif %}"
                     data-value="{{ item.option }}">{{ item.option }}</span>
             {% endif %}
           {% endfor %}
@@ -67,15 +109,26 @@
       </div>
     </div>
 
-    <span class="small qv-stock-label {% if product.stock_quantity > 0 %}text-success{% else %}text-danger{% endif %}">
-      <i class="bi {% if product.stock_quantity > 0 %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %}"></i>
-      {% if product.stock_quantity > 0 %}In stock ({{ product.stock_quantity }} left){% else %}Out of stock{% endif %}
+    <span class="small qv-stock-label {% if product.available_for_preorder or in_stock %}text-success{% else %}text-danger{% endif %}">
+      <i class="bi {% if product.available_for_preorder or in_stock %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %}"></i>
+      {% if available_stock > 0 %}In stock ({{ available_stock }} left){% elif product.available_for_preorder %}Available for pre-order{% else %}Out of stock{% endif %}
     </span>
+
+    {% if product.available_for_preorder %}
+      <div class="alert alert-warning small py-2 mt-3 mb-0">
+        <i class="bi bi-hourglass-split me-1"></i> This item is available for pre-order. It will be dispatched once stock arrives.
+      </div>
+    {% endif %}
+
+    <div class="d-flex align-items-center gap-2 mt-3">
+      <i class="bi bi-truck text-success"></i>
+      <span class="small">{% if product.free_shipping %}Free delivery{% else %}Delivery{% endif %} by {{ estimated_date|date:"D, M j" }}</span>
+    </div>
 
     <div class="d-flex gap-2 mt-3">
       <button class="btn btn-brass flex-grow-1 qv-add-btn"
-              {% if product.stock_quantity == 0 %}disabled{% endif %}
-              onclick="window.QuickView.addToCart({{ product.id }})">
+              {% if not product.available_for_preorder and not in_stock %}disabled{% endif %}
+              onclick="window.QuickView.addToCart()">
         <i class="bi bi-bag-plus me-1"></i> Add to Cart
       </button>
       <a href="{% url 'home:Product_Details' slug=product.slug %}" class="btn btn-outline-ink">
@@ -91,66 +144,201 @@
     const root = document.querySelector('[data-product-quick-view]');
     if (!root) return;
 
-    const VARIANTS = {{ variants_json|safe }};
-    const selected = {};
+    const PRODUCT_ID    = {{ product.id }};
+    const VARIANTS      = {{ variants_json|safe }};
+    const PRODUCT_STOCK = {{ product.stock_quantity|default:0 }};
+    const PREORDER_ONLY = {{ product.available_for_preorder|yesno:"true,false" }};
 
-    root.querySelectorAll('[data-option-group]').forEach(groupEl => {
-      groupEl.querySelectorAll('.variant-swatch, .size-pill').forEach(el => {
-        if (el.classList.contains('disabled')) return;
-        if (el.classList.contains('active')) {
-          selected[groupEl.dataset.optionGroup] = el.dataset.value;
-        }
-        el.addEventListener('click', () => {
-          groupEl.querySelectorAll('.variant-swatch, .size-pill').forEach(e => e.classList.remove('active'));
-          el.classList.add('active');
-          selected[groupEl.dataset.optionGroup] = el.dataset.value;
-          const labelEl = root.querySelector(`[data-variant-label="${groupEl.dataset.optionGroup}"]`);
-          if (labelEl) labelEl.textContent = el.dataset.value;
-          updateVariant();
-        });
+    const selected = {};
+    let maxQty = Infinity;
+
+    const $ = (sel) => root.querySelector(sel);
+    const qtyInput = $('.qv-qty');
+    const money = (n) => `RS ${Number(n).toFixed(2)}`;
+    const normalize = (arr) => arr.map(s => String(s).trim().toLowerCase()).sort().join('|');
+
+    // ---------- Gallery thumbnails ----------
+    root.querySelectorAll('.pdp-thumb[data-full]').forEach(thumb => {
+      thumb.addEventListener('click', () => {
+        root.querySelectorAll('.pdp-thumb').forEach(t => t.classList.remove('active'));
+        thumb.classList.add('active');
+        const img = $('.qv-main-img');
+        if (img) img.src = thumb.dataset.full;
       });
     });
 
+    // ---------- Variant lookup ----------
     function matchingVariant() {
-      const name = Object.values(selected).join(' / ');
-      return VARIANTS.find(v => v.name === name);
+      const values = Object.values(selected);
+      if (!values.length) {
+        if (VARIANTS.length === 1) return VARIANTS[0];
+        return VARIANTS.find(v => Number(v.stock) > 0) || VARIANTS[0] || null;
+      }
+      const wanted = normalize(values);
+      return VARIANTS.find(v => normalize(v.name.split(' / ')) === wanted) || null;
     }
 
-    function updateVariant() {
-      const v = matchingVariant();
-      if (!v) return;
-      root.querySelector('.qv-price-now').textContent = `RS ${v.final_price.toFixed(2)}`;
-      const wasEl = root.querySelector('.qv-price-was');
-      if (wasEl) wasEl.style.display = v.off_price > 0 ? '' : 'none';
+    // ---------- Price ----------
+    function renderPrice(v) {
+      $('.qv-price-now').textContent = money(v.final_price);
 
-      const stockLabel = root.querySelector('.qv-stock-label');
-      const addBtn = root.querySelector('.qv-add-btn');
-      if (v.stock > 0) {
-        stockLabel.innerHTML = `<i class="bi bi-check-circle-fill"></i> In stock (${v.stock} left)`;
-        stockLabel.className = 'small qv-stock-label text-success';
-        addBtn.disabled = false;
-      } else {
-        stockLabel.innerHTML = `<i class="bi bi-x-circle-fill"></i> Out of stock`;
-        stockLabel.className = 'small qv-stock-label text-danger';
-        addBtn.disabled = true;
+      const was = $('.qv-price-was');
+      if (was) {
+        if (v.was_price) {
+          was.textContent = money(v.was_price);
+          was.classList.remove('d-none');
+        } else {
+          was.textContent = '';
+          was.classList.add('d-none');
+        }
+      }
+
+      const badge = $('.qv-discount-badge');
+      if (badge) {
+        if (Number(v.percent_off) > 0) {
+          badge.innerHTML = `<i class="bi bi-lightning-charge-fill me-1"></i>-${+Number(v.percent_off).toFixed(2)}%`;
+          badge.classList.remove('d-none');
+        } else {
+          badge.classList.add('d-none');
+        }
       }
     }
 
-    root.querySelectorAll('[data-qty-step]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const input = root.querySelector('.qv-qty');
-        input.value = Math.max(1, parseInt(input.value) + parseInt(btn.dataset.qtyStep));
+    // ---------- Buttons / quantity / stock ----------
+    function setPurchaseButtons(canBuy) {
+      const addBtn = $('.qv-add-btn');
+      if (addBtn) addBtn.disabled = !canBuy;
+    }
+
+    function setMaxQty(max) {
+      maxQty = max === Infinity ? Infinity : Math.max(1, Number(max));
+      if (parseInt(qtyInput.value) > maxQty) qtyInput.value = maxQty;
+    }
+
+    function showStock(stock) {
+      stock = Number(stock || 0);
+      const label = $('.qv-stock-label');
+
+      if (stock > 0) {
+        label.innerHTML = `<i class="bi bi-check-circle-fill"></i> In stock (${stock} left)`;
+        label.className = 'small qv-stock-label text-success';
+        setMaxQty(PREORDER_ONLY ? Infinity : stock);   // pre-orders aren't capped by stock
+        setPurchaseButtons(true);
+      } else if (PREORDER_ONLY) {
+        label.innerHTML = `<i class="bi bi-check-circle-fill"></i> Available for pre-order`;
+        label.className = 'small qv-stock-label text-success';
+        setMaxQty(Infinity);
+        setPurchaseButtons(true);
+      } else {
+        label.innerHTML = `<i class="bi bi-x-circle-fill"></i> Out of stock`;
+        label.className = 'small qv-stock-label text-danger';
+        setMaxQty(1);
+        setPurchaseButtons(false);
+      }
+    }
+
+    function updateVariant() {
+      // Product without variants: use product-level stock (price already rendered by the server)
+      if (!VARIANTS.length) {
+        showStock(PRODUCT_STOCK);
+        return;
+      }
+
+      const v = matchingVariant();
+      if (!v) {
+        const label = $('.qv-stock-label');
+        label.innerHTML = `<i class="bi bi-exclamation-circle"></i> This combination is unavailable`;
+        label.className = 'small qv-stock-label text-muted-custom';
+        setPurchaseButtons(false);
+        return;
+      }
+
+      renderPrice(v);
+      showStock(v.stock);
+    }
+
+    // ---------- Mark options that have no stock ----------
+    function markSoldOutOptions() {
+      if (!VARIANTS.length || PREORDER_ONLY) return;
+      root.querySelectorAll('[data-option-group] .size-pill, [data-option-group] .variant-swatch').forEach(el => {
+        const val = normalize([el.dataset.value]);
+        const available = VARIANTS.some(v =>
+          Number(v.stock) > 0 &&
+          v.name.split(' / ').some(part => normalize([part]) === val)
+        );
+        el.classList.toggle('sold-out', !available);
+      });
+    }
+
+    // ---------- Option selection ----------
+    function selectOption(groupEl, target) {
+      groupEl.querySelectorAll('.variant-swatch, .size-pill').forEach(e => e.classList.remove('active'));
+      target.classList.add('active');
+
+      const groupName = groupEl.dataset.optionGroup;
+      selected[groupName] = target.dataset.value;
+
+      const labelEl = root.querySelector(`[data-variant-label="${groupName}"]`);
+      if (labelEl) labelEl.textContent = target.dataset.value;
+
+      updateVariant();
+    }
+
+    root.querySelectorAll('[data-option-group]').forEach(groupEl => {
+      const groupName = groupEl.dataset.optionGroup;
+      groupEl.querySelectorAll('.variant-swatch, .size-pill').forEach(el => {
+        el.addEventListener('click', () => {
+          if (el.classList.contains('sold-out')) return;
+          selectOption(groupEl, el);
+        });
+
+        if (el.classList.contains('active')) {
+          selected[groupName] = el.dataset.value;
+          const labelEl = root.querySelector(`[data-variant-label="${groupName}"]`);
+          if (labelEl) labelEl.textContent = el.dataset.value;
+        }
       });
     });
 
+    // ---------- Quantity ----------
+    root.querySelectorAll('[data-qty-step]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const current = parseInt(qtyInput.value) || 1;
+        const next = current + parseInt(btn.dataset.qtyStep);
+        qtyInput.value = Math.min(Math.max(1, next), maxQty);
+      });
+    });
+
+    // ---------- Add to cart ----------
     window.QuickView = window.QuickView || {};
-    window.QuickView.addToCart = function (fallbackId) {
+    window.QuickView.addToCart = function () {
       const v = matchingVariant();
-      const variantId = v ? v.id : fallbackId;
-      const qty = parseInt(root.querySelector('.qv-qty').value);
-      Cart.add({{ product.id }},variantId, qty); // reuses your existing Cart.add()
+      if (VARIANTS.length && !v) return;                          // invalid combination
+      if (!PREORDER_ONLY && v && Number(v.stock) <= 0) return;    // out of stock (pre-order is exempt)
+      const qty = parseInt(qtyInput.value) || 1;
+      Cart.add(PRODUCT_ID, v ? v.id : null, qty);  // reuses the existing Cart.add()
     };
 
+    // If the default (first) options have no stock but another variant does,
+    // preselect that in-stock variant so buttons start enabled.
+    function preselectInStockVariant() {
+      if (PREORDER_ONLY || !VARIANTS.length) return;
+      const current = matchingVariant();
+      if (current && Number(current.stock) > 0) return;
+      const target = VARIANTS.find(v => Number(v.stock) > 0);
+      if (!target) return;
+      target.name.split(' / ').forEach(part => {
+        root.querySelectorAll('[data-option-group]').forEach(groupEl => {
+          const el = Array.from(groupEl.querySelectorAll('[data-value]'))
+            .find(e => normalize([e.dataset.value]) === normalize([part]));
+          if (el) selectOption(groupEl, el);
+        });
+      });
+    }
+
+    // ---------- Initial state ----------
+    markSoldOutOptions();
+    preselectInStockVariant();
     updateVariant();
   })();
 </script>

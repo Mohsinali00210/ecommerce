@@ -40,19 +40,19 @@
 
             {% for item in items %}
 
-            <div class="cart-item border rounded-4 p-3 mb-3" data-id="{{ item.id }}">
+            <div class="cart-item border rounded-4 p-3 mb-3 {% if item.insufficient_stock %}opacity-75{% endif %}" data-id="{{ item.id }}">
 
                 <div class="row align-items-center">
 
                     <!-- Checkbox -->
                     <div class="col-auto">
                         <input class="form-check-input cart-item-check item-check"
-                              type="checkbox"
-                              checked
-                              value="{{ item.id }}"
-                              data-itemid="{{ item.id }}"
-                              data-productid="{{ item.product.id }}"
-                              data-variantid="{% if item.variant %}{{ item.variant.id }}{% endif %}">
+                            type="checkbox"
+                            {% if item.insufficient_stock %}disabled{% else %}checked{% endif %}
+                            value="{{ item.id }}"
+                            data-itemid="{{ item.id }}"
+                            data-productid="{{ item.product.id }}"
+                            data-variantid="{% if item.variant %}{{ item.variant.id }}{% endif %}">
                     </div>
 
                     <!-- Product Image -->
@@ -91,7 +91,16 @@
                                 <i class="bi bi-truck me-1"></i>Shipping: RS {{ item.shipping_amount|floatformat:2 }}
                             </small>
                         {% endif %}
-
+                        {% if item.product.available_for_preorder %}
+                            <small class="text-warning d-block mt-1">
+                                <i class="bi bi-clock-history me-1"></i>Pre-order
+                            </small>
+                        {% endif %}
+                        
+                        <small class="text-danger d-block mt-1 stock-warning {% if not item.insufficient_stock %}d-none{% endif %}">
+                            <i class="bi bi-exclamation-circle me-1"></i>
+                            {% if item.stock > 0 %}Only {{ item.stock }} left in stock — reduce the quantity to check out{% else %}Out of stock{% endif %}
+                        </small>
                     </div>
 
                     <!-- Quantity -->
@@ -328,7 +337,38 @@
       hintEl.classList.add("d-none");
     }
   }
-
+  function hasEnoughStock(row) {
+    const line = CART.lines[row.dataset.id];
+    return !line || line.preorder || qtyOf(row) <= line.stock;
+  }
+ 
+  // Uncheck + lock rows the stock can't cover; unlock them once the quantity fits again
+  function applyStockState(row) {
+    const check = row.querySelector(".cart-item-check");
+    const warn = row.querySelector(".stock-warning");
+    const line = CART.lines[row.dataset.id];
+    if (!check) return;
+ 
+    const ok = hasEnoughStock(row);
+    const wasLocked = check.disabled;
+ 
+    if (!ok) {
+      check.checked = false;
+      check.disabled = true;
+      if (warn) {
+        warn.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>' +
+          (line.stock > 0
+            ? `Only ${line.stock} left in stock — reduce the quantity to check out`
+            : 'Out of stock');
+        warn.classList.remove("d-none");
+      }
+    } else {
+      check.disabled = false;
+      if (wasLocked) check.checked = true;   // fixed by lowering the quantity -> select it again
+      if (warn) warn.classList.add("d-none");
+    }
+    row.classList.toggle("opacity-75", !ok);
+  }
   // ---------- Live summary (only the selected items) ----------
   function recomputeSummary() {
     if (!document.getElementById("summaryTotal")) return;   // empty cart: no summary card
@@ -375,12 +415,13 @@
 
   // ---------- Select all / single item ----------
   function syncSelectAll() {
-    const all = Array.from(document.querySelectorAll(".cart-item-check"));
+    // locked (out-of-stock) rows don't count
+    const all = Array.from(document.querySelectorAll(".cart-item-check:not(:disabled)"));
     document.getElementById("selectAll").checked = all.length > 0 && all.every(c => c.checked);
   }
-
+ 
   $("#selectAll").change(function () {
-    $(".cart-item-check").prop("checked", $(this).prop("checked"));
+    $(".cart-item-check:not(:disabled)").prop("checked", $(this).prop("checked"));
     recomputeSummary();
   });
 
@@ -398,19 +439,23 @@
       const line = CART.lines[id];
       const qtyInput = document.querySelector(`.qty-select[data-id="${id}"]`);
       const before = parseInt(qtyInput.value, 10) || 1;
-      const max = Math.max(1, line ? line.stock : Infinity);
-
+ 
+      // Stock caps the quantity, except for pre-order products
+      const max = !line || line.preorder ? Infinity : Math.max(1, line.stock);
+ 
       const qty = this.classList.contains("qty-plus")
-        ? Math.min(before + 1, max)
+        ? (before >= max ? before : before + 1)   // never jumps DOWN when already above stock
         : Math.max(1, before - 1);
-
+ 
       if (qty === before) return;
-
+ 
       qtyInput.value = qty;
-      recomputeSummary();
-      updateCartItemQuantity(id, qty); // fire-and-forget persist — see stub below
+      recomputeSummary();      // also re-evaluates the stock state of the row
+      syncSelectAll();
+      updateCartItemQuantity(id, qty);
     });
   });
+
 
   // Persists the new quantity to the server. Point this at your real endpoint —
   // no "update quantity" URL was included in what you sent, so this is a stub.

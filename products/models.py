@@ -750,15 +750,26 @@ class Picture(BaseAuditModel):
         ('thumbnail', 'Thumbnail'),
         ('gallery', 'Gallery'),
     ]
-    picture_type = models.CharField(max_length=20,choices=PICTURE_TYPES,default='banner')
+    picture_type = models.CharField(max_length=20, choices=PICTURE_TYPES, default='banner')
     picture = models.ImageField(upload_to='pictures/', verbose_name="Image")
-    alt = models.CharField(max_length=255,blank=True,null=True,verbose_name="Alt Text")
-    is_active = models.BooleanField(default=True,verbose_name="Is Active")
-    title = models.CharField(max_length=200,blank=True,null=True,verbose_name="Title")
-    description = models.TextField(blank=True,null=True,verbose_name="Description")
+    alt = models.CharField(max_length=255, blank=True, null=True, verbose_name="Alt Text")
+    is_active = models.BooleanField(default=True, verbose_name="Is Active")
+    title = models.CharField(max_length=200, blank=True, null=True, verbose_name="Title")
+    description = models.TextField(blank=True, null=True, verbose_name="Description")
+ 
+    # ---- NEW: slide text ----
+    eyebrow = models.CharField(max_length=100, blank=True, null=True, verbose_name="Eyebrow (small text above title)")
+    button_text = models.CharField(max_length=50, blank=True, null=True, verbose_name="Button Text")
+    button_link = models.CharField(max_length=255, blank=True, null=True, verbose_name="Button Link",
+                                   help_text="URL or path, e.g. /shop/")
+    sort_order = models.PositiveIntegerField(default=0, verbose_name="Sort Order",
+                                             help_text="Lower numbers show first")
+ 
     class Meta:
         verbose_name = "Picture"
         verbose_name_plural = "Pictures"
-        ordering = ['-created_at']
+        ordering = ['sort_order', '-created_at']
+ 
     def __str__(self):
         return f"{self.picture_type} - {self.title or 'No Title'}"
+ 

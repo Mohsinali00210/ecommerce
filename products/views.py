@@ -1059,19 +1059,20 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
 from .models import Picture
 from .serializers import PictureSerializer
 class PictureViewSet(viewsets.ModelViewSet):
-    queryset = Picture.objects.all().order_by('-created_at')
     serializer_class = PictureSerializer
     permission_classes = [IsSuperUser]
-
+ 
     def get_queryset(self):
-        queryset = Picture.objects.filter(is_active=True).order_by('-created_at')
-
+        qs = Picture.objects.all().order_by('sort_order', '-created_at')
+ 
         picture_type = self.request.query_params.get('picture_type')
-
+        is_active = self.request.query_params.get('is_active')
+ 
         if picture_type:
-            queryset = queryset.filter(picture_type=picture_type)
-
-        return queryset
+            qs = qs.filter(picture_type=picture_type)
+        if is_active in ('true', '1'):
+            qs = qs.filter(is_active=True)
+        return qs
 
 @login_required
 def picture_page(request):

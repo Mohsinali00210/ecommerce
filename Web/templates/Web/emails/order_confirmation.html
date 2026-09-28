@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Order Confirmation</title>
+</head>
+
+<body style="margin:0;padding:0;background:#f4f2ec;font-family:Arial,Helvetica,sans-serif;">
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+       style="background:#f4f2ec;padding:40px 0;">
+
+    <tr>
+        <td align="center">
+
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0"
+                   style="background:#ffffff;border-radius:12px;overflow:hidden;">
+
+                <!-- HEADER -->
+                <tr>
+                    <td style="background:#1f3d2f;padding:28px;text-align:center;">
+                        <img src="https://shanzee.com/static/images/logo2.png"
+                             width="120"
+                             alt="Shan Zee">
+                    </td>
+                </tr>
+
+                <!-- CONTENT -->
+                <tr>
+                    <td style="padding:32px 36px;">
+
+                        <p style="font-size:16px;color:#1c1f1d;margin:0 0 16px;">
+                            Hi {{ order.user.full_name|default:"there" }},
+                        </p>
+
+                        <h2 style="color:#1f3d2f;margin:0 0 12px;">
+                            Order Placed Successfully
+                        </h2>
+
+                        <p style="font-size:15px;color:#4a4a4a;line-height:1.6;margin:0 0 24px;">
+                            Thank you for shopping with Shan Zee.
+                            Your order has been successfully placed.
+                        </p>
+
+                        <!-- ORDER NUMBER -->
+                        <div style="background:#f4f2ec;border-radius:8px;padding:16px;margin-bottom:24px;">
+                            <div style="font-size:12px;color:#8a8a8a;">
+                                Order Number
+                            </div>
+
+                            <div style="font-size:20px;font-weight:700;color:#1f3d2f;">
+                                {{ order.order_number }}
+                            </div>
+                        </div>
+
+                        <!-- ITEMS -->
+                        <h3 style="font-size:16px;color:#1f3d2f;margin-bottom:12px;">
+                            Items Ordered
+                        </h3>
+
+                        <table width="100%" cellpadding="8" cellspacing="0"
+                               style="border-collapse:collapse;">
+
+                            {% for item in order_items %}
+
+                            <tr style="border-bottom:1px solid #eeeeee;">
+
+                                <td style="width:55px;">
+                                    {% if item.product and item.product.images.first %}
+                                    <img src="{{ site_url }}{{ item.product.images.first.image.url }}"
+                                         width="50"
+                                         height="50"
+                                         style="object-fit:cover;border-radius:6px;"
+                                         alt="{{ item.product.name }}">
+                                    {% endif %}
+                                </td>
+
+                                <td style="font-size:13px;color:#333;">
+
+                                    <strong>
+                                        {{ item.product.name|default:"Product" }}
+                                    </strong>
+
+                                    {% if item.variant %}
+                                    <br>
+                                    <span style="color:#888;">
+                                        SKU: {{ item.variant.sku }}
+                                    </span>
+                                    {% endif %}
+
+                                    <br>
+
+                                    <span style="color:#888;">
+                                        Qty {{ item.quantity }}
+                                    </span>
+
+                                </td>
+
+                                <td align="right"
+                                    style="font-size:13px;font-weight:bold;">
+                                    RS {{ item.total|floatformat:2 }}
+                                </td>
+
+                            </tr>
+
+                            {% empty %}
+
+                            <tr>
+                                <td colspan="3"
+                                    style="color:#888;padding:15px 0;">
+                                    No items found.
+                                </td>
+                            </tr>
+
+                            {% endfor %}
+
+                        </table>
+
+                        <!-- SUMMARY -->
+                        <div style="margin-top:25px;">
+
+                            <h3 style="font-size:16px;color:#1f3d2f;">
+                                Order Summary
+                            </h3>
+
+                            <table width="100%" cellpadding="6" cellspacing="0">
+
+                                <tr>
+                                    <td style="color:#555;">
+                                        Subtotal
+                                    </td>
+                                    <td align="right">
+                                        RS {{ order.subtotal|floatformat:2 }}
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="color:#555;">
+                                        Shipping
+                                    </td>
+
+                                    <td align="right">
+                                        {% if order.shipping_charges == 0 %}
+                                            <span style="color:#198754;">
+                                                FREE
+                                            </span>
+                                        {% else %}
+                                            RS {{ order.shipping_charges|floatformat:2 }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td colspan="2">
+                                        <hr style="border:0;border-top:1px solid #eeeeee;">
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="font-size:17px;font-weight:bold;">
+                                        Total
+                                    </td>
+
+                                    <td align="right"
+                                        style="font-size:17px;font-weight:bold;color:#1f3d2f;">
+                                        RS {{ order.total_amount|floatformat:2 }}
+                                    </td>
+                                </tr>
+
+                            </table>
+
+                        </div>
+
+                        <!-- PAYMENT -->
+                        <div style="margin-top:24px;background:#faf9f6;padding:16px;border-radius:8px;">
+
+                            <h3 style="font-size:15px;color:#1f3d2f;margin-top:0;">
+                                Payment Information
+                            </h3>
+
+                            <p style="font-size:13px;color:#555;margin:6px 0;">
+                                <strong>Payment Method:</strong>
+                                {{ order.get_payment_method_display }}
+                            </p>
+
+                            <p style="font-size:13px;color:#555;margin:6px 0;">
+                                <strong>Payment Status:</strong>
+                                {{ order.get_payment_status_display }}
+                            </p>
+
+                            {% if order.transaction_id %}
+                            <p style="font-size:13px;color:#555;margin:6px 0;">
+                                <strong>Transaction ID:</strong>
+                                {{ order.transaction_id }}
+                            </p>
+                            {% endif %}
+
+                        </div>
+
+                        <!-- SHIPPING ADDRESS -->
+                        <div style="margin-top:24px;">
+
+                            <h3 style="font-size:15px;color:#1f3d2f;">
+                                Shipping To
+                            </h3>
+
+                            {% if order.shipping_address %}
+
+                            <p style="font-size:13px;color:#555;line-height:1.6;">
+                                {{ order.shipping_address.full_name }}<br>
+                                {{ order.shipping_address.street_address }}<br>
+
+                                {{ order.shipping_address.city }}
+                                {% if order.shipping_address.state %}
+                                    , {{ order.shipping_address.state }}
+                                {% endif %}
+
+                                {{ order.shipping_address.postal_code }}<br>
+
+                                {{ order.shipping_address.country }}
+
+                                {% if order.shipping_address.phone %}
+                                    <br>
+                                    Phone: {{ order.shipping_address.phone }}
+                                {% endif %}
+                            </p>
+
+                            {% else %}
+
+                            <p style="font-size:13px;color:#888;">
+                                No shipping address available.
+                            </p>
+
+                            {% endif %}
+
+                        </div>
+
+                        <!-- NOTES -->
+                        {% if order.notes %}
+
+                        <div style="margin-top:20px;">
+
+                            <h3 style="font-size:15px;color:#1f3d2f;">
+                                Order Notes
+                            </h3>
+
+                            <p style="font-size:13px;color:#555;">
+                                {{ order.notes }}
+                            </p>
+
+                        </div>
+
+                        {% endif %}
+
+                        <!-- BUTTON -->
+                        <div style="text-align:center;margin:30px 0 10px;">
+
+                            <a href="{{ order_url }}"
+                               style="display:inline-block;
+                                      background:#c99a3d;
+                                      color:#ffffff;
+                                      text-decoration:none;
+                                      padding:13px 25px;
+                                      border-radius:7px;
+                                      font-size:14px;
+                                      font-weight:bold;">
+                                Track This Order
+                            </a>
+
+                        </div>
+
+                    </td>
+                </tr>
+
+                <!-- FOOTER -->
+                <tr>
+                    <td style="background:#f4f2ec;padding:18px;text-align:center;">
+
+                        <span style="font-size:12px;color:#8a8a8a;">
+                            &copy; {% now "Y" %} Shan Zee. All rights reserved.
+                        </span>
+
+                    </td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+
+</table>
+
+</body>
+</html>

@@ -783,7 +783,9 @@ def _first_error_message(exc):
         return str(first[0]) if isinstance(first, (list, tuple)) and first else str(first)
     return str(detail)
  
- 
+from accounts.utils import send_templated_email
+from django.urls import reverse
+from shanzeeecommerce import settings
 class PlaceOrderAPIView(APIView):
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsAuthenticated]
@@ -827,7 +829,47 @@ class PlaceOrderAPIView(APIView):
             user=request.user,
             is_read=False,
         )
- 
+        # Email data
+        order_items = order.items.select_related(
+            "product",
+            "variant",
+        ).prefetch_related(
+            "product__images"
+        )
+
+        order_url = request.build_absolute_uri(
+            reverse("home:order-detail", args=[order.order_number])
+        )
+
+        admin_order_url = request.build_absolute_uri(
+            reverse("Orders")
+        )
+
+        # Customer email
+        if request.user.email:
+            send_templated_email(
+                to_email=request.user.email,
+                subject=f"Order #{order.order_number} - Shan Zee",
+                template_name="Web/emails/order_confirmation.html",
+                context={
+                    "order": order,
+                    "order_items": order_items,
+                    "order_url": order_url,
+                    "site_url": request.build_absolute_uri("/").rstrip("/"),
+                },
+            )
+
+        # Admin email
+        send_templated_email(
+            to_email=settings.ADMIN_EMAIL,
+            subject=f"New Order #{order.order_number} - Shan Zee",
+            template_name="Web/emails/admin_new_order.html",
+            context={
+                "order": order,
+                "order_items": order_items,
+                "admin_order_url": admin_order_url,
+            },
+        )
         # -------------------------------------------------
         # RESPONSE
         # -------------------------------------------------

@@ -857,8 +857,8 @@ class PromotionsSerializer(serializers.ModelSerializer):
 
 
 from .models import Picture
+
 class PictureSerializer(serializers.ModelSerializer):
-    picture = serializers.ImageField(required=False)
     class Meta:
         model = Picture
         fields = "__all__"

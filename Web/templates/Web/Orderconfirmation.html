@@ -65,7 +65,7 @@
                       {% endif %}
                       <div class="small text-muted-custom">Qty {{ item.quantity }}</div>
                     </div>
-                    <div class="small fw-semibold">${{ item.total|floatformat:2 }}</div>
+                    <div class="small fw-semibold">RS {{ item.total|floatformat:2 }}</div>
                   </div>
                   {% empty %}
                   <p class="text-muted-custom mb-0">No items found on this order.</p>
@@ -79,15 +79,15 @@
               <div class="checkout-panel p-4 mb-4">
                 <h5 class="font-display mb-3"><i class="bi bi-receipt me-2"></i>Order Summary</h5>
                 <div class="summary-row d-flex justify-content-between">
-                  <span>Subtotal</span><span>${{ order.subtotal|floatformat:2 }}</span>
+                  <span>Subtotal</span><span>RS {{ order.subtotal|floatformat:2 }}</span>
                 </div>
                 <div class="summary-row d-flex justify-content-between">
                   <span>Shipping</span>
-                  <span>{% if order.shipping_charges == 0 %}Free{% else %}${{ order.shipping_charges|floatformat:2 }}{% endif %}</span>
+                  <span>{% if order.shipping_charges == 0 %}Free{% else %}RS {{ order.shipping_charges|floatformat:2 }}{% endif %}</span>
                 </div>
                 <hr>
                 <div class="summary-row d-flex justify-content-between fw-semibold fs-5">
-                  <span>Total</span><span>${{ order.total_amount|floatformat:2 }}</span>
+                  <span>Total</span><span>RS {{ order.total_amount|floatformat:2 }}</span>
                 </div>
                 <div class="summary-row d-flex justify-content-between mt-2 small text-muted-custom">
                   <span>Payment Method</span><span>{{ order.get_payment_method_display }}</span>

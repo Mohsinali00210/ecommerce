@@ -25,6 +25,7 @@
                     <th>Type</th>
                     <th>Title</th>
                     <th>Image</th>
+                    <th style="width:70px;">Order</th>
                     <th>Status</th>
                     <th style="width:120px;">Action</th>
                 </tr>
@@ -59,18 +60,55 @@
                     <div class="col-md-12">
                         <label class="form-label">Picture Type</label>
 
-                        <select class="form-select form-select-sm" id="PictureType">
+                        <select class="form-select form-select-sm" id="PictureType" onchange="toggleSlideFields()">
                             <option value="banner">Banner</option>
                             <option value="slider">Slider</option>
                             <option value="gallery">Gallery</option>
                         </select>
                     </div>
 
-                    <div class="col-md-12">
-                        <label class="form-label">Title</label>
+                    <!-- Slider-only text fields -->
+                    <div class="col-md-12" id="eyebrowGroup">
+                        <label class="form-label">Eyebrow <small class="text-muted">(small text above the title)</small></label>
                         <input type="text"
                                class="form-control form-control-sm"
-                               id="PictureTitle">
+                               id="PictureEyebrow"
+                               maxlength="100"
+                               placeholder="e.g. New Season">
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label">Title</label>
+                        <textarea class="form-control form-control-sm"
+                                  id="PictureTitle"
+                                  rows="2"
+                                  maxlength="200"></textarea>
+                        <small class="text-muted slide-only">Press Enter for a line break in the heading.</small>
+                    </div>
+
+                    <div class="col-md-12 slide-only">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control form-control-sm"
+                                  id="PictureDescription"
+                                  rows="2"></textarea>
+                    </div>
+
+                    <div class="col-md-6 slide-only">
+                        <label class="form-label">Button Text</label>
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               id="PictureButtonText"
+                               maxlength="50"
+                               placeholder="e.g. Shop Now">
+                    </div>
+
+                    <div class="col-md-6 slide-only">
+                        <label class="form-label">Button Link</label>
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               id="PictureButtonLink"
+                               maxlength="255"
+                               placeholder="e.g. /shop/">
                     </div>
 
                     <div class="col-md-12">
@@ -81,7 +119,16 @@
                     </div>
 
                     <div class="col-md-12">
-                        <label class="form-label">Image</label>
+                        <label class="form-label">Sort Order <small class="text-muted">(lower shows first)</small></label>
+                        <input type="number"
+                               class="form-control form-control-sm"
+                               id="PictureSortOrder"
+                               min="0"
+                               value="0">
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label">Image <small class="text-muted slide-only">(recommended 1920×700)</small></label>
                         <input type="file"
                                class="form-control form-control-sm"
                                id="PictureImage"
@@ -107,6 +154,7 @@
 
             <div class="modal-footer">
                 <button class="btn btn-dark btn-sm w-100"
+                        id="savePictureBtn"
                         onclick="savePicture()">
                     Save Picture
                 </button>
@@ -121,7 +169,27 @@
 
 const API_BASE_URL = `${window.location.origin}/Adminpanel/Products/api/v1/pictures/`;
 
+// id -> item, so the edit button never has to embed JSON in an onclick attribute
+// (text like "we've" would break it)
+let picturesCache = {};
+
 getPictures();
+
+
+/* Escape text before putting it into innerHTML */
+
+function esc(value) {
+    return $('<div>').text(value ?? '').html();
+}
+
+
+/* Show slide-only fields only for the slider type */
+
+function toggleSlideFields() {
+    const isSlider = $("#PictureType").val() === "slider";
+    $(".slide-only").toggle(isSlider);
+    $("#eyebrowGroup").toggle(isSlider);
+}
 
 
 /* Image Preview */
@@ -162,16 +230,23 @@ fetch(API_BASE_URL, {
 .then(res=>res.json())
 .then(data=>{
 
+// works with or without DRF pagination
+const items = Array.isArray(data) ? data : (data.results || []);
+
+picturesCache = {};
+
 let innerHtml="";
 
-data.forEach(item=>{
+items.forEach(item=>{
+
+picturesCache[item.id] = item;
 
 innerHtml += `
 <tr>
 
-<td>${item.picture_type}</td>
+<td>${esc(item.picture_type)}</td>
 
-<td>${item.title ?? ''}</td>
+<td>${esc(item.title)}</td>
 
 <td>
 <img src="${item.picture}"
@@ -179,8 +254,10 @@ style="width:60px"
 class="img-fluid">
 </td>
 
+<td>${item.sort_order ?? 0}</td>
+
 <td>
-<span class="badge bg-secondary">
+<span class="badge ${item.is_active ? 'bg-success' : 'bg-secondary'}">
 ${item.is_active ? 'Active' : 'Inactive'}
 </span>
 </td>
@@ -189,7 +266,7 @@ ${item.is_active ? 'Active' : 'Inactive'}
 
 <button class="btn btn-outline-secondary btn-sm"
 
-onclick='clearPictureModal();fillPictureModal(${JSON.stringify(item)})'
+onclick="editPicture(${item.id})"
 
 data-bs-toggle="modal"
 data-bs-target="#pictureModal">
@@ -205,10 +282,10 @@ data-bs-target="#pictureModal">
 
 });
 
-if(data.length === 0){
+if(items.length === 0){
 
 innerHtml = `<tr>
-<td colspan="5" class="text-center text-muted">
+<td colspan="6" class="text-center text-muted">
 No pictures found
 </td>
 </tr>`;
@@ -222,19 +299,34 @@ $(`#${el}`).html(innerHtml);
 }
 
 
+/* Edit */
+
+function editPicture(id){
+    clearPictureModal();
+    fillPictureModal(picturesCache[id]);
+}
+
+
 /* Fill modal for edit */
 
 function fillPictureModal(item){
 
 $("#PictureId").val(item.id);
 $("#PictureType").val(item.picture_type);
-$("#PictureTitle").val(item.title);
-$("#PictureAlt").val(item.alt);
+$("#PictureEyebrow").val(item.eyebrow ?? '');
+$("#PictureTitle").val(item.title ?? '');
+$("#PictureDescription").val(item.description ?? '');
+$("#PictureButtonText").val(item.button_text ?? '');
+$("#PictureButtonLink").val(item.button_link ?? '');
+$("#PictureAlt").val(item.alt ?? '');
+$("#PictureSortOrder").val(item.sort_order ?? 0);
 $("#Active").prop('checked',item.is_active);
 
 $("#imagePreview").html(
 `<img src="${item.picture}" class="img-thumbnail" style="max-height:100px">`
 );
+
+toggleSlideFields();
 
 }
 
@@ -245,11 +337,18 @@ function clearPictureModal(){
 
 $("#PictureId").val("");
 $("#PictureType").val("banner");
+$("#PictureEyebrow").val("");
 $("#PictureTitle").val("");
+$("#PictureDescription").val("");
+$("#PictureButtonText").val("");
+$("#PictureButtonLink").val("");
 $("#PictureAlt").val("");
+$("#PictureSortOrder").val(0);
 $("#Active").prop('checked',true);
 $("#PictureImage").val("");
 $("#imagePreview").html("");
+
+toggleSlideFields();
 
 }
 
@@ -260,14 +359,25 @@ function savePicture(){
 
 let PictureId = $("#PictureId").val();
 
+let imageFile = document.querySelector('#PictureImage').files[0];
+
+// A new picture must have an image
+if(PictureId === '' && !imageFile){
+    showAlert("Please choose an image","danger");
+    return;
+}
+
 let formData = new FormData();
 
 formData.append('picture_type',$("#PictureType").val());
+formData.append('eyebrow',$("#PictureEyebrow").val());
 formData.append('title',$("#PictureTitle").val());
+formData.append('description',$("#PictureDescription").val());
+formData.append('button_text',$("#PictureButtonText").val());
+formData.append('button_link',$("#PictureButtonLink").val());
 formData.append('alt',$("#PictureAlt").val());
+formData.append('sort_order',$("#PictureSortOrder").val() || 0);
 formData.append('is_active',$("#Active").is(':checked'));
-
-let imageFile = document.querySelector('#PictureImage').files[0];
 
 if(imageFile){
 formData.append('picture',imageFile);
@@ -276,6 +386,7 @@ formData.append('picture',imageFile);
 let url = PictureId === '' ? API_BASE_URL : `${API_BASE_URL}${PictureId}/`;
 let method = PictureId === '' ? "POST" : "PATCH";
 
+$("#savePictureBtn").prop("disabled", true);
 
 fetch(url,{
 method:method,
@@ -285,7 +396,12 @@ headers:{
 body:formData
 })
 
-.then(res=>res.json())
+// Treat validation / permission errors as errors (before, they showed "Picture Created!")
+.then(async res=>{
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw data;
+    return data;
+})
 .then(data=>{
 
 $("#pictureModal").modal('hide');
@@ -299,8 +415,14 @@ PictureId === '' ? "Picture Created!" : "Picture Updated!",
 
 })
 .catch(err=>{
-showAlert("Error saving picture","danger");
+const msg = (err && typeof err === 'object')
+    ? Object.values(err).flat().join(' ')
+    : "";
+showAlert(msg || "Error saving picture","danger");
 console.error(err);
+})
+.finally(()=>{
+$("#savePictureBtn").prop("disabled", false);
 });
 
 }

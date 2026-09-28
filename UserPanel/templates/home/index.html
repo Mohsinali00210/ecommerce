@@ -636,64 +636,99 @@
   .trust-item h6{margin:0; font-size:.95rem; font-weight:600;}
   .trust-item small{color:var(--sz-muted); font-size:.8rem;}
 
+    .hero-slide { position: relative; }
+ 
+  /* slide image fills the slide */
+  .hero-slide-img {
+    position: absolute; inset: 0; z-index: 0;
+    width: 100%; height: 100%; object-fit: cover;
+  }
+ 
+  /* darken the left side so the text stays readable on any image
+     (replaces the old radial gradient for slides) */
+  .hero-slide::before {
+    z-index: 1;
+    background: linear-gradient(90deg, rgba(8,27,20,.88) 0%, rgba(8,27,20,.6) 45%, rgba(8,27,20,.15) 100%);
+  }
+ 
+  /* text sits above image + overlay */
+  .hero-slide .container-xl { position: relative; z-index: 2; }
 </style>
 
 <!-- ============ HERO ============ -->
 <section class="hero">
   <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
+ 
     <div class="carousel-inner">
-      <div class="carousel-item active">
-        <div class="hero-slide">
-          <div class="container-xl">
-            <div class="row">
-              <div class="col-lg-7">
-                <div class="hero-eyebrow">New Season</div>
-                <h1 class="font-display">Considered goods,<br>made to outlast trend.</h1>
-                <p class="fs-5 text-white-50 mb-4" style="max-width:480px;">Ninety pieces, cut from natural fibers, built by small mills we've worked with for a decade.</p>
-                <a href="products:shop" class="btn btn-brass btn-lg">Shop the Edit</a>
+      {% for slide in hero_slides %}
+        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+          <div class="hero-slide">
+ 
+            <img class="hero-slide-img"
+                 src="{{ slide.picture.url }}"
+                 alt="{{ slide.alt|default:slide.title|default:'' }}"
+                 {% if forloop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+ 
+            <div class="container-xl">
+              <div class="row">
+                <div class="col-lg-7">
+                  {% if slide.eyebrow %}
+                    <div class="hero-eyebrow">{{ slide.eyebrow }}</div>
+                  {% endif %}
+ 
+                  {% if slide.title %}
+                    <h1 class="font-display">{{ slide.title|linebreaksbr }}</h1>
+                  {% endif %}
+ 
+                  {% if slide.description %}
+                    <p class="fs-5 text-white-50 mb-4" style="max-width:480px;">{{ slide.description }}</p>
+                  {% endif %}
+ 
+                  {% if slide.button_text and slide.button_link %}
+                    <a href="{{ slide.button_link }}" class="btn btn-brass btn-lg">{{ slide.button_text }}</a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+ 
+          </div>
+        </div>
+ 
+      {% empty %}
+        {# Fallback so the home page is never blank when no slider pictures exist yet #}
+        <div class="carousel-item active">
+          <div class="hero-slide">
+            <div class="container-xl">
+              <div class="row">
+                <div class="col-lg-7">
+                  <div class="hero-eyebrow">New Season</div>
+                  <h1 class="font-display">Considered goods,<br>made to outlast trend.</h1>
+                  <a href="{% url 'products:shop' %}" class="btn btn-brass btn-lg">Shop the Edit</a>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="carousel-item">
-        <div class="hero-slide">
-          <div class="container-xl">
-            <div class="row">
-              <div class="col-lg-7">
-                <div class="hero-eyebrow">Home Edit</div>
-                <h1 class="font-display">Tableware that earns<br>a permanent place.</h1>
-                <p class="fs-5 text-white-50 mb-4" style="max-width:480px;">Hand-thrown stoneware from a third-generation studio in Oaxaca.</p>
-                <a href="products:shop" class="btn btn-brass btn-lg">Explore Home</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <div class="hero-slide">
-          <div class="container-xl">
-            <div class="row">
-              <div class="col-lg-7">
-                <div class="hero-eyebrow">Members</div>
-                <h1 class="font-display">Earn while you<br>build your wardrobe.</h1>
-                <p class="fs-5 text-white-50 mb-4" style="max-width:480px;">Join AUGUST Rewards for cashback into your wallet on every order.</p>
-                <a href="accounts:register" class="btn btn-brass btn-lg">Join Rewards</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {% endfor %}
     </div>
-    <div class="carousel-indicators-custom">
-      <button data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
-      <button data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
-      <button data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
-    </div>
-    <div class="hero-carousel-nav">
-      <button data-bs-target="#heroCarousel" data-bs-slide="prev"><i class="bi bi-arrow-left"></i></button>
-      <button data-bs-target="#heroCarousel" data-bs-slide="next"><i class="bi bi-arrow-right"></i></button>
-    </div>
+ 
+    {% if hero_slides|length > 1 %}
+      <div class="carousel-indicators-custom">
+        {% for slide in hero_slides %}
+          <button type="button"
+                  data-bs-target="#heroCarousel"
+                  data-bs-slide-to="{{ forloop.counter0 }}"
+                  class="{% if forloop.first %}active{% endif %}"
+                  aria-label="Slide {{ forloop.counter }}"></button>
+        {% endfor %}
+      </div>
+ 
+      <div class="hero-carousel-nav">
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide="prev" aria-label="Previous slide"><i class="bi bi-arrow-left"></i></button>
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide="next" aria-label="Next slide"><i class="bi bi-arrow-right"></i></button>
+      </div>
+    {% endif %}
+ 
   </div>
 </section>
 

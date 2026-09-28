@@ -644,3 +644,21 @@ body{
     border-radius: 50%;
     object-fit: cover;
 }
+
+  .hero-slide { position: relative; }
+ 
+  /* slide image fills the slide */
+  .hero-slide-img {
+    position: absolute; inset: 0; z-index: 0;
+    width: 100%; height: 100%; object-fit: cover;
+  }
+ 
+  /* darken the left side so the text stays readable on any image
+     (replaces the old radial gradient for slides) */
+  .hero-slide::before {
+    z-index: 1;
+    background: linear-gradient(90deg, rgba(8,27,20,.88) 0%, rgba(8,27,20,.6) 45%, rgba(8,27,20,.15) 100%);
+  }
+ 
+  /* text sits above image + overlay */
+  .hero-slide .container-xl { position: relative; z-index: 2; }

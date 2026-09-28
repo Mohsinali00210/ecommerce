@@ -115,38 +115,76 @@ from django.db.models import Exists, OuterRef
 from products.models import Wishlist as WishlistModel
 from django.utils import timezone
 # views.py
+import json
+from datetime import timedelta
+import json
+from datetime import timedelta
+
+from django.core.serializers.json import DjangoJSONEncoder
+from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
+
+# Uses the same helpers as ProductDetails:
+#   get_active_promotion(product, now)  and  build_pricing(price, promo)
+
+
+def build_variant_data(product, promo, sku=None):
+    """
+    Same payload as ProductDetails: real price, discounted price, was price,
+    percent off and stock per variant. Promotion is resolved ONCE by the caller.
+    You can reuse this in ProductDetails too, so both views stay identical.
+    Returns (variant_data, selected_variant).
+    """
+    data = []
+    selected = None
+    for v in product.variants.select_related("image"):
+        vp = build_pricing(v.price, promo)
+        entry = {
+            "id": v.id,
+            "sku": v.sku,
+            "name": v.name,
+            "price": float(vp["price"]),
+            "final_price": float(vp["final"]),
+            "was_price": float(vp["was"]) if vp["was"] else None,
+            "percent_off": float(vp["percent_off"]),
+            "stock": v.stock_quantity,
+        }
+        data.append(entry)
+        if sku and v.sku == sku:
+            selected = entry
+    return data, selected
+
+
 def product_quick_view(request, product_id):
+    now = timezone.now()
+
     product = get_object_or_404(
         Product.objects.prefetch_related("images", "variants", "variant_options"),
         id=product_id,
     )
-    now = timezone.now()
 
-    promo = Promotion.objects.filter(products=product, start_date__lte=now, end_date__gte=now).first()
-    if promo:
-        product.final_price = promo.get_discounted_price(product.price)
-    else:
-        product.final_price = product.price
+    # One promotion query for the product + all its variants (was 1 + N before)
+    promo = get_active_promotion(product, now)
+    pricing = build_pricing(product.price, promo)
 
-    variants = product.variants.select_related("image")
-    variant_data = []
-    for v in variants:
-        vp = Promotion.objects.filter(products=product, start_date__lte=now, end_date__gte=now).first()
-        final_price = vp.get_discounted_price(v.price) if vp else v.price
-        off_price = vp.get_off_price(v.price) if vp else 0
-        variant_data.append({
-            "id": v.id, "sku": v.sku, "name": v.name,
-            "price": float(v.price), "final_price": float(final_price),
-            "off_price": float(off_price), "stock": v.stock_quantity,
-        })
+    variant_data, _ = build_variant_data(product, promo)
+
+    # In stock if the product itself OR any variant has stock
+    # Stock shown before the JS picks a variant: product stock, else total across variants
+    available_stock = (product.stock_quantity or 0) or sum(max(v["stock"] or 0, 0) for v in variant_data)
+    in_stock = available_stock > 0
 
     return render(request, "home/partials/product_quick_view.html", {
         "product": product,
+        "in_stock": in_stock,
+        "available_stock": available_stock,
+        "pricing": pricing,  # pricing.final / .was / .percent_off
         "images": product.images.all(),
-        "options": product.variant_options.all(),
+        "options": product.variant_options.order_by("option_name", "id"),
         "variants_json": json.dumps(variant_data, cls=DjangoJSONEncoder),
+        "estimated_date": now + timedelta(days=product.handling_time),
     })
-
+from products.models import Picture
 def home(request):
 
     current_date = timezone.now()
@@ -289,23 +327,20 @@ def home(request):
     # =========================================================
     # CONTEXT
     # =========================================================
-
+    hero_slides = list(
+        Picture.objects
+        .filter(picture_type="slider", is_active=True)
+        .order_by("sort_order", "-created_at")[:8]
+    )
     context = {
-
+        "hero_slides": hero_slides,
         "featured_products": featured_products,
-
         "best_sellers": best_sellers,
-
         "new_arrivals": new_arrivals,
-
         "categories": categories,
-
         "cart_count": _cart_count(request),
-
         "wishlist_count": _wishlist_count(request),
-
         "notification_count": _unread_notification_count(request),
-
         "recent_notifications": (
             NotificationRecipient.objects
             .filter(user=request.user)
@@ -314,7 +349,6 @@ def home(request):
             if request.user.is_authenticated
             else []
         ),
-
         "sale_ends_at": (
             timezone.now() +
             timezone.timedelta(hours=6)
@@ -901,11 +935,10 @@ def CheckoutPage(request):
     )
 
 
- 
 @login_required
 def MyCart(request):
     now = timezone.now()
- 
+
     cart = (
         Cart.objects
         .filter(user=request.user, is_active=True)
@@ -923,56 +956,68 @@ def MyCart(request):
         )
         .first()
     )
- 
+
     items = list(cart.items.all()) if cart else []
- 
+
     lines = []          # price_cart_item() result per item
     browser_lines = {}  # per-item pricing rules for the page's JavaScript
     handling_days = []
- 
+
     for item in items:
         line = price_cart_item(item, item.quantity)
         lines.append(line)
- 
+
+        product, variant = item.product, item.variant
+
+        # ---- Stock check (pre-order products are never blocked by stock) ----
+        stock = (variant.stock_quantity if variant else product.stock_quantity) or 0
+        preorder = bool(product.available_for_preorder)
+
+        item.stock = stock
+        # True -> the checkbox starts unchecked + locked and the item is left out of the totals
+        item.insufficient_stock = (not preorder) and item.quantity > stock
+
         item.unit_price = line["full"]["price"]
         item.unit_final = line["applied"]["final"]
         item.unit_saved = line["applied"]["off"]
         item.percent_off = line["applied"]["percent_off"]
         item.line_saved = line["line_saved"]
-        if item.product.free_shipping == True:
+        if product.free_shipping == True:
             item.shipping_display = "FREE"
             item.shipping_amount = 0
         else:
             item.shipping_display = line["shipping"]
             item.shipping_amount = line["shipping"]
-        product, variant = item.product, item.variant
         handling_days.append(product.handling_time)
- 
+
         browser_lines[str(item.id)] = {
             "price": float(line["full"]["price"]),
             "promo_price": float(line["full"]["final"]) if line["full"]["was"] else None,
             "promo_percent": float(line["full"]["percent_off"]),
             "min_qty": promo_min_qty(line["promo"]),
             "shipping": float(line["shipping"]),   # 0 when the product ships free
-            "stock": variant.stock_quantity if variant else product.stock_quantity,
+            "stock": stock,
+            "preorder": preorder,                  # NEW: stock limits are ignored when True
         }
- 
-    totals = summarize_lines(lines)
- 
+
+    # Totals only cover the items that start checked (enough stock or pre-order)
+    purchasable_lines = [l for l, it in zip(lines, items) if not it.insufficient_stock]
+    totals = summarize_lines(purchasable_lines)
+
     estimated_date = now + timedelta(days=max(handling_days) if handling_days else 0)
- 
+
     cart_json = json.dumps(
         {"lines": browser_lines, "max_shipping": float(MAX_SHIPPING_CHARGE)},
         cls=DjangoJSONEncoder,
     )
- 
+
     context = {
         "cart": cart,
         "items": items,
-        "subtotal": totals["subtotal"],            # at list price, before discounts
-        "total_off_price": totals["discount"],     # "You saved"
+        "subtotal": totals["subtotal"],
+        "total_off_price": totals["discount"],
         "shipping_raw": totals["shipping_raw"],
-        "shipping_total": totals["shipping_total"],  # capped
+        "shipping_total": totals["shipping_total"],
         "shipping_capped": totals["shipping_capped"],
         "max_shipping": MAX_SHIPPING_CHARGE,
         "final_total": totals["final_total"],
