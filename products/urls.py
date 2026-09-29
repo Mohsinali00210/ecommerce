@@ -11,7 +11,8 @@ from .views import (BlogCategoryViewSet,toggle_promotion_status,Blog_post,BlogPo
                     OrderUpdateStatusAPIView,OrdersListAPIView,orders,ProductPreview,editProduct,
                     products,addProduct,CategoryViewSet,categories,ProductAttributeViewSet,attributes,
                     AttributeTypesViewSet,BrandViewSet,brands,ProductViewSet,PromotionViewSet,
-                    topbar_delete,topbar_toggle,topbar_seed,topbar_reorder,topbar_save,topbar_manage )
+                    topbar_delete,topbar_toggle,topbar_seed,topbar_reorder,topbar_save,topbar_manage,
+                    admin_withdrawal_reject,admin_withdrawal_approve,admin_withdrawal_list,admin_withdrawal_history )
 
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet, basename='category')
@@ -94,4 +95,12 @@ urlpatterns = [
         path("topbar/seed/", topbar_seed, name="topbar_seed"),
         path("topbar/<int:pk>/delete/", topbar_delete, name="topbar_delete"),
         path("topbar/<int:pk>/toggle/", topbar_toggle, name="topbar_toggle"),
+
+
+
+    path("manage/withdrawals/", admin_withdrawal_list, name="admin-withdrawals"),
+    path("manage/withdrawals/<int:pk>/approve/", admin_withdrawal_approve, name="admin-withdrawal-approve"),
+    path("manage/withdrawals/<int:pk>/reject/", admin_withdrawal_reject, name="admin-withdrawal-reject"),
+    path("manage/withdrawals/<int:pk>/history/", admin_withdrawal_history,
+        name="admin-withdrawal-history"),
 ]

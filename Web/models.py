@@ -281,7 +281,48 @@ class UserWalletTransaction(BaseAuditModel):
 
     def __str__(self):
         return f"{self.user.email} - {self.transaction_type} - {self.amount}"
+class WithdrawalRequest(BaseAuditModel):
+    METHODS = (
+        ("jazzcash", "JazzCash"),
+        ("easypaisa", "Easypaisa"),
+        ("bank", "Bank Transfer"),
+        ("stripe", "Stripe"),
+    )
+    STATUS = (
+        ("pending", "Pending"),
+        ("paid", "Approved & Paid"),
+        ("rejected", "Rejected"),
+        ("failed", "Payout Failed"),
+    )
 
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             related_name="withdrawal_requests")
+    wallet = models.ForeignKey(UserWallet, on_delete=models.CASCADE,
+                               related_name="withdrawals")
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+
+    method = models.CharField(max_length=20, choices=METHODS)
+    account_title = models.CharField(max_length=120)
+    account_number = models.CharField(max_length=60)          # phone / IBAN / account no.
+    bank_name = models.CharField(max_length=120, blank=True)  # only for bank transfer
+
+    status = models.CharField(max_length=20, choices=STATUS, default="pending", db_index=True)
+    admin_note = models.TextField(blank=True)
+    gateway_reference = models.CharField(max_length=120, blank=True)  # payout id from gateway
+
+    hold_transaction = models.ForeignKey(
+        "UserWalletTransaction", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="+")
+    processed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name="+")
+    processed_at = models.DateTimeField(null=True, blank=True)
+    requested_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-requested_at"]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.amount} - {self.status}"
 from django.conf import settings
 from django.db import models
 

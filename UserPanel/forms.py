@@ -136,3 +136,25 @@ class TopbarItemForm(forms.ModelForm):
             cleaned["open_in_new_tab"] = False
 
         return cleaned
+
+
+
+
+from Web.models import WithdrawalRequest
+class WithdrawalForm(forms.ModelForm):
+    class Meta:
+        model = WithdrawalRequest
+        fields = ["amount", "method", "account_title", "account_number", "bank_name"]
+        widgets = {
+            "amount": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "1"}),
+            "method": forms.Select(attrs={"class": "form-select"}),
+            "account_title": forms.TextInput(attrs={"class": "form-control"}),
+            "account_number": forms.TextInput(attrs={"class": "form-control"}),
+            "bank_name": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+    def clean(self):
+        data = super().clean()
+        if data.get("method") == "bank" and not data.get("bank_name"):
+            self.add_error("bank_name", "Bank name is required for bank transfer.")
+        return data

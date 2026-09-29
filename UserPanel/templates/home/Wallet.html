@@ -35,7 +35,11 @@
           <!-- ============ Balance hero ============ -->
           <div class="p-4 mb-4 border rounded" style="border-color:var(--border) !important; background:var(--pine,#1f3d2f); color:#fff;">
             <div class="small opacity-75">Available Balance</div>
+            {% comment %} <div class="font-display" style="font-size:2.5rem;">Rs. {{ wallet.balance|floatformat:2 }}</div> {% endcomment %}
             <div class="font-display" style="font-size:2.5rem;">Rs. {{ wallet.balance|floatformat:2 }}</div>
+            <a href="{% url 'home:user-withdraw' %}" class="btn btn-brass btn-sm mt-3">
+              <i class="bi bi-cash-coin me-1"></i>Withdraw
+            </a>
           </div>
 
           <!-- ============ Totals ============ -->
@@ -93,7 +97,8 @@
                         <div class="small text-muted-custom">
                           {{ txn.created_at|date:"M d, Y - H:i" }}
                           {% if txn.order %}
-                            &middot; <a href="{% url 'order-detail' txn.order.order_number %}">Order {{ txn.order.order_number }}</a>
+                            {% comment %} &middot; <a href="{% url 'order-detail' txn.order.order_number %}">Order {{ txn.order.order_number }}</a> {% endcomment %}
+                            &middot; <a href="">Order {{ txn.order.order_number }}</a>
                           {% endif %}
                         </div>
                       </div>

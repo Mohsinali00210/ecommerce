@@ -40,6 +40,7 @@ urlpatterns = [
         path("api/track-order/", views.TrackOrderAPIView.as_view(), name="track-order-api"),
         path("api/track-order/<str:number>/", views.TrackOrderAPIView.as_view(), name="track-order-api-detail"),
              path("api/topbar/", views.topbar_items, name="topbar-items"),
+        path("wallet/withdraw/", views.wallet_withdraw, name="user-withdraw"),
 
 ]
 

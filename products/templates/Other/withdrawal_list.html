@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-4">
+  <h3 class="mb-3">Withdrawal Requests</h3>
+
+  {% for m in messages %}
+    <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags }}{% endif %}">{{ m }}</div>
+  {% endfor %}
+
+  <div class="mb-3 d-flex gap-2">
+    <a href="?status=" class="btn btn-sm {% if not selected_status %}btn-dark{% else %}btn-outline-dark{% endif %}">All</a>
+    {% for value, label in status_choices %}
+      <a href="?status={{ value }}" class="btn btn-sm {% if selected_status == value %}btn-dark{% else %}btn-outline-dark{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th><th>User</th><th>Amount</th><th>Method</th>
+          <th>Account</th><th>Requested</th><th>Status</th><th style="min-width:200px">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for w in withdrawals %}
+        <tr>
+          <td>{{ w.pk }}</td>
+          <td>{{ w.user.email }}</td>
+          <td>Rs. {{ w.amount|floatformat:2 }}</td>
+          <td>{{ w.get_method_display }}</td>
+          <td>
+            {{ w.account_title }}<br>
+            <code>{{ w.account_number }}</code>
+            {% if w.bank_name %}<br><small>{{ w.bank_name }}</small>{% endif %}
+          </td>
+          <td>{{ w.requested_at|date:"M d, Y H:i" }}</td>
+          <td>
+            {{ w.get_status_display }}
+            {% if w.admin_note %}<br><small class="text-muted">{{ w.admin_note }}</small>{% endif %}
+            {% if w.gateway_reference %}<br><small>Ref: {{ w.gateway_reference }}</small>{% endif %}
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-1 flex-wrap">
+              <!-- eye: transaction history -->
+              <button type="button" class="btn btn-sm btn-outline-secondary js-history"
+                      title="View wallet history"
+                      data-url="{% url 'admin-withdrawal-history' w.pk %}">
+                <i class="bi bi-eye"></i>
+              </button>
+
+              {% if w.status == 'pending' or w.status == 'failed' %}
+  <button type="button" class="btn btn-sm btn-success js-process"
+                        data-mode="approve"
+                        data-label="{% if w.status == 'failed' %}Retry{% else %}Approve{% endif %}"
+                        data-action="{% url 'admin-withdrawal-approve' w.pk %}"
+                        data-id="{{ w.pk }}" data-user="{{ w.user.email }}"
+                        data-amount="{{ w.amount|floatformat:2 }}"
+                        data-method="{{ w.get_method_display }}"
+                        data-title="{{ w.account_title }}" data-account="{{ w.account_number }}"
+                        data-bank="{{ w.bank_name }}"
+                        data-balance="{{ w.wallet.balance|floatformat:2 }}">
+                  {% if w.status == 'failed' %}Retry{% else %}Approve{% endif %}
+                </button>
+                <button type="button" class="btn btn-sm btn-danger js-process"
+                        data-mode="reject" data-label="Reject"
+                        data-action="{% url 'admin-withdrawal-reject' w.pk %}"
+                        data-id="{{ w.pk }}" data-user="{{ w.user.email }}"
+                        data-amount="{{ w.amount|floatformat:2 }}"
+                        data-method="{{ w.get_method_display }}"
+                        data-title="{{ w.account_title }}" data-account="{{ w.account_number }}"
+                        data-bank="{{ w.bank_name }}"
+                        data-balance="{{ w.wallet.balance|floatformat:2 }}">
+                  Reject
+                </button>
+              {% else %}
+                <small class="text-muted ms-1">
+                  {{ w.processed_by.email|default:"-" }}<br>{{ w.processed_at|date:"M d, H:i" }}
+                </small>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="text-center py-4">No requests found.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if withdrawals.paginator.num_pages > 1 %}
+    <nav><ul class="pagination">
+      {% for n in withdrawals.paginator.page_range %}
+        <li class="page-item {% if n == withdrawals.number %}active{% endif %}">
+          <a class="page-link" href="?status={{ selected_status }}&page={{ n }}">{{ n }}</a>
+        </li>
+      {% endfor %}
+    </ul></nav>
+  {% endif %}
+</div>
+
+<!-- ============ Approve / Reject modal ============ -->
+<div class="modal fade" id="processModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="post" id="processForm" class="modal-content">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title" id="pmTitle">Process withdrawal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-sm mb-3">
+          <tr><th style="width:40%">User</th><td id="pmUser"></td></tr>
+          <tr><th>Requested amount</th><td id="pmAmount" class="fw-semibold"></td></tr>
+          <tr><th>Method</th><td id="pmMethod"></td></tr>
+          <tr><th>Account title</th><td id="pmAcctTitle"></td></tr>
+          <tr><th>Account number</th><td><code id="pmAcctNo"></code></td></tr>
+          <tr id="pmBankRow"><th>Bank</th><td id="pmBank"></td></tr>
+          <tr class="table-info">
+            <th>User's wallet balance</th>
+            <td id="pmBalance" class="fw-semibold"></td>
+          </tr>
+        </table>
+        <div class="small text-muted mb-3">
+          The requested amount was already deducted from the wallet when the request was made,
+          so the balance above is what the user has left.
+        </div>
+
+        <div id="pmApproveNote" class="alert alert-success small mb-0">
+          Approving will send the amount to the account above.
+        </div>
+
+        <div id="pmRejectWrap" class="d-none">
+          <label class="form-label">Reason for rejection</label>
+          <textarea name="note" id="pmNote" rows="3" class="form-control"
+                    placeholder="This will be shown to the user"></textarea>
+          <div class="small text-muted mt-1">The amount will be refunded to the user's wallet.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn" id="pmSubmit">Confirm</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ Transaction history modal ============ -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-0">Wallet Transactions</h5>
+          <small class="text-muted" id="hmUser"></small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="p-3 mb-3 border rounded bg-light">
+          <div class="small text-muted">Current balance</div>
+          <div class="fs-4 fw-semibold" id="hmBalance">-</div>
+        </div>
+        <div id="hmLoading" class="text-center py-4">Loading...</div>
+        <div id="hmError" class="alert alert-danger d-none">Could not load transactions.</div>
+        <table class="table table-sm align-middle d-none" id="hmTable">
+          <thead class="table-light">
+            <tr><th>Date</th><th>Type</th><th>Description</th><th>Order</th><th class="text-end">Amount</th></tr>
+          </thead>
+          <tbody id="hmBody"></tbody>
+        </table>
+        <div id="hmEmpty" class="text-center text-muted py-4 d-none">No transactions yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const processModal = bootstrap.Modal.getOrCreateInstance(document.getElementById("processModal"));
+  const historyModal = bootstrap.Modal.getOrCreateInstance(document.getElementById("historyModal"));
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- approve / reject ----------
+  document.querySelectorAll(".js-process").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const d = btn.dataset;
+      const isReject = d.mode === "reject";
+
+      $("processForm").action = d.action;
+      $("pmTitle").textContent = `${d.label} withdrawal #${d.id}`;
+      $("pmUser").textContent = d.user;
+      $("pmAmount").textContent = "Rs. " + d.amount;
+      $("pmMethod").textContent = d.method;
+      $("pmAcctTitle").textContent = d.title;
+      $("pmAcctNo").textContent = d.account;
+      $("pmBank").textContent = d.bank;
+      $("pmBankRow").classList.toggle("d-none", !d.bank);
+      $("pmBalance").textContent = "Rs. " + d.balance;
+
+      $("pmApproveNote").classList.toggle("d-none", isReject);
+      $("pmRejectWrap").classList.toggle("d-none", !isReject);
+      $("pmNote").required = isReject;
+      $("pmNote").value = "";
+
+      const submit = $("pmSubmit");
+      submit.textContent = d.label;
+      submit.className = "btn " + (isReject ? "btn-danger" : "btn-success");
+
+      processModal.show();
+    });
+  });
+
+  // prevent double-click submits
+  $("processForm").addEventListener("submit", () => { $("pmSubmit").disabled = true; });
+
+  // ---------- history ----------
+  function cell(text, cls) {
+    const td = document.createElement("td");
+    td.textContent = text;
+    if (cls) td.className = cls;
+    return td;
+  }
+
+  document.querySelectorAll(".js-history").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      $("hmLoading").classList.remove("d-none");
+      $("hmError").classList.add("d-none");
+      $("hmTable").classList.add("d-none");
+      $("hmEmpty").classList.add("d-none");
+      $("hmBody").innerHTML = "";
+      $("hmUser").textContent = "";
+      $("hmBalance").textContent = "-";
+      historyModal.show();
+
+      try {
+        const res = await fetch(btn.dataset.url, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+
+        $("hmUser").textContent = data.user;
+        $("hmBalance").textContent = "Rs. " + Number(data.balance).toFixed(2);
+
+        if (!data.transactions.length) {
+          $("hmEmpty").classList.remove("d-none");
+        } else {
+          data.transactions.forEach(t => {
+            const positive = t.type !== "debit";
+            const tr = document.createElement("tr");
+            tr.appendChild(cell(t.date));
+            tr.appendChild(cell(t.type === "returnorder" ? "Refund" : t.type.charAt(0).toUpperCase() + t.type.slice(1)));
+            tr.appendChild(cell(t.description || "-"));
+            tr.appendChild(cell(t.order || "-"));
+            tr.appendChild(cell((positive ? "+" : "-") + "Rs. " + Number(t.amount).toFixed(2),
+                                "text-end fw-semibold " + (positive ? "text-success" : "text-danger")));
+            $("hmBody").appendChild(tr);
+          });
+          $("hmTable").classList.remove("d-none");
+        }
+      } catch (e) {
+        $("hmError").classList.remove("d-none");
+      } finally {
+        $("hmLoading").classList.add("d-none");
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

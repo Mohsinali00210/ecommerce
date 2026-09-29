@@ -1459,6 +1459,71 @@ def wallet_view(request):
         "result_count": paginator.count,
     })
 
+from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
+from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
+
+from .forms import WithdrawalForm
+from Web.models import UserWallet, WithdrawalRequest
+from .services import (create_withdrawal, approve_withdrawal,
+                       reject_withdrawal, MIN_WITHDRAWAL)
+
+
+# ---------- USER SIDE ----------
+@login_required
+def wallet_withdraw(request):
+    wallet, _ = UserWallet.objects.get_or_create(user=request.user)
+    form = WithdrawalForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        try:
+            create_withdrawal(request.user, form.cleaned_data)
+        except ValueError as e:
+            form.add_error("amount", str(e))
+        else:
+            messages.success(
+                request,
+                "Withdrawal request submitted. You will receive your amount within 2 working days.")
+            return redirect("home:user-withdraw")
+
+    history = WithdrawalRequest.objects.filter(user=request.user)[:20]
+    return render(request, "home/WalletWithdraw.html", {
+        "wallet": wallet, "form": form, "history": history,
+        "min_withdrawal": MIN_WITHDRAWAL,
+    })
+
+
+# ---------- ADMIN SIDE ----------
+@staff_member_required
+def admin_withdrawal_list(request):
+    status = request.GET.get("status", "pending")
+    qs = WithdrawalRequest.objects.select_related("user", "processed_by")
+    if status:
+        qs = qs.filter(status=status)
+    page = Paginator(qs, 20).get_page(request.GET.get("page"))
+    return render(request, "admin_panel/withdrawal_list.html", {
+        "withdrawals": page, "selected_status": status,
+        "status_choices": WithdrawalRequest.STATUS,
+    })
+
+
+@staff_member_required
+@require_POST
+def admin_withdrawal_approve(request, pk):
+    ok, msg = approve_withdrawal(pk, request.user)
+    (messages.success if ok else messages.error)(request, msg)
+    return redirect("home:admin-withdrawals")
+
+
+@staff_member_required
+@require_POST
+def admin_withdrawal_reject(request, pk):
+    ok, msg = reject_withdrawal(pk, request.user, request.POST.get("note", ""))
+    (messages.success if ok else messages.error)(request, msg)
+    return redirect("home:admin-withdrawals")
+
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render

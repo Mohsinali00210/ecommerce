@@ -1,0 +1,70 @@
+{% extends "base2.html" %}
+{% block content %}
+<section class="py-5">
+  <div class="container-xl">
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <h1 class="font-display mb-3">Withdraw Funds</h1>
+
+        {% for m in messages %}
+          <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags }}{% endif %}">{{ m }}</div>
+        {% endfor %}
+
+        <div class="p-3 mb-3 border rounded">
+          <div class="small text-muted-custom">Available Balance</div>
+          <div class="fs-3 font-display">Rs. {{ wallet.balance|floatformat:2 }}</div>
+          <div class="small text-muted-custom">Minimum withdrawal: Rs. {{ min_withdrawal }}</div>
+        </div>
+
+        <form method="post" class="border rounded p-3">
+          {% csrf_token %}
+          {{ form.non_field_errors }}
+          {% for f in form %}
+            <div class="mb-3" {% if f.name == 'bank_name' %}id="bankNameWrap"{% endif %}>
+              <label class="form-label">{{ f.label }}</label>
+              {{ f }}
+              {% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+          {% endfor %}
+          <div class="alert alert-info small">
+            After you submit, the amount is held from your wallet. You will receive it
+            within <strong>2 working days</strong> once approved. If rejected, it is refunded to your wallet.
+          </div>
+          <button class="btn btn-brass w-100">Request Withdrawal</button>
+        </form>
+      </div>
+
+      <div class="col-lg-6">
+        <h5 class="font-display mb-3">Your Requests</h5>
+        <div class="border rounded">
+          {% for w in history %}
+            <div class="d-flex justify-content-between p-3 {% if not forloop.last %}border-bottom{% endif %}">
+              <div>
+                <div class="fw-semibold">Rs. {{ w.amount|floatformat:2 }} → {{ w.get_method_display }}</div>
+                <div class="small text-muted-custom">{{ w.requested_at|date:"M d, Y H:i" }}</div>
+                {% if w.status == 'rejected' and w.admin_note %}
+                  <div class="small text-danger">Reason: {{ w.admin_note }}</div>
+                {% endif %}
+              </div>
+              <span class="badge align-self-center
+                {% if w.status == 'paid' %}bg-success{% elif w.status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                {% if w.status == 'failed' %}Processing{% else %}{{ w.get_status_display }}{% endif %}
+              </span>
+            </div>
+          {% empty %}
+            <div class="p-4 text-center small text-muted-custom">No withdrawal requests yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // show bank name only for bank transfer
+  const method = document.getElementById("id_method");
+  const bankWrap = document.getElementById("bankNameWrap");
+  function toggleBank(){ bankWrap.style.display = method.value === "bank" ? "block" : "none"; }
+  method.addEventListener("change", toggleBank); toggleBank();
+</script>
+{% endblock %}

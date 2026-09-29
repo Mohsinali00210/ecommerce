@@ -1110,6 +1110,64 @@ def wish_to_buy_list(request):
     return JsonResponse(data, safe=False)
 
 
+from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
+from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
+
+from UserPanel.forms import WithdrawalForm
+from Web.models import UserWallet, WithdrawalRequest
+from UserPanel.services import (create_withdrawal, approve_withdrawal,
+                       reject_withdrawal, MIN_WITHDRAWAL)
+
+# ---------- ADMIN SIDE ----------
+@staff_member_required
+def admin_withdrawal_list(request):
+    status = request.GET.get("status", "pending")
+    qs = WithdrawalRequest.objects.select_related("user", "processed_by")
+    if status:
+        qs = qs.filter(status=status)
+    page = Paginator(qs, 20).get_page(request.GET.get("page"))
+    return render(request, "Other/withdrawal_list.html", {
+        "withdrawals": page, "selected_status": status,
+        "status_choices": WithdrawalRequest.STATUS,
+    })
+@staff_member_required
+def admin_withdrawal_history(request, pk):
+    w = get_object_or_404(
+        WithdrawalRequest.objects.select_related("user", "wallet"), pk=pk)
+
+    txns = (w.wallet.transactions
+            .select_related("order")
+            .order_by("-created_at")[:50])
+
+    return JsonResponse({
+        "user": w.user.email,
+        "balance": str(w.wallet.balance),
+        "transactions": [{
+            "type": t.transaction_type,
+            "amount": str(t.amount),
+            "description": t.description or "",
+            "order": t.order.order_number if t.order else "",
+            "date": timezone.localtime(t.created_at).strftime("%b %d, %Y %H:%M"),
+        } for t in txns],
+    })
+
+@staff_member_required
+@require_POST
+def admin_withdrawal_approve(request, pk):
+    ok, msg = approve_withdrawal(pk, request.user)
+    (messages.success if ok else messages.error)(request, msg)
+    return redirect("admin-withdrawals")
+
+
+@staff_member_required
+@require_POST
+def admin_withdrawal_reject(request, pk):
+    ok, msg = reject_withdrawal(pk, request.user, request.POST.get("note", ""))
+    (messages.success if ok else messages.error)(request, msg)
+    return redirect("admin-withdrawals")
 
 import json
  
