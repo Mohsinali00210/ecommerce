@@ -463,7 +463,7 @@
             type="button"
             class="btn-icon {% if product.is_wishlisted %}active{% endif %}"
             data-wishlist-btn="{{ product.id }}"
-            onclick="Wishlist.toggle('{{ product.id }}')"
+            onclick="if(!requireLogin()) return; Wishlist.toggle('{{ product.id }}')"
             aria-label="{% if product.is_wishlisted %}Remove from wishlist{% else %}Add to wishlist{% endif %}">
 
             <i class="bi {% if product.is_wishlisted %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>

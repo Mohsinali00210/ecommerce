@@ -959,8 +959,12 @@ body{
                   onclick="Cart.add(getSelectedVariantId('{{ product.id }}'), parseInt(document.getElementById('pdpQty').value), true)">
             Buy Now
           </button>
-          <button class="btn-icon" data-wishlist-btn="{{ product.id }}" onclick="Wishlist.toggle('{{ product.id }}')">
+          {% comment %} <button class="btn-icon" data-wishlist-btn="{{ product.id }}" onclick="Wishlist.toggle('{{ product.id }}')">
             <i class="bi {% if product.id in user_wishlist_ids %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+          </button> {% endcomment %}
+          <button class="btn-icon" data-wishlist-btn="{{ product.id }}"
+                  onclick="if (!requireLogin()) return; Wishlist.toggle('{{ product.id }}')">
+                <i class="bi {% if product.id in user_wishlist_ids %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
           </button>
         </div>
         {% comment %} <div class="filter-card mb-3">
@@ -1159,8 +1163,9 @@ body{
         </form>
       </div>
       <div class="modal-footer border-0">
+        
         <button type="button" class="btn btn-outline-ink" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-brass" id="submitQuestionBtn" onclick="Questions.submit({{ product.id  }})">
+        <button type="button" class="btn btn-brass" id="submitQuestionBtn" onclick="if (!requireLogin()) return; Questions.submit({{ product.id  }})">
           Submit Question
         </button>
       </div>
@@ -1212,19 +1217,21 @@ body{
         var cartVariantSKU="";
 
      
-  
+{% comment %}   
     const IS_AUTHENTICATED = {{ request.user.is_authenticated|yesno:"true,false" }};
+    {% endcomment %}
     const PREORDER_ONLY = {{ product.available_for_preorder|yesno:"true,false" }};
-    const LOGIN_URL = "{% url 'login' %}";
+    {% comment %} const LOGIN_URL = "{% url 'login' %}"; {% endcomment %}
     window.Cart = {
 
         add(id, qty = 1, buyNow = false) {
-
+            
+            if (!requireLogin()) return;
             // Require login only for Buy Now
-            if (buyNow && !IS_AUTHENTICATED) {
-                window.location.href = LOGIN_URL + "?next=" + encodeURIComponent(window.location.pathname);
-                return;
-            }
+            //if (buyNow && !IS_AUTHENTICATED) {
+            //    window.location.href = LOGIN_URL + "?next=" + encodeURIComponent(window.location.pathname);
+            //    return;
+            //}
 
             fetch("{% url 'AddToCart' %}", {
                 method: "POST",

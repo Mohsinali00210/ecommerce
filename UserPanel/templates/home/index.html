@@ -286,12 +286,33 @@
   .badge-new{ background: var(--brass); color: var(--ink); } {% endcomment %}
 
 
-  .badge-tag{
+  {% comment %} .badge-tag{
   position:absolute; top:.75rem; left:.75rem; font-size:.72rem; font-weight:700; padding:.28rem .6rem; border-radius:20px; color:#fff;
+  } {% endcomment %}
+    .product-card .badge-tag{
+    position: static;       /* let the flex column place them */
+    font-size: .52rem;
+    font-weight: 700;
+    padding: .28rem .6rem;
+    border-radius: 20px;
+    color: #fff;
+     opacity: 0.9;
+  }
+  .badge-stack{
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    z-index: 5;
+    max-width: calc(100% - 14px);
   }
   .badge-best{background:var(--sz-gold); color:var(--sz-green-deep);}
   .badge-new{background:var(--sz-green-deep);}
   .badge-sale{background:var(--sz-red);}
+    .badge-ship{ background: var(--sz-red); color:#fff; }
 
   .product-actions{
     position:absolute; top:.6rem; right:.6rem; display:flex; flex-direction:column; gap:.4rem; z-index:2;
@@ -625,120 +646,120 @@
     flex:1; background:var(--sz-green-deep); color:#fff; border:0; border-radius:7px; padding:.65rem 0; font-weight:600; font-size:.88rem;
   }
   .btn-add-cart:hover{background:var(--sz-green-light);color:#fff;}
-/* ============ TRUST BADGES ============ */
-.trust-row {
-  background: var(--sz-cream);
-  border-radius: 12px;
-  padding: 1.6rem 0;
-}
+  /* ============ TRUST BADGES ============ */
+  .trust-row {
+    background: var(--sz-cream);
+    border-radius: 12px;
+    padding: 1.6rem 0;
+  }
 
-.trust-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.85rem 1.25rem;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  background: transparent;
-  transition: 
-    background 0.35s ease,
-    border-color 0.35s ease,
-    box-shadow 0.35s ease,
-    transform 0.35s ease;
-  cursor: pointer;
-  height: 100%;
-}
-
-/* Hover state */
-.trust-item:hover {
-  background: #ffffff;
-  border-color: var(--sz-green-deep);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
-  transform: translateY(-4px);
-}
-
-.trust-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 10px;
-  background: #fff;
-  border: 1px solid var(--sz-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-  color: var(--sz-green-deep);
-  flex: none;
-  transition: 
-    background 0.35s ease,
-    color 0.35s ease,
-    border-color 0.35s ease,
-    transform 0.35s ease;
-}
-
-/* Icon pop on hover */
-.trust-item:hover .trust-icon {
-  background: var(--sz-green-deep);
-  color: #fff;
-  border-color: var(--sz-green-deep);
-  transform: scale(1.08) rotate(-4deg);
-}
-
-.trust-item h6 {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  transition: color 0.3s ease;
-}
-
-.trust-item:hover h6 {
-  color: var(--sz-green-deep);
-}
-
-.trust-item small {
-  color: var(--sz-muted);
-  font-size: 0.8rem;
-  transition: color 0.3s ease;
-}
-
-.trust-item:hover small {
-  color: #555;
-}
-
-/* Optional: subtle left accent bar on hover */
-.trust-item {
-  position: relative;
-  overflow: hidden;
-}
-
-.trust-item::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%) scaleY(0);
-  width: 3px;
-  height: 60%;
-  background: var(--sz-green-deep);
-  border-radius: 0 3px 3px 0;
-  transition: transform 0.35s ease;
-}
-
-.trust-item:hover::before {
-  transform: translateY(-50%) scaleY(1);
-}
-
-/* Responsive tweak */
-@media (max-width: 767.98px) {
   .trust-item {
-    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1.25rem;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: transparent;
+    transition: 
+      background 0.35s ease,
+      border-color 0.35s ease,
+      box-shadow 0.35s ease,
+      transform 0.35s ease;
+    cursor: pointer;
+    height: 100%;
   }
+
+  /* Hover state */
+  .trust-item:hover {
+    background: #ffffff;
+    border-color: var(--sz-green-deep);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+    transform: translateY(-4px);
+  }
+
   .trust-icon {
-    width: 46px;
-    height: 46px;
-    font-size: 1.2rem;
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid var(--sz-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    color: var(--sz-green-deep);
+    flex: none;
+    transition: 
+      background 0.35s ease,
+      color 0.35s ease,
+      border-color 0.35s ease,
+      transform 0.35s ease;
   }
-}
+
+  /* Icon pop on hover */
+  .trust-item:hover .trust-icon {
+    background: var(--sz-green-deep);
+    color: #fff;
+    border-color: var(--sz-green-deep);
+    transform: scale(1.08) rotate(-4deg);
+  }
+
+  .trust-item h6 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: color 0.3s ease;
+  }
+
+  .trust-item:hover h6 {
+    color: var(--sz-green-deep);
+  }
+
+  .trust-item small {
+    color: var(--sz-muted);
+    font-size: 0.8rem;
+    transition: color 0.3s ease;
+  }
+
+  .trust-item:hover small {
+    color: #555;
+  }
+
+  /* Optional: subtle left accent bar on hover */
+  .trust-item {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .trust-item::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%) scaleY(0);
+    width: 3px;
+    height: 60%;
+    background: var(--sz-green-deep);
+    border-radius: 0 3px 3px 0;
+    transition: transform 0.35s ease;
+  }
+
+  .trust-item:hover::before {
+    transform: translateY(-50%) scaleY(1);
+  }
+
+  /* Responsive tweak */
+  @media (max-width: 767.98px) {
+    .trust-item {
+      padding: 0.75rem 1rem;
+    }
+    .trust-icon {
+      width: 46px;
+      height: 46px;
+      font-size: 1.2rem;
+    }
+  }
     .hero-slide { position: relative; }
  
   /* slide image fills the slide */
@@ -916,7 +937,7 @@
       <div><div class="eyebrow">Curated</div><h2>Products We Stand Behind</h2></div>
       <ul class="nav nav-tabs-custom" id="prodTabs">
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-featured">Featured</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-best">Best Sellers</button></li>
+        {% comment %} <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-best">Best Sellers</button></li> {% endcomment %}
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-new">New Arrivals</button></li>
       </ul>
     </div>

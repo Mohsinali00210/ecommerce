@@ -20,6 +20,33 @@
 <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
 
 <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+<script>
+  // Reload the page when it's restored via the browser's Back/Forward buttons
+  window.addEventListener("pageshow", function (event) {
+    const navEntry = performance.getEntriesByType("navigation")[0];
+    const isBackForward = navEntry && navEntry.type === "back_forward";
+
+    if (event.persisted || isBackForward) {
+      window.location.reload();
+    }
+  });
+  const IS_AUTHENTICATED = {{ request.user.is_authenticated|yesno:"true,false" }};
+  {% comment %} const PREORDER_ONLY = {{ product.available_for_preorder|yesno:"true,false" }}; {% endcomment %}
+  const LOGIN_URL = "{% url 'login' %}";
+
+  // Returns true if logged in; otherwise opens the login modal and returns false
+  function requireLogin() {
+    if (IS_AUTHENTICATED) return true;
+    const modalEl = document.getElementById('loginModal');
+    if (modalEl) {
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    } else {
+      // fallback if the modal isn't on the page
+      window.location.href = LOGIN_URL + "?next=" + encodeURIComponent(window.location.pathname);
+    }
+    return false;
+  }
+</script>
 {% block extra_css %}{% endblock %}
 
 <script>
@@ -650,7 +677,6 @@
     </nav>
   </div>
 </div>
-
 {% block content %}{% endblock %}
 
 <!-- ============ FOOTER ============ -->
@@ -697,7 +723,7 @@
 <!-- ============ FLOATING BUTTONS ============ -->
 <div class="floating-stack">
   
-  <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+  {% comment %} <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button> {% endcomment %}
   <a href="https://wa.me/923090900926" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
   {% if show_message_box %}
     <button class="fab fab-chat pulse-ring" data-toggle-chat id="chatToggle" aria-label="Chat with us"><i class="bi bi-chat-dots-fill"></i></button>

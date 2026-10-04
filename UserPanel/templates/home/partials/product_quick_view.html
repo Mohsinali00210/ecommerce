@@ -128,7 +128,7 @@
     <div class="d-flex gap-2 mt-3">
       <button class="btn btn-brass flex-grow-1 qv-add-btn"
               {% if not product.available_for_preorder and not in_stock %}disabled{% endif %}
-              onclick="window.QuickView.addToCart()">
+              onclick="if(!requireLogin()) return; window.QuickView.addToCart()">
         <i class="bi bi-bag-plus me-1"></i> Add to Cart
       </button>
       <a href="{% url 'home:Product_Details' slug=product.slug %}" class="btn btn-outline-ink">

@@ -277,12 +277,33 @@
 
 
 
- .product-card .badge-tag{
-  position:absolute; top:.75rem; left:.75rem; font-size:.72rem; font-weight:700; padding:.28rem .6rem; border-radius:20px; color:#fff;
-}
-.badge-best{background:var(--sz-gold); color:var(--sz-green-deep);}
-.badge-new{background:var(--sz-green-deep);}
-.badge-sale{background:var(--sz-red);}
+ /* .product-card .badge-tag{
+    position:absolute; top:.75rem; left:.75rem; font-size:.72rem; font-weight:700; padding:.28rem .6rem; border-radius:20px; color:#fff;
+  } */
+  .product-card .badge-tag{
+    position: static;       /* let the flex column place them */
+    font-size: .52rem;
+    font-weight: 700;
+    padding: .28rem .6rem;
+    border-radius: 20px;
+    color: #fff;
+        opacity: 0.9;
+  }
+  .badge-stack{
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    z-index: 5;
+    max-width: calc(100% - 14px);
+  }
+  .badge-best{background:var(--sz-gold); color:var(--sz-green-deep);}
+  .badge-new{background:var(--sz-green-deep);}
+  .badge-sale{background:var(--sz-red);}
+    .badge-ship{ background: var(--sz-red); color:#fff; }
 
   .product-actions{
     position:absolute; top:.6rem; right:.6rem; display:flex; flex-direction:column; gap:.4rem; z-index:2;

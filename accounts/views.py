@@ -100,6 +100,29 @@ def login_view(request):
             error = "Invalid username or password"
 
     return render(request, "Login.html", {"error": error})
+from django.utils.http import url_has_allowed_host_and_scheme
+from urllib.parse import urlparse
+
+
+def _get_safe_next(request):
+    """Return a safe same-site path to redirect to, or None."""
+    candidate = request.POST.get("next") or request.GET.get("next")
+
+    # Fallback: the page the modal was opened on (e.g. the product page)
+    if not candidate:
+        referer = request.META.get("HTTP_REFERER")
+        if referer:
+            parsed = urlparse(referer)
+            candidate = parsed.path + (f"?{parsed.query}" if parsed.query else "")
+
+    if candidate and url_has_allowed_host_and_scheme(
+        candidate,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return candidate
+    return None
+
 @require_POST
 def login_api(request):
     username = request.POST.get("username")
@@ -110,10 +133,15 @@ def login_api(request):
     if user is not None:
         login(request, user)
 
-        return JsonResponse({
-            "success": True,
-            "redirect": "/Adminpanel/Products/products/add/" if user.is_superuser else "/"
-        })
+        next_url = _get_safe_next(request)
+        if next_url:
+            redirect_url = next_url
+        elif user.is_superuser:
+            redirect_url = "/Adminpanel/Products/products/add/"
+        else:
+            redirect_url = "/"
+
+        return JsonResponse({"success": True, "redirect": redirect_url})
 
     return JsonResponse({
         "success": False,

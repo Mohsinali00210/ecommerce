@@ -41,10 +41,17 @@
         display: block;
     }
 
-    .cat-circle-item span {
+    {% comment %} .cat-circle-item span {
         display: block;
         /* white-space: nowrap; */
         font-size: 13px;
+    } {% endcomment %}
+    .cat-circle-item span {
+        display: block;
+        font-size: 13px;
+        white-space: nowrap;       /* one row only */
+        overflow: hidden;          /* hide the overflow */
+        text-overflow: ellipsis;   /* show "..." */
     }
 
     /* LEFT → RIGHT */
@@ -61,6 +68,29 @@
     .cat-strip-track:hover {
         animation-play-state: paused;
     }
+    .cat-strip { padding-bottom: 34px; }
+
+.cat-circle-item { position: relative; }
+
+.cat-circle-item::after {
+    content: attr(data-name);
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f5038;
+    color: #fff;
+    font-size: 12px;
+    padding: 2px 22px;
+    border-radius: 4px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s;
+    z-index: 10;
+}
+
+.cat-circle-item:hover::after { opacity: 1; }
 </style>
 <div class="cat-strip">
     <div class="cat-strip-track">
@@ -69,7 +99,8 @@
 
             {% for category in categories %}
                 <a href="/search-products/?category={{ category.id }}"
-                   class="cat-circle-item">
+                        class="cat-circle-item"
+                        title="{{ category.name }}">
 
                     <div class="cat-circle">
                         {% if category.image %}
@@ -93,7 +124,9 @@
 
             {% for category in categories %}
                 <a href="/search-products/?category={{ category.id }}"
-                   class="cat-circle-item">
+                            class="cat-circle-item"
+                            title="{{ category.name }}"
+                            tabindex="-1">
 
                     <div class="cat-circle">
                         {% if category.image %}
