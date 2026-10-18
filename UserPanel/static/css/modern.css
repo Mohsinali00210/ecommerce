@@ -399,7 +399,7 @@ color-mix(in srgb, var(--accent-deep)
 .carousel-item.active .btn           { animation: mzRise .9s .6s  var(--ease) forwards; }
 @keyframes mzRise { to { opacity: 1; transform: none; } }
 
-.carousel-indicators-custom { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; gap: 8px; z-index: 5; }
+.carousel-indicators-custom { position: absolute; left: 50%; bottom: 31px; transform: translateX(-50%); display: flex; gap: 8px; z-index: 5; }
 .carousel-indicators-custom button { width: 10px; height: 10px; padding: 0; border: 0; border-radius: 99px; background: rgba(255,255,255,.5); transition: width .45s var(--ease), background .3s; }
 .carousel-indicators-custom button.active { width: 36px; background: #fff; }
 .hero-carousel-nav { position: absolute; right: 24px; bottom: 44px; display: flex; gap: 10px; z-index: 5; }
@@ -655,7 +655,7 @@ main, #main { animation: mzPage .7s var(--ease) backwards; }
 @media (max-width: 575.98px) {
   .hero-slide { min-height: 380px; }
   .hero-carousel-nav { display: none; }
-  .trust-row { padding: .6rem; }
+  .trust-row { padding: .6rem;         padding-top: 1.4rem;}
   .trust-item { flex-direction: column; text-align: center; gap: .3rem; }
   .trust-item small { display: none; }
   .mz-promo { min-height: 190px; padding: 1.5rem; }

@@ -195,6 +195,40 @@
             </div>
           </div>
 
+          <!-- ============ Theme preferences ============ -->
+          <section class="card p-4 mb-4" aria-labelledby="themePreferencesTitle">
+            <div class="mb-3">
+              <h2 class="h5 font-display mb-1" id="themePreferencesTitle">
+                <i class="bi bi-palette2 me-2" aria-hidden="true"></i>Theme preferences
+              </h2>
+              <p class="small text-muted-custom mb-0">Personalize the look of Shan Zee on this device.</p>
+            </div>
+            <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+              <div>
+                <div class="fw-semibold">Light and dark mode</div>
+                <div class="small text-muted-custom">Switch between light and dark appearance.</div>
+              </div>
+              <button type="button" class="sz-theme-toggle theme-toggle align-self-start align-self-sm-center"
+                      role="switch" aria-checked="false" aria-label="Dark mode" title="Switch to dark mode">
+                <i class="bi bi-sun-fill sz-tt-ico sz-tt-sun" aria-hidden="true"></i>
+                <i class="bi bi-moon-stars-fill sz-tt-ico sz-tt-moon" aria-hidden="true"></i>
+                <span class="sz-tt-knob" aria-hidden="true"></span>
+              </button>
+            </div>
+            <hr>
+            <div class="d-flex align-items-center gap-3">
+              <button type="button" class="sz-palette-btn" aria-label="Change theme colours"
+                      aria-haspopup="dialog" aria-expanded="false" aria-controls="szPicker"
+                      title="Change theme colours">
+                <i class="bi bi-palette2" aria-hidden="true"></i>
+              </button>
+              <div>
+                <div class="fw-semibold">Brand colours</div>
+                <div class="small text-muted-custom">Choose a preset or customize your accent colours.</div>
+              </div>
+            </div>
+          </section>
+
         </div>
       </div>
     </div>
@@ -210,6 +244,14 @@
 
 {% block extra_js %}
   <script>
+    const themeToggle = document.querySelector(".sz-theme-toggle.theme-toggle");
+    const themeState = window.SZTheme && window.SZTheme.state();
+    if (themeToggle && themeState) {
+      const isDark = themeState.effective === "dark";
+      themeToggle.setAttribute("aria-checked", String(isDark));
+      themeToggle.title = isDark ? "Switch to light mode" : "Switch to dark mode";
+    }
+
     function copyReferralCode() {
       const code = document.getElementById("referralCode").textContent.trim();
       navigator.clipboard.writeText(code).then(() => {

@@ -278,11 +278,24 @@
 
 /* Tablets & below */
 @media (max-width: 991.98px) {
-  /* Hide desktop search */
-  .header-search { display: none; }
-  
-  /* Show mobile search toggle */
-  .mobile-search-toggle { display: inline-flex; }
+  /* Keep the menu, logo, and search together in the compact header row. */
+  .site-header > .container-xl {
+    flex-wrap: nowrap !important;
+  }
+  .header-search {
+    display: block;
+    flex: 1 1 0%;
+    order: 3;
+    min-width: 0;
+  }
+  .header-search-form {
+    width: 100%;
+  }
+  .header-search-input {
+    min-width: 0;
+  }
+  .header-actions,
+  .mobile-search-toggle { display: none !important; }
   
   /* Hide secondary nav on mobile/tablet */
   .category-navbar.d-none.d-lg-block { display: none !important; }
@@ -520,23 +533,12 @@
     </div>
 
     <!-- Right Icons -->
-    <div class="d-flex align-items-center gap-2 order-2 order-lg-3">
+    <div class="header-actions d-flex align-items-center gap-2 order-2 order-lg-3">
 
       <!-- Mobile Search Toggle -->
       <button class="mobile-search-toggle d-lg-none" id="mobileSearchToggle" aria-label="Search">
         <i class="bi bi-search"></i>
       </button>
-<!-- Colour picker + theme toggle -->
-      <button type="button" class="sz-palette-btn sz-attn" aria-label="Change theme colours" aria-haspopup="dialog" aria-expanded="false" aria-controls="szPicker" title="Change theme colours">
-        <i class="bi bi-palette2" aria-hidden="true"></i>
-      </button>
-      <!-- Theme toggle (light / dark) -->
-      <button type="button" class="sz-theme-toggle theme-toggle" role="switch" aria-checked="false" aria-label="Dark mode" title="Switch to dark mode">
-        <i class="bi bi-sun-fill sz-tt-ico sz-tt-sun" aria-hidden="true"></i>
-        <i class="bi bi-moon-stars-fill sz-tt-ico sz-tt-moon" aria-hidden="true"></i>
-        <span class="sz-tt-knob" aria-hidden="true"></span>
-      </button>
-
       <!-- Notifications -->
       <div class="dropdown">
         <button class="btn-icon position-relative" data-bs-toggle="dropdown" aria-label="Notifications" id="notificationBtn">

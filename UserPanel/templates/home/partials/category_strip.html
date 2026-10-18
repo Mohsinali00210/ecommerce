@@ -1,13 +1,19 @@
 <style>
     .cat-strip {
         width: 100%;
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: hidden;
+        cursor: grab;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
     }
+
+    .cat-strip::-webkit-scrollbar { display: none; }
+    .cat-strip.is-dragging { cursor: grabbing; }
 
     .cat-strip-track {
         display: flex;
         width: max-content;
-        animation: categoryMarquee 30s linear infinite;
     }
 
     .cat-strip-group {
@@ -54,20 +60,6 @@
         text-overflow: ellipsis;   /* show "..." */
     }
 
-    /* LEFT → RIGHT */
-    @keyframes categoryMarquee {
-        from {
-            transform: translateX(-50%);
-        }
-
-        to {
-            transform: translateX(0);
-        }
-    }
-
-    .cat-strip-track:hover {
-        animation-play-state: paused;
-    }
     .cat-strip { padding-bottom: 34px; }
 
 .cat-circle-item { position: relative; }
@@ -119,31 +111,115 @@
 
         </div>
 
-        <!-- Duplicate for seamless loop -->
         <div class="cat-strip-group" aria-hidden="true">
-
             {% for category in categories %}
                 <a href="/search-products/?category={{ category.id }}"
-                            class="cat-circle-item"
-                            title="{{ category.name }}"
-                            tabindex="-1">
-
+                   class="cat-circle-item"
+                   title="{{ category.name }}"
+                   tabindex="-1">
                     <div class="cat-circle">
                         {% if category.image %}
-                            <img src="{{ category.image.url }}"
-                                 alt="{{ category.name }}">
+                            <img src="{{ category.image.url }}" alt="{{ category.name }}">
                         {% else %}
-                            <img src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=200&q=80"
-                                 alt="{{ category.name }}">
+                            <img src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=200&q=80" alt="{{ category.name }}">
                         {% endif %}
                     </div>
-
                     <span>{{ category.name }}</span>
-
                 </a>
             {% endfor %}
-
         </div>
 
     </div>
 </div>
+
+<script>
+    document.querySelectorAll('.cat-strip:not([data-drag-ready])').forEach((strip) => {
+        strip.dataset.dragReady = 'true';
+        const track = strip.querySelector('.cat-strip-track');
+        const firstGroup = track?.querySelector('.cat-strip-group');
+        if (!track || !firstGroup) return;
+
+        let startX = 0;
+        let startScrollLeft = 0;
+        let dragged = false;
+        let paused = false;
+        let resumeTimer;
+        let previousFrame = 0;
+        let groupWidth = 0;
+
+        const ensureLoopContent = () => {
+            groupWidth = firstGroup.getBoundingClientRect().width;
+            if (!groupWidth) return;
+
+            while (track.scrollWidth < groupWidth + strip.clientWidth) {
+                const clone = firstGroup.cloneNode(true);
+                clone.setAttribute('aria-hidden', 'true');
+                clone.querySelectorAll('a').forEach((link) => {
+                    link.tabIndex = -1;
+                });
+                track.appendChild(clone);
+            }
+        };
+        ensureLoopContent();
+        window.addEventListener('resize', ensureLoopContent);
+
+        const resumeAfterInteraction = () => {
+            window.clearTimeout(resumeTimer);
+            resumeTimer = window.setTimeout(() => {
+                paused = false;
+            }, 800);
+        };
+
+        const moveAutomatically = (time) => {
+            if (previousFrame && !paused && !document.hidden && groupWidth) {
+                strip.scrollLeft += Math.min(time - previousFrame, 40) * 0.035;
+                if (strip.scrollLeft >= groupWidth) {
+                    strip.scrollLeft %= groupWidth;
+                }
+            }
+            previousFrame = time;
+            window.requestAnimationFrame(moveAutomatically);
+        };
+        window.requestAnimationFrame(moveAutomatically);
+
+        strip.addEventListener('mouseenter', () => { paused = true; });
+        strip.addEventListener('mouseleave', () => { paused = false; });
+
+        strip.addEventListener('pointerdown', (event) => {
+            paused = true;
+            if (event.pointerType !== 'mouse' || event.button !== 0) return;
+            startX = event.clientX;
+            startScrollLeft = strip.scrollLeft;
+            dragged = false;
+            strip.setPointerCapture(event.pointerId);
+        });
+
+        strip.addEventListener('pointermove', (event) => {
+            if (!strip.hasPointerCapture(event.pointerId)) return;
+            const distance = event.clientX - startX;
+            if (Math.abs(distance) > 4) {
+                dragged = true;
+                strip.classList.add('is-dragging');
+                strip.scrollLeft = startScrollLeft - distance;
+            }
+        });
+
+        const stopDragging = (event) => {
+            if (strip.hasPointerCapture(event.pointerId)) {
+                strip.releasePointerCapture(event.pointerId);
+            }
+            strip.classList.remove('is-dragging');
+            resumeAfterInteraction();
+        };
+
+        strip.addEventListener('pointerup', stopDragging);
+        strip.addEventListener('pointercancel', stopDragging);
+        strip.addEventListener('click', (event) => {
+            if (dragged) {
+                event.preventDefault();
+                event.stopPropagation();
+                dragged = false;
+            }
+        }, true);
+    });
+</script>
