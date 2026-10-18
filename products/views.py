@@ -17,6 +17,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 
 from rest_framework.permissions import BasePermission
+from accounts.error_logging import log_error
 
 class IsSuperUser(BasePermission):
     def has_permission(self, request, view):
@@ -77,6 +78,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         except Exception as exc:
+            log_error(request, e, 500)
+
             self.log_exception(
                 request,
                 exc,
@@ -156,6 +159,7 @@ class ProductAttributeViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         except Exception as exc:
+            log_error(request, e, 500)
             self.log_exception(
                 request,
                 exc,
@@ -219,6 +223,7 @@ class BrandViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         except Exception as exc:
+            log_error(request, e, 500)
             self.log_exception(
                 request,
                 exc,
@@ -398,6 +403,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         except Exception as exc:
+            log_error(request, e, 500)
             self.log_exception(
                 request,
                 exc,
@@ -464,6 +470,7 @@ class PromotionViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         except Exception as exc:
+            log_error(request, e, 500)
             self.log_exception(
                 request,
                 exc,

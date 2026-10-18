@@ -1,0 +1,19 @@
+/* ============ Responsive adjustments ============ */
+@media (max-width: 1200px){
+  .container-xl{ max-width: 100%; }
+}
+@media (max-width: 767.98px){
+  .hero-slide{ min-height: 460px; text-align:center; }
+  .hero-carousel-nav{ display:none; }
+  .section-head{ flex-direction:column; align-items:flex-start; gap:.4rem; }
+  .summary-card{ position:static; }
+  .floating-stack{ right: 14px; bottom: 14px; }
+  .chat-window{ right:10px; left:10px; width:auto; bottom: 82px; }
+  .promo-card{ min-height:160px; padding:1.4rem; }
+  .newsletter-band{ padding:1.6rem; text-align:center; }
+  .newsletter-band form{ margin-top:1rem; }
+}
+@media (min-width: 1600px){
+  body{ font-size:16.5px; }
+  .container-xl{ max-width: 1520px; }
+}

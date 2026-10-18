@@ -1,8 +1,9 @@
 {% extends "base2.html" %}
+{% block body_class %}theme-shop{% endblock %}
 {% block content %}
 <style>
   /* =========================================================
-   AUGUST — Design Tokens
+   Shan Zee — Design Tokens
    A premium goods retailer. Aesthetic: "the tear-off ticket" —
    perforated tag edges, receipt-mono pricing, brass foil accents.
    ========================================================= */
@@ -13,10 +14,10 @@
     --ink-soft:       #1D2226;
     --paper:          #F7F4EE;   /* warm paper */
     --paper-soft:     #EFEAE0;
-    --brass:          #B08D57;   /* primary accent — foil brass */
-    --brass-deep:     #8C6E3F;
-    --pine:           #2B3A32;   /* secondary — deep bottle green */
-    --pine-soft:      #3C4F45;
+    --brass:          var(--accent);   /* primary accent — foil brass */
+    --brass-deep:     var(--accent-deep);
+    --pine:           var(--accent-deep);   /* secondary — deep bottle green */
+    --pine-soft:      var(--accent);
     --rust:           #C1502E;   /* sale / discount */
     --slate:          #5B6360;   /* muted text on paper */
     --slate-dark:     #A7ADA8;   /* muted text on ink */
@@ -51,11 +52,11 @@
     --ease: cubic-bezier(.4,0,.2,1);
 
 
-     --sz-green-deep:#0f2e22;
-  --sz-green:#153c2b;
-  --sz-green-light:#1f5038;
-  --sz-gold:#c99a3d;
-  --sz-gold-light:#e0b967;
+     --sz-green-deep:var(--accent-dark);
+  --sz-green:var(--accent-dark);
+  --sz-green-light:var(--accent-deep);
+  --sz-gold:var(--accent);
+  --sz-gold-light:var(--accent);
   --sz-cream:#faf8f3;
   --sz-ink:#1c1f1d;
   --sz-muted:#6b756f;
@@ -73,7 +74,7 @@
     --text-muted:    var(--slate-dark);
     --border:        var(--line-dark);
     --accent:        var(--brass);
-    --accent-deep:   #C9A768;
+    --accent-deep:   var(--accent-light);
     --on-accent:     #14181B;
     --shadow:        0 8px 28px -8px rgba(0,0,0,0.55);
     --shadow-lg:     0 28px 56px -16px rgba(0,0,0,0.65);
@@ -84,7 +85,7 @@
   }
 
   /* =========================================================
-    AUGUST — Core Stylesheet
+    Shan Zee — Core Stylesheet
     ========================================================= */
 
   *{ box-sizing: border-box; }
@@ -122,7 +123,7 @@
   .btn-brass {
       background: #000000;
       color: #ffffff;
-      border: 1px solid #185935;
+      border: 1px solid var(--accent-deep);
       font-weight: 600;
       letter-spacing: .01em;
       border-radius: var(--radius-sm);
@@ -355,7 +356,7 @@
     display:flex; flex-direction:column; justify-content:center; color:#fff;
   }
   .promo-card.pine{ background: linear-gradient(135deg, var(--pine), var(--pine-soft)); }
-  .promo-card.rust{ background: linear-gradient(135deg, #205742, #113829); }
+  .promo-card.rust{ background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color:var(--on-accent); }
   .promo-card .promo-eyebrow{ font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; opacity:.8;}
   .promo-card h3{ font-size:1.6rem; margin:.4rem 0 1rem; }
 
@@ -383,7 +384,7 @@
   .testimonial-card .quote-mark{ font-family: var(--font-display); font-size: 3rem; color: var(--accent); line-height:.5; display:block; margin-bottom: .8rem;}
 
   /* Newsletter */
-  .newsletter-band{ background: #0f2e22; color:#fff; border-radius: var(--radius-lg); padding: 2.5rem; }
+  .newsletter-band{ background: var(--accent-dark); color:#fff; border-radius: var(--radius-lg); padding: 2.5rem; }
   .newsletter-band .form-control{ background: transparent; border:none; border-bottom: 1.5px solid rgba(255,255,255,.35); color:#fff; border-radius:0; }
   .newsletter-band .form-control:focus{ box-shadow:none; border-color: var(--brass); }
   .newsletter-band .form-control::placeholder{ color: rgba(255,255,255,.5); }
@@ -505,12 +506,12 @@
   .status-badge{ font-size:.72rem; font-weight:700; padding:.3rem .7rem; border-radius: 20px; letter-spacing:.02em; }
   .status-pending{ background:#FCEFD8; color:#96631A; }
   .status-processing{ background:#DDEAFB; color:#2160B0; }
-  .status-delivered{ background:#DCEEE1; color:#2A7745; }
+  .status-delivered{ background:#d1e7dd; color:#0f5132; }
   .status-cancelled{ background:#FBE0DA; color:#B33A1C; }
   .status-returned{ background:#EAE4F5; color:#5F3FA6; }
   html[data-theme="dark"] .status-pending{ background: rgba(252,239,216,.15); color:#F2C572; }
   html[data-theme="dark"] .status-processing{ background: rgba(221,234,251,.15); color:#7FB2EE; }
-  html[data-theme="dark"] .status-delivered{ background: rgba(220,238,225,.15); color:#7BCB92; }
+  html[data-theme="dark"] .status-delivered{ background: rgba(117,183,152,.15); color:#75b798; }
   html[data-theme="dark"] .status-cancelled{ background: rgba(251,224,218,.15); color:#F0917A; }
   html[data-theme="dark"] .status-returned{ background: rgba(234,228,245,.15); color:#B79AE8; }
 
@@ -534,7 +535,7 @@
     background: linear-gradient(135deg, var(--ink), #262b2f 60%, var(--pine));
     color:#fff; border-radius: var(--radius-lg); padding: 1.8rem; position:relative; overflow:hidden;
   }
-  .wallet-card::after{ content:"AUGUST"; position:absolute; right:1.4rem; bottom:1rem; font-family: var(--font-display); font-size:2.2rem; opacity:.08; letter-spacing:.05em; }
+  .wallet-card::after{ content:"SHAN ZEE"; position:absolute; right:1.4rem; bottom:1rem; font-family: var(--font-display); font-size:2.2rem; opacity:.08; letter-spacing:.05em; }
   .wallet-card .balance{ font-family: var(--font-mono); font-size: 2.2rem; font-weight:700; }
   .txn-row{ display:flex; align-items:center; justify-content:space-between; padding:.9rem 0; border-bottom:1px solid var(--border); }
   .txn-icon{ width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
@@ -827,7 +828,7 @@
                 <div class="col-lg-7">
                   <div class="hero-eyebrow">New Season</div>
                   <h1 class="font-display">Considered goods,<br>made to outlast trend.</h1>
-                  <a href="{% url 'products:shop' %}" class="btn btn-brass btn-lg">Shop the Edit</a>
+                  <a href="{% url 'products:shop' %}" class="btn btn-brass btn-lg"><i class="bi bi-bag me-1"></i>Shop the Edit</a>
                 </div>
               </div>
             </div>
@@ -858,11 +859,8 @@
 
 
 
-<!-- ============ CATEGORY ICON STRIP ============ -->
-{% include "home/partials/category_strip.html" %}
-
 <!-- ============ TRUST BADGES ============ -->
-<section class="py-3">
+<section class="mz-usp">
   <div class="container-xl">
     <div class="trust-row">
       <div class="row g-3">
@@ -882,6 +880,52 @@
     </div>
   </div>
 </section>
+
+<!-- ============ CATEGORY STRIP ============ -->
+<section class="pt-4 pb-1">
+  <div class="container-xl">
+    <div class="section-head reveal mb-0">
+      <div><div class="eyebrow">Browse</div><h2>Shop by Category</h2></div>
+      <a href="{% url 'home:search-products' %}" class="btn btn-outline-ink btn-sm">View all <i class="bi bi-arrow-right ms-1"></i></a>
+    </div>
+  </div>
+  {% include "home/partials/category_strip.html" %}
+</section>
+
+<!-- ============ PROMO TRIO ============ -->
+<section class="py-4">
+  <div class="container-xl">
+    <div class="row g-3" data-stagger>
+      <div class="col-md-4">
+        <a href="{% url 'home:best-deals' %}" class="mz-promo p-deals reveal text-decoration-none" data-glow>
+          <div class="promo-eyebrow">Hot right now</div>
+          <h3>Find the best deal on anything</h3>
+          <p>Hand-picked discounts, updated every day.</p>
+          <i class="bi bi-lightning-charge-fill mz-promo-icon"></i>
+        </a>
+      </div>
+      <div class="col-md-4">
+        <a href="{% url 'home:user-wallet' %}" class="mz-promo p-reward reveal text-decoration-none" data-glow>
+          <div class="promo-eyebrow">Wallet</div>
+          <h3>Top up once, check out in a tap</h3>
+          <p>Keep a balance and pay faster on every order.</p>
+          <i class="bi bi-wallet2 mz-promo-icon"></i>
+        </a>
+      </div>
+      <div class="col-md-4">
+        <a href="{% url 'home:track-order' %}" class="mz-promo p-ship reveal text-decoration-none" data-glow>
+          <div class="promo-eyebrow">Delivery</div>
+          <h3>Track every order, door to door</h3>
+          <p>Live status from the moment you place it.</p>
+          <i class="bi bi-truck mz-promo-icon"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
 <!-- ============ FLASH SALE ============ -->
 {% comment %} <section id="sale" class="py-5">
   <div class="container-xl">
@@ -901,7 +945,7 @@
           </div>
         </div>
         <div class="col-lg-3 text-lg-end">
-          <a href="products:shop" class="btn btn-light btn-lg">Shop Sale</a>
+          <a href="products:shop" class="btn btn-light btn-lg"><i class="bi bi-tag-fill me-1"></i>Shop Sale</a>
         </div>
       </div>
     </div>
@@ -913,7 +957,7 @@
   <div class="container-xl">
     <div class="section-head reveal">
       <div><div class="eyebrow">Browse</div><h2>Shop by Category</h2></div>
-      <a href="products:categories" class="btn btn-outline-ink">View All</a>
+      <a href="products:categories" class="btn btn-outline-ink"><i class="bi bi-grid me-1"></i>View All</a>
     </div>
     <div class="row g-3">
       {% for category in categories %}
@@ -937,7 +981,7 @@
       <div><div class="eyebrow">Curated</div><h2>Products We Stand Behind</h2></div>
       <ul class="nav nav-tabs-custom" id="prodTabs">
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-featured">Featured</button></li>
-        {% comment %} <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-best">Best Sellers</button></li> {% endcomment %}
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-best">Best Sellers</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-new">New Arrivals</button></li>
       </ul>
     </div>
@@ -971,6 +1015,10 @@
         </div>
       </div>
     </div>
+
+    <div class="text-center mt-4">
+      <a href="{% url 'home:search-products' %}" class="btn btn-brass btn-lg px-5">Explore all products <i class="bi bi-arrow-right ms-2"></i></a>
+    </div>
   </div>
 </section>
 
@@ -982,14 +1030,14 @@
         <div class="promo-card pine reveal">
           <div class="promo-eyebrow">Rewards</div>
           <h3>Earn 3% back on every order</h3>
-          <a href="accounts:register" class="btn btn-light btn-sm align-self-start">Join Free</a>
+          <a href="accounts:register" class="btn btn-light btn-sm align-self-start"><i class="bi bi-person-plus-fill me-1"></i>Join Free</a>
         </div>
       </div>
       <div class="col-md-6">
         <div class="promo-card reveal" style="background:linear-gradient(135deg, var(--brass-deep), #6e5228);">
           <div class="promo-eyebrow">Trade-In</div>
           <h3>Bring back old pieces, get store credit</h3>
-          <a href="contact:contact" class="btn btn-light btn-sm align-self-start">Learn More</a>
+          <a href="contact:contact" class="btn btn-light btn-sm align-self-start"><i class="bi bi-info-circle me-1"></i>Learn More</a>
         </div>
       </div>
     </div>
@@ -1024,7 +1072,7 @@
                         {% csrf_token %}
                         <div class="d-flex gap-3">
                             <input type="email" id="newsletterEmail" name="email" class="form-control" placeholder="you@example.com"required>
-                            <button type="submit" class="btn btn-brass px-4">Subscribe</button>
+                            <button type="submit" class="btn btn-brass px-4"><i class="bi bi-envelope-paper-heart me-1"></i>Subscribe</button>
                         </div>
                         <small id="newsletterMessage" class="mt-2 d-block"></small>
                     </form>
@@ -1033,17 +1081,6 @@
         </div>
     </div>
 </section>
-
-<!-- Quick View Modal -->
-<div class="modal fade" id="quickViewModal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title">Quick View</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-      <div class="modal-body" id="quickViewBody"></div>
-    </div>
-  </div>
-</div>
-
 
 {% endblock %}
 
@@ -1104,14 +1141,14 @@
 
   });
   const DEMO_PRODUCTS = [
-  { id:"p1", name:"Wool Overcoat", cat:"Outerwear", price:248, was:310, image:"https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=500&q=80", hover:"https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=500&q=80", badge:"sale", ship:true, rating:5, stock:22, colors:["#2B3A32","#14181B","#B08D57"] },
+  { id:"p1", name:"Wool Overcoat", cat:"Outerwear", price:248, was:310, image:"https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=500&q=80", hover:"https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=500&q=80", badge:"sale", ship:true, rating:5, stock:22, colors:["var(--accent-deep)","#14181B","var(--accent)"] },
   { id:"p2", name:"Merino Crewneck", cat:"Knitwear", price:96, was:0, image:"https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=500&q=80", hover:"https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=500&q=80", badge:"new", ship:true, rating:4, stock:60, colors:["#5B6360","#F7F4EE"] },
     { id:"p3", name:"Chelsea Boot", cat:"Footwear", price:189, was:0, image:"https://images.unsplash.com/photo-1520639888713-7851133b1ed0?w=500&q=80", hover:"https://images.unsplash.com/photo-1608256246200-53e635b5b65f?w=500&q=80", badge:"", ship:false, rating:5, stock:8, colors:["#3b2b22"] },
     { id:"p4", name:"Ceramic Vase Set", cat:"Home", price:64, was:80, image:"https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=500&q=80", hover:"https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=500&q=80", badge:"sale", ship:true, rating:4, stock:34, colors:["#e8e2d5"] },
-    { id:"p5", name:"Linen Shirt", cat:"Shirting", price:78, was:0, image:"https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=500&q=80", hover:"https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&q=80", badge:"new", ship:true, rating:4, stock:41, colors:["#F7F4EE","#8C6E3F"] },
+    { id:"p5", name:"Linen Shirt", cat:"Shirting", price:78, was:0, image:"https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=500&q=80", hover:"https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&q=80", badge:"new", ship:true, rating:4, stock:41, colors:["#F7F4EE","var(--accent-deep)"] },
     { id:"p6", name:"Waxed Tote", cat:"Accessories", price:132, was:0, image:"https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&q=80", hover:"https://images.unsplash.com/photo-1591561954557-26941169b49e?w=500&q=80", badge:"", ship:true, rating:5, stock:15, colors:["#3b2b22","#14181B"] },
-    { id:"p7", name:"Alpaca Scarf", cat:"Accessories", price:58, was:72, image:"https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=500&q=80", hover:"https://images.unsplash.com/photo-1520006403909-838d6b92c22e?w=500&q=80", badge:"sale", ship:true, rating:5, stock:5, colors:["#C1502E","#2B3A32"] },
-    { id:"p8", name:"Oak Side Table", cat:"Home", price:214, was:0, image:"https://images.unsplash.com/photo-1449247709967-d4461a6a6103?w=500&q=80", hover:"https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=500&q=80", badge:"new", ship:false, rating:4, stock:12, colors:["#8C6E3F"] }
+    { id:"p7", name:"Alpaca Scarf", cat:"Accessories", price:58, was:72, image:"https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=500&q=80", hover:"https://images.unsplash.com/photo-1520006403909-838d6b92c22e?w=500&q=80", badge:"sale", ship:true, rating:5, stock:5, colors:["#C1502E","var(--accent-deep)"] },
+    { id:"p8", name:"Oak Side Table", cat:"Home", price:214, was:0, image:"https://images.unsplash.com/photo-1449247709967-d4461a6a6103?w=500&q=80", hover:"https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=500&q=80", badge:"new", ship:false, rating:4, stock:12, colors:["var(--accent-deep)"] }
   ];
 
   function productCard(p){
@@ -1194,7 +1231,7 @@
           <div class="price-row mb-3"><span class="price-now fs-4">$${p.price.toFixed(2)}</span> ${p.was?'<span class="price-was">$'+p.was.toFixed(2)+'</span>':''}</div>
           <p class="text-muted-custom">A staple piece finished with natural buttons and a full canvas construction for structure that lasts seasons, not weeks.</p>
           <button class="btn btn-brass w-100" onclick="Cart.add('${p.id}',1); bootstrap.Modal.getInstance(document.getElementById('quickViewModal')).hide();">Add to Cart — $${p.price.toFixed(2)}</button>
-          <a href="product-details.html?id=${p.id}" class="btn btn-outline-ink w-100 mt-2">View Full Details</a>
+          <a href="product-details.html?id=${p.id}" class="btn btn-outline-ink w-100 mt-2"><i class="bi bi-eye me-1"></i>View Full Details</a>
         </div>
       </div>`;
   }

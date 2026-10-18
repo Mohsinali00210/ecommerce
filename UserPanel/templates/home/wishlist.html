@@ -1,4 +1,5 @@
 {% extends "base2.html" %}
+{% block body_class %}theme-wishlist{% endblock %}
 {% load static %}
 {% block content %}
   <!-- ============ PAGE HEADER ============ -->
@@ -9,7 +10,7 @@
           <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
           <li class="breadcrumb-item active">Wishlist</li>
         </ol></nav>
-        <h1 class="font-display mb-0">Your Wishlist</h1>
+        <h1 class="font-display mb-0 sz-title"><span class="sz-title-ico"><i class="bi bi-heart-fill"></i></span><span>Your Wishlist</span></h1>
       </div>
       <div class="small text-muted-custom"><span id="wishlistCountLabel">{{ wishlist_items.count }}</span> saved items</div>
     </div>
@@ -19,19 +20,36 @@
   <section class="py-5">
     <div class="container-xl">
 
+      {% if wishlist_items %}
+          <!-- Guidance: wishlist -->
+          <aside class="sz-guide compact" data-guide="wishlist" aria-label="Your saved items">
+            <div class="sz-guide-head">
+              <span class="sz-guide-ico"><i class="bi bi-heart-fill"></i></span>
+              <h2 class="sz-guide-title">Your saved items<small>Keep favourites safe until you’re ready</small></h2>
+            </div>
+            <div class="sz-guide-body"><div>
+              <ul class="sz-tips">
+                <li><i class="bi bi-bag-plus-fill"></i><span>Press <b>Add to cart</b> on any item, or use <b>Add All to Cart</b> to move everything at once.</span></li>
+                <li><i class="bi bi-x-circle"></i><span>Tap the heart again to remove an item.</span></li>
+                <li><i class="bi bi-bell-fill"></i><span>Prices can change — check the price before you buy.</span></li>
+              </ul>
+            </div></div>
+          </aside>
+      {% endif %}
+
       {% if not wishlist_items %}
         <div id="wishlistEmptyState" class="text-center py-5">
           <i class="bi bi-heart" style="font-size:3rem;color:var(--text-muted);"></i>
           <h4 class="font-display mt-3">Your wishlist is empty</h4>
           <p class="text-muted-custom">Tap the heart on any product to save it here.</p>
-          <a href="{% url 'home:home' %}" class="btn btn-brass mt-2">Browse Products</a>
+          <a href="{% url 'home:home' %}" class="btn btn-brass mt-2"><i class="bi bi-grid me-1"></i>Browse Products</a>
         </div>
       {% else %}
         <div id="wishlistEmptyState" class="text-center py-5 d-none">
           <i class="bi bi-heart" style="font-size:3rem;color:var(--text-muted);"></i>
           <h4 class="font-display mt-3">Your wishlist is empty</h4>
           <p class="text-muted-custom">Tap the heart on any product to save it here.</p>
-          <a href="{% url 'home:home' %}" class="btn btn-brass mt-2">Browse Products</a>
+          <a href="{% url 'home:home' %}" class="btn btn-brass mt-2"><i class="bi bi-grid me-1"></i>Browse Products</a>
         </div>
 
         <div class="row g-3" id="wishlistGrid">
@@ -168,11 +186,7 @@
     }
 
     function showAlert(message, type) {
-      if (typeof window.showAlert === "function" && window.showAlert !== showAlert) {
-        window.showAlert(message, type);
-        return;
-      }
-      alert(message);
+      if (window.SZ) { SZ.toast(message, type); }
     }
   </script>
 {% endblock %}

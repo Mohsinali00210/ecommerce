@@ -1,0 +1,1856 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#198754">
+<script>document.documentElement.classList.add("js");</script>
+<!-- theme engine: applies saved mode + colours before first paint (no flash) -->
+<script src="{% static 'js/theme.js' %}"></script>
+<title>Shan Zee — Considered Goods, Well Made</title>
+<meta name="description" content="Shan Zee — considered goods, delivered across Pakistan. Free shipping, cash on delivery and easy returns.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Poppins:wght@400;500;600;700&family=Sacramento&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<link rel="stylesheet" href="{% static 'css/variables.css' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/animations.css' %}">
+<link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+
+<link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+<script>
+  // Reload the page when it's restored via the browser's Back/Forward buttons
+  window.addEventListener("pageshow", function (event) {
+    const navEntry = performance.getEntriesByType("navigation")[0];
+    const isBackForward = navEntry && navEntry.type === "back_forward";
+
+    if (event.persisted || isBackForward) {
+      window.location.reload();
+    }
+  });
+  const IS_AUTHENTICATED = {{ request.user.is_authenticated|yesno:"true,false" }};
+  {% comment %} const PREORDER_ONLY = {{ product.available_for_preorder|yesno:"true,false" }}; {% endcomment %}
+  const LOGIN_URL = "{% url 'login' %}";
+
+  // Returns true if logged in; otherwise opens the login modal and returns false
+  function requireLogin() {
+    if (IS_AUTHENTICATED) return true;
+    const modalEl = document.getElementById('loginModal');
+    if (modalEl) {
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    } else {
+      // fallback if the modal isn't on the page
+      window.location.href = LOGIN_URL + "?next=" + encodeURIComponent(window.location.pathname);
+    }
+    return false;
+  }
+</script>
+{% block extra_css %}{% endblock %}
+
+<script>
+  window.HeaderCounts = {
+    cart: 0,
+    wishlist: 0,
+    notifications: 0
+  };
+</script>
+<style>
+/* ===== Enhanced Header & Navigation ===== */
+
+/* Topbar */
+.topbar {
+  background: var(--sz-green-deep) !important;
+  color: #eae6da;
+  font-size: .82rem;
+  padding: .5rem 0;
+}
+.topbar a { color: #eae6da; opacity: .9; }
+.topbar a:hover { color: var(--sz-gold-light); opacity: 1; }
+.topbar .topbar-perk { display: flex; align-items: center; gap: .4rem; }
+.topbar .topbar-perk i { color: var(--sz-gold-light); }
+.topbar .divider { opacity: .35; }
+
+/* Site Header */
+.site-header {
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  {% comment %} position: sticky; {% endcomment %}
+  top: 0;
+  z-index: 1030;
+  transition: box-shadow var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.site-header.is-scrolled { box-shadow: var(--shadow-sm); }
+
+.brand-mark {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+.brand-mark .dot { color: var(--accent); }
+
+/* ===== MOBILE SEARCH TOGGLE ===== */
+.mobile-search-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  color: var(--text);
+  padding: 0 8px;
+}
+.mobile-search-toggle:hover { color: var(--accent); }
+
+/* ===== MOBILE SEARCH OVERLAY ===== */
+.mobile-search-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 1090;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.mobile-search-overlay.show {
+  display: flex;
+  opacity: 1;
+}
+.mobile-search-overlay .search-container {
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+}
+.mobile-search-overlay input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--brass);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  padding: 0.8rem 0;
+  outline: none;
+}
+.mobile-search-overlay input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+.mobile-search-overlay .search-close {
+  position: absolute;
+  top: -60px;
+  right: 0;
+  color: #fff;
+  font-size: 1.8rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+/* ===== HEADER SEARCH (Desktop) ===== */
+.header-search { max-width: 640px; flex: 1; }
+.header-search-form {
+  border: 1px solid var(--line, #dcd6c8);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  align-items: center;
+}
+.header-search-input {
+  border: none;
+  box-shadow: none;
+  flex: 1;
+  font-size: .9rem;
+  padding: .6rem .85rem;
+  background: transparent;
+}
+.header-search-input:focus { box-shadow: none; outline: none; }
+.header-search-btn {
+  background: #000000;
+  color: #fff;
+  border: none;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.header-search-btn:hover { background: var(--sz-green-deep); }
+
+/* ===== SECONDARY NAV STRIP ===== */
+.category-navbar {
+  background: var(--sz-green-deep) !important;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.category-navbar .main-nav {
+  display: flex;
+  gap: 1.5rem;
+  margin-left: 1.5rem;
+  flex-wrap: wrap;
+}
+.category-navbar .nav-link {
+  color: rgba(255,255,255,.85) !important;
+  font-size: .88rem;
+  padding: .8rem 0;
+  transition: color 0.2s ease;
+}
+.category-navbar .nav-link:hover { color: var(--brass); }
+
+.cat-flyout-btn {
+  background: var(--brass);
+  color: #fff;
+  border: none;
+  border-radius: 0;
+  padding: .8rem 1.2rem;
+  font-size: .88rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cat-flyout-btn:hover { background: var(--brass-deep); color: #fff; }
+
+.cat-flyout-panel {
+  min-width: 260px;
+  padding: .5rem;
+  border-radius: 6px;
+}
+.cat-flyout-item {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .5rem .75rem;
+  border-radius: 4px;
+  color: var(--ink, #1f1f1f);
+  font-size: .88rem;
+  text-decoration: none;
+}
+.cat-flyout-item:hover { background: #f4f1ea; color: var(--brass); }
+.cat-flyout-item i { width: 18px; text-align: center; color: var(--brass); }
+
+.find-deal-btn {
+  border-radius: 4px;
+  font-weight: 600;
+}
+.btn-brass2 {
+  background: var(--brass);
+  color: var(--on-accent);
+  border: 1px solid var(--accent-deep);
+  font-weight: 600;
+  letter-spacing: .01em;
+  border-radius: var(--radius-sm);
+  padding: .65rem 1.4rem;
+  transition: all var(--dur) var(--ease);
+}
+.btn-brass2:hover {
+  background: var(--brass-deep);
+  border-color: var(--accent-deep);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* ===== ICON BADGE ===== */
+.icon-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--rust);
+  color: #fff;
+  font-size: .62rem;
+  font-weight: 700;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+
+/* ===== RESPONSIVE ===== */
+
+/* Tablets & below */
+@media (max-width: 991.98px) {
+  /* Hide desktop search */
+  .header-search { display: none; }
+  
+  /* Show mobile search toggle */
+  .mobile-search-toggle { display: inline-flex; }
+  
+  /* Hide secondary nav on mobile/tablet */
+  .category-navbar.d-none.d-lg-block { display: none !important; }
+  
+  /* Brand adjustment */
+  .brand-mark { font-size: 1.3rem; }
+  
+  /* Header spacing */
+  .site-header .container-xl { padding: 0.6rem 16px; }
+}
+
+/* Mobile phones */
+@media (max-width: 575.98px) {
+  /* Hide some topbar items */
+  .topbar .d-flex.gap-4 .topbar-perk.d-none.d-md-flex { display: none !important; }
+  .topbar .d-none.d-md-flex.align-items-center.gap-3 { display: none !important; }
+  
+  /* Smaller brand */
+  .brand-mark { font-size: 1.1rem; }
+  
+  /* Smaller icons */
+  .btn-icon { width: 34px; height: 34px; font-size: 0.9rem; }
+  
+  /* Compact header */
+  .site-header .container-xl { padding: 0.4rem 12px; }
+  
+  /* Hide account text on mobile */
+  .header-account-btn .d-none.d-lg-flex { display: none !important; }
+  
+  /* Header icons spacing */
+  .d-flex.align-items-center.gap-2 { gap: 0.3rem !important; }
+}
+
+/* Small phones */
+@media (max-width: 400px) {
+  .brand-mark { font-size: 0.95rem; }
+  .btn-icon { width: 30px; height: 30px; font-size: 0.8rem; }
+  .mobile-search-toggle { font-size: 1rem; }
+}
+
+/* ===== MOBILE ASIDE (Offcanvas) ===== */
+.offcanvas {
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border);
+}
+.offcanvas-header {
+  border-bottom: 1px solid var(--border);
+  padding: 1rem;
+}
+.offcanvas-body {
+  padding: 1rem;
+}
+.offcanvas-body .cat-flyout-item {
+  padding: 0.7rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+}
+.offcanvas-body .cat-flyout-item:last-child { border-bottom: none; }
+.offcanvas-body .nav-link {
+  font-size: 1rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.offcanvas-body .nav-link:last-child { border-bottom: none; }
+.offcanvas-body .nav-link:hover { color: var(--accent); }
+
+/* ===== Chat / Floating ===== */
+.floating-stack {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  gap: .7rem;
+  align-items: flex-end;
+}
+.fab {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  font-size: 1.2rem;
+  border: none;
+  transition: transform var(--dur) var(--ease);
+}
+.fab:hover { transform: scale(1.08) translateY(-2px); }
+.fab-chat { background: var(--ink); color: var(--brass); }
+.fab-whatsapp { background: #25D366; color: #fff; }
+.fab-top {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+  width: 42px;
+  height: 42px;
+  opacity: 0;
+  pointer-events: none;
+}
+.fab-top.show { opacity: 1; pointer-events: auto; }
+
+/* Chat Window */
+.chat-window {
+  position: fixed;
+  right: 22px;
+  bottom: 90px;
+  width: 340px;
+  height: 440px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 1060;
+  overflow: hidden;
+  transform: translateY(16px) scale(.97);
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--dur) var(--ease);
+}
+.chat-window.show { transform: none; opacity: 1; visibility: visible; }
+.chat-header {
+  background: var(--ink);
+  color: #fff;
+  padding: .9rem 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+.chat-bubble {
+  max-width: 80%;
+  padding: .6rem .85rem;
+  border-radius: 12px;
+  font-size: .85rem;
+}
+.chat-bubble.them {
+  background: var(--bg-soft);
+  align-self: flex-start;
+  border-bottom-left-radius: 2px;
+}
+.chat-bubble.me {
+  background: var(--accent);
+  color: var(--on-accent);
+  align-self: flex-end;
+  border-bottom-right-radius: 2px;
+}
+.chat-footer {
+  border-top: 1px solid var(--border);
+  padding: .6rem;
+  display: flex;
+  gap: .5rem;
+}
+.chat-footer input {
+  border: none;
+  background: var(--bg-soft);
+  border-radius: 20px;
+  padding: .5rem 1rem;
+  flex: 1;
+}
+.chat-footer input:focus { outline: none; }
+
+/* ===== UTILITY ===== */
+.text-muted-custom { color: var(--text-muted) !important; }
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  transition: all var(--dur) var(--ease);
+  position: relative;
+}
+.btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+.btn-link.nav-link {
+  background: none;
+  border: none;
+  padding: 0;
+}
+.header-account-btn { border: none; background: none; }
+
+
+.header-profile-pic {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+</style>
+</head>
+<body class="{% block body_class %}theme-shop{% endblock %}">
+
+<!-- ============ TOPBAR ============ -->
+<!-- ============ TOPBAR (loaded with fetch from /api/topbar/, edited at /manage/topbar/) ============ -->
+<div class="topbar" id="topbar" style="min-height:2.35rem;"></div>
+
+<!-- ============ HEADER ============ -->
+<header class="site-header">
+  <div class="container-xl py-3 d-flex justify-content-between align-items-center gap-3 flex-wrap">
+
+    <!-- Logo + Mobile Menu Toggle -->
+    <div class="d-flex align-items-center gap-3">
+      <button class="btn-icon d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#mobileNav" aria-label="Menu">
+        <i class="bi bi-list"></i>
+      </button>
+      <a class="navbar-brand ms-2" href="{% url 'home:home' %}" style="font-size: 15px;">
+            <img src="{% static 'images/logo.png' %}" width="70px" alt="Logo">
+        </a>
+    </div>
+
+    <!-- Desktop Search -->
+    <div class="header-search flex-grow-1 order-3 order-lg-2">
+      <form action="{% url 'home:search-products' %}" method="get" class="header-search-form d-flex">
+        <input type="text" name="q" id="headerSearchInput" class="form-control header-search-input"
+               placeholder="Search for products, brands and more...">
+        <button type="submit" class="btn header-search-btn" aria-label="Search">
+          <i class="bi bi-search"></i>
+        </button>
+      </form>
+    </div>
+
+    <!-- Right Icons -->
+    <div class="d-flex align-items-center gap-2 order-2 order-lg-3">
+
+      <!-- Mobile Search Toggle -->
+      <button class="mobile-search-toggle d-lg-none" id="mobileSearchToggle" aria-label="Search">
+        <i class="bi bi-search"></i>
+      </button>
+<!-- Colour picker + theme toggle -->
+      <button type="button" class="sz-palette-btn sz-attn" aria-label="Change theme colours" aria-haspopup="dialog" aria-expanded="false" aria-controls="szPicker" title="Change theme colours">
+        <i class="bi bi-palette2" aria-hidden="true"></i>
+      </button>
+      <!-- Theme toggle (light / dark) -->
+      <button type="button" class="sz-theme-toggle theme-toggle" role="switch" aria-checked="false" aria-label="Dark mode" title="Switch to dark mode">
+        <i class="bi bi-sun-fill sz-tt-ico sz-tt-sun" aria-hidden="true"></i>
+        <i class="bi bi-moon-stars-fill sz-tt-ico sz-tt-moon" aria-hidden="true"></i>
+        <span class="sz-tt-knob" aria-hidden="true"></span>
+      </button>
+
+      <!-- Notifications -->
+      <div class="dropdown">
+        <button class="btn-icon position-relative" data-bs-toggle="dropdown" aria-label="Notifications" id="notificationBtn">
+          <i class="bi bi-bell"></i>
+          <span class="icon-badge" id="notificationCount">0</span>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end notif-panel p-0">
+          <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+            <strong>Notifications</strong>
+            <a href="{% url 'home:all-notifications' %}" class="small">View all</a>
+          </div>
+          <div id="notificationList">
+            <div class="p-3 text-center text-muted">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      
+
+      <!-- Wishlist -->
+      <a href="{% url 'home:Wishlist' %}" class="btn-icon position-relative" aria-label="Wishlist">
+        <i class="bi bi-heart"></i>
+        <span class="icon-badge" data-wishlist-count>0</span>
+      </a>
+
+      <!-- Cart -->
+      <a href="{% url 'home:MyCart' %}" class="btn-icon position-relative" data-bump="cart" aria-label="Cart">
+        <i class="bi bi-bag"></i>
+        <span class="icon-badge" data-cart-count>0</span>
+      </a>
+      <!-- Account -->
+      <div class="dropdown">
+        <button class="btn-link nav-link dropdown-toggle d-flex align-items-center gap-1 text-decoration-none header-account-btn"
+              type="button"
+              id="accountDropdown"
+              data-bs-toggle="dropdown"
+              aria-expanded="false">
+          {% if request.user.is_authenticated %}
+              {% if request.user.avatar %}
+                  <img src="{{ request.user.avatar.url }}"
+                      alt="{{ request.user.full_name|default:'Profile' }}"
+                      class="header-profile-pic"> 
+              {% else %}
+                  <i class="fa-solid fa-circle-user fs-5"></i> 
+              {% endif %}
+              <span class="d-none d-lg-flex flex-column lh-1 text-start">
+                  <small class="text-muted-custom" style="font-size:.65rem;">Account</small>
+                  <span>{{ request.user.full_name|default:request.user.email|truncatechars:14 }}</span>
+              </span>
+          {% else %}
+              <i class="fa-solid fa-circle-user fs-5"></i>
+              <span class="d-none d-lg-flex flex-column lh-1 text-start">
+                  <small class="text-muted-custom" style="font-size:.65rem;">Account</small>
+                  <span>Login / Register</span>
+              </span>
+          {% endif %}
+      </button>
+        <ul class="dropdown-menu dropdown-menu-end p-3 shadow" aria-labelledby="accountDropdown" style="min-width:230px;">
+          {% if request.user.is_authenticated %}
+            <li class="px-1 pb-2 mb-2 border-bottom">
+              <div class="fw-semibold text-truncate">{{ request.user.full_name|default:"Welcome" }}</div>
+              <div class="small text-muted-custom text-truncate">{{ request.user.email }}</div>
+            </li>
+            <li><a class="dropdown-item rounded" href="{% url 'home:user-profile' %}"><i class="bi bi-person me-2"></i>Profile</a></li>
+            <li><a class="dropdown-item rounded" href="{% url 'home:Orders' %}"><i class="bi bi-box-seam me-2"></i>Orders</a></li>
+            <li><a class="dropdown-item rounded" href="{% url 'home:user-wallet' %}"><i class="bi bi-wallet2 me-2"></i>Wallet</a></li>
+            <li><a class="dropdown-item rounded" href="{% url 'home:Wishlist' %}"><i class="bi bi-heart me-2"></i>Wishlist</a></li>
+            <li><a class="dropdown-item rounded" href="{% url 'home:user-address' %}"><i class="bi bi-geo-alt me-2"></i>Addresses</a></li>
+            <li><a class="dropdown-item rounded" href="{% url 'home:ContactHistory' %}"><i class="bi bi-geo-alt me-2"></i>Contact History</a></li>
+            <li><a class="dropdown-item rounded" href="{% url 'home:track-order' %}"><i class="bi bi-geo-alt me-2"></i>Track Order</a></li>
+
+            
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item rounded text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+          {% else %}
+            <li class="px-1">
+              <button type="button" class="btn btn-brass w-100 mb-2" data-bs-toggle="modal" data-bs-target="#loginModal"><i class="bi bi-box-arrow-in-right me-1"></i>Login</button>
+              <button type="button" class="btn btn-outline-ink w-100" data-bs-toggle="modal" data-bs-target="#registerModal"><i class="bi bi-person-plus me-1"></i>Create Account</button>
+            </li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SECONDARY NAV STRIP ============ -->
+  <div class="category-navbar d-none d-lg-block">
+    <div class="container-xl d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center">
+
+        <div class="dropdown cat-flyout-trigger">
+          <button class="btn cat-flyout-btn dropdown-toggle" type="button"
+                  data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-list"></i> All Categories
+          </button>
+          <div class="dropdown-menu cat-flyout-panel p-2" id="catFlyoutPanel">
+            <span class="cat-flyout-item text-muted-custom">Loading…</span>
+          </div>
+        </div>
+
+        <nav class="main-nav">
+          <a href="{% url 'home:home' %}" class="nav-link">Home</a>
+          <a href="{% url 'home:blog' %}" class="nav-link">Blog</a>
+          <a href="/new-arrivals" class="nav-link">New Arrivals</a>
+          <a href="{% url 'home:Contact' %}" class="nav-link">Contact</a>
+        </nav>
+      </div>
+
+      <a href="{% url 'home:best-deals' %}" class="btn btn-brass2 btn-sm find-deal-btn">
+        <i class="bi bi-lightning-charge-fill me-1"></i> Find Best Deal
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- ============ MOBILE SEARCH OVERLAY ============ -->
+<div class="mobile-search-overlay" id="mobileSearchOverlay">
+  <div class="search-container">
+    <button class="search-close" id="mobileSearchClose"><i class="bi bi-x-lg"></i></button>
+    <form action="{% url 'home:search-products' %}" method="get">
+      <input type="text" name="q" id="mobileSearchInput" placeholder="Search products, brands..." autofocus>
+    </form>
+    <div class="text-white-50 mt-4 small text-center">Try: "wool coat", "ceramic vase", "leather boots"</div>
+  </div>
+</div>
+
+<!-- ============ MOBILE OFF CANVAS ============ -->
+<div class="offcanvas offcanvas-start" id="mobileNav">
+  <div class="offcanvas-header">
+    <span class="brand-mark">Shan Zee<span class="dot">.</span></span>
+    <button class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <div class="mb-3">
+      <div class="fw-semibold text-uppercase small text-muted-custom mb-2">All Categories</div>
+      <div id="mobileCatList">
+        <span class="cat-flyout-item text-muted-custom">Loading…</span>
+      </div>
+    </div>
+    <hr>
+    <nav class="nav flex-column">
+      <a class="nav-link py-2" href="{% url 'home:home' %}">Home</a>
+      <a class="nav-link py-2" href="{% url 'home:blog' %}">Blog</a>
+      <a class="nav-link py-2" href="/new-arrivals">New Arrivals</a>
+      <a class="nav-link py-2" href="{% url 'home:best-deals' %}">Best Deals</a>
+      <a class="nav-link py-2" href="{% url 'home:user-profile' %}">My Account</a>
+      <a class="nav-link py-2" href="{% url 'home:Contact' %}">Contact</a>
+    </nav>
+  </div>
+</div>
+<main id="main">
+{% block content %}{% endblock %}
+</main>
+
+<!-- Modern design layer: intentionally loaded after page content so it overrides inline page styles -->
+<link rel="stylesheet" href="{% static 'css/modern.css' %}">
+
+<!-- ============ FOOTER ============ -->
+<footer class="site-footer">
+  <div class="container-xl">
+    <div class="row g-4">
+      <div class="col-6 col-lg-4">
+         <a class="footer-brand ms-2" href="{% url 'home:home' %}" style="font-size: 15px;">
+            <img src="{% static 'images/logo2.png' %}" width="90px" alt="Logo">
+        </a>
+        <p class="text-muted-custom">Considered goods for people who keep things a long time. Free shipping, cash on delivery and 7-day returns.</p>
+        <div class="d-flex gap-2">
+          <a href="#" class="btn-icon"><i class="bi bi-instagram"></i></a>
+          <a href="#" class="btn-icon"><i class="bi bi-twitter-x"></i></a>
+          <a href="#" class="btn-icon"><i class="bi bi-pinterest"></i></a>
+        </div>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6>Shop</h6>
+        <ul><li><a href="{% url 'home:home' %}">All Products</a></li><li><a href="{% url 'home:search-products' %}">Categories</a></li><li><a href="{% url 'home:best-deals' %}">Best Deals</a></li><li><a href="{% url 'home:Wishlist' %}">Wishlist</a></li></ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6>Account</h6>
+        <ul><li><a href="{% url 'home:user-profile' %}">Profile</a></li><li><a href="{% url 'home:Orders' %}">Orders</a></li><li><a href="{% url 'home:user-wallet' %}">Wallet</a></li><li><a href="{% url 'home:user-address' %}">Addresses</a></li></ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6>Support</h6>
+        <ul><li><a href="{% url 'home:track-order' %}">Track Order</a></li><li><a href="{% url 'home:Contact' %}">Support Tickets</a></li><li><a href="{% url 'home:Contact' %}">Contact</a></li><li><a href="{% url 'home:ContactHistory' %}">My Tickets</a></li></ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6>Company</h6>
+        <ul><li><a href="#">About</a></li><li><a href="#">Careers</a></li><li><a href="#">Sustainability</a></li><li><a href="#">Press</a></li></ul>
+      </div>
+    </div>
+    <div class="footer-bottom d-flex flex-wrap justify-content-between align-items-center">
+      <span>© 2026 Shan Zee. All rights reserved.</span>
+      <div class="payment-icons">
+        <i class="bi bi-credit-card"></i><i class="bi bi-paypal"></i><i class="bi bi-apple"></i><i class="bi bi-google"></i>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ============ MOBILE BOTTOM NAV ============ -->
+<nav class="mz-bottom-nav" aria-label="Quick navigation">
+  <a href="{% url 'home:home' %}"><i class="bi bi-house-door"></i><span>Home</span></a>
+  <button type="button" id="mzNavMenu"><i class="bi bi-grid"></i><span>Shop</span></button>
+  <a href="{% url 'home:MyCart' %}" data-bump="cart"><i class="bi bi-bag"></i><span>Cart</span><b class="mz-count" id="mzNavCart" style="display:none">0</b></a>
+  <a href="{% url 'home:Wishlist' %}"><i class="bi bi-heart"></i><span>Wishlist</span><b class="mz-count" id="mzNavWish" style="display:none">0</b></a>
+  <a href="{% url 'home:user-profile' %}"><i class="bi bi-person"></i><span>Account</span></a>
+</nav>
+
+<!-- ============ FLOATING BUTTONS ============ -->
+<div class="floating-stack">
+  
+  {% comment %} <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button> {% endcomment %}
+  <a href="https://wa.me/923090900926" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  {% if show_message_box %}
+    <button class="fab fab-chat pulse-ring" data-toggle-chat id="chatToggle" aria-label="Chat with us"><i class="bi bi-chat-dots-fill"></i></button>
+  {% else %}
+    <a class="fab fab-chat pulse-ring" href="{% url 'home:Contact' %}" aria-label="Support Help"><i class="bi bi-headset"></i></a>
+  {% endif %}
+</div>
+<!-- ============ QUICK VIEW MODAL (shared, reused for any product) ============ -->
+<div class="modal fade" id="quickViewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-0" id="quickViewBody">
+        <!-- injected via fetch() -->
+        <div class="text-center py-5">
+          <div class="spinner-border" role="status"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+function openQuickView(productId) {
+  const modalEl = document.getElementById('quickViewModal');
+  const body = document.getElementById('quickViewBody');
+  body.innerHTML = `<div class="text-center py-5"><div class="spinner-border" role="status"></div></div>`;
+
+  bootstrap.Modal.getOrCreateInstance(modalEl).show();
+
+  fetch(`/product/${productId}/quick-view/`)
+    .then(res => res.text())
+    .then(html => {
+      body.innerHTML = html;
+      executeScripts(body); // <-- manually run any <script> tags just inserted
+    })
+    .catch(() => {
+      body.innerHTML = `<p class="text-danger text-center py-5">Couldn't load product. Please try again.</p>`;
+    });
+}
+
+// innerHTML strips script execution for security — clone + re-append each
+// script tag so the browser treats it as freshly authored, which does execute.
+function executeScripts(container) {
+  container.querySelectorAll('script').forEach(oldScript => {
+    const newScript = document.createElement('script');
+    if (oldScript.src) {
+      newScript.src = oldScript.src;
+    } else {
+      newScript.textContent = oldScript.textContent;
+    }
+    oldScript.replaceWith(newScript);
+  });
+}
+</script>
+{% if not request.user.is_authenticated %}
+<!-- ============ LOGIN MODAL ============ -->
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title font-display" id="loginModalLabel">Welcome Back</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="loginForm">
+          {% csrf_token %}
+          <div id="loginError" class="alert alert-danger d-none"></div>
+          <div class="mb-3">
+            <label class="form-label fw-medium">Email Address</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+              <input type="email" name="username" class="form-control" placeholder="you@email.com" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-medium">Password</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+              <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
+              <button type="button" class="input-group-text" onclick="togglePassword('password', this)">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-brass w-100 py-2" id="loginBtn"><i class="bi bi-box-arrow-in-right me-1"></i>Login</button>
+          {% load socialaccount %}
+          <a href="{% provider_login_url 'google' %}" class="btn btn-outline-danger w-100 mt-3">
+            <i class="fa-brands fa-google me-2"></i>Continue with Google
+          </a>
+          <div class="text-center mt-3">
+            <span style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#registerModal" data-bs-dismiss="modal" class="text-decoration-underline">
+              Don't have an account? Create one
+            </span>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ REGISTER MODAL (UPDATED) ============ -->
+<div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title font-display" id="registerModalLabel">Create Account</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Message container -->
+        <div id="registerMessage" class="alert d-none"></div>
+        
+        <form id="registerForm2" novalidate>
+          {% csrf_token %}
+
+          <!-- FULL NAME -->
+          <div class="mb-3">
+            <label class="form-label small text-muted-custom">Full Name</label>
+            <input type="text"
+                   class="form-control"
+                   name="full_name"
+                   id="full_name"
+                   required
+                   placeholder="John Doe"
+                   value="{{ data.full_name|default:'' }}">
+            <div class="invalid-feedback">Please enter your full name.</div>
+          </div>
+
+          <!-- EMAIL -->
+          <div class="mb-3">
+            <label class="form-label small text-muted-custom">Email</label>
+            <input type="email"
+                   class="form-control"
+                   name="email"
+                   id="email"
+                   required
+                   placeholder="you@email.com"
+                   value="{{ data.email|default:'' }}">
+            <div class="invalid-feedback">Please enter a valid email address.</div>
+          </div>
+
+          <!-- MOBILE -->
+          <div class="mb-3">
+            <label class="form-label small text-muted-custom">
+              Mobile <span class="text-muted">(11 digits)</span>
+            </label>
+            <input type="tel"
+                   class="form-control"
+                   name="mobile"
+                   id="mobile"
+                   inputmode="numeric"
+                   maxlength="11"
+                   placeholder="03001234567"
+                   value="{{ data.mobile|default:'' }}">
+            <div class="form-text">Example: <strong>03001234567</strong></div>
+            <div class="invalid-feedback" id="mobileError">Enter a valid 11-digit number.</div>
+          </div>
+
+          <!-- PASSWORD -->
+          <div class="mb-3">
+            <label class="form-label small text-muted-custom">Password</label>
+            <div class="input-group">
+              <input type="password"
+                     id="password1"
+                     class="form-control"
+                     name="password1"
+                     minlength="8"
+                     required
+                     placeholder="Minimum 8 characters">
+              <span class="input-group-text" style="cursor:pointer;" onclick="togglePassword('password1', this)">
+                <i class="bi bi-eye"></i>
+              </span>
+            </div>
+            <div class="form-text">Password must contain at least 8 characters.</div>
+            <div class="invalid-feedback" id="password1Error">Password must be at least 8 characters.</div>
+          </div>
+
+          <!-- CONFIRM PASSWORD -->
+          <div class="mb-3">
+            <label class="form-label small text-muted-custom">Confirm Password</label>
+            <div class="input-group">
+              <input type="password"
+                     id="password2"
+                     class="form-control"
+                     name="password2"
+                     minlength="8"
+                     required
+                     placeholder="Confirm your password">
+              <span class="input-group-text" style="cursor:pointer;" onclick="togglePassword('password2', this)">
+                <i class="bi bi-eye"></i>
+              </span>
+            </div>
+            <div class="invalid-feedback" id="password2Error">Passwords do not match.</div>
+          </div>
+
+          <button type="submit" class="btn btn-brass w-100" id="registerBtn"><i class="bi bi-person-plus me-1"></i>Register</button>
+          
+          <div class="text-center mt-3">
+            <span style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal" class="text-decoration-underline">
+              Already have an account? Login
+            </span>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% if request.user.is_authenticated %}
+  {% include "home/partials/notification_detail_modal.html" %}
+{% endif %}
+{% if show_message_box %}
+<div class="chat-window" id="chatBox" data-product-id="{{ product.id|default:'0' }}">
+  <div class="chat-header">
+    <div>
+      <strong>Shan Zee</strong>
+      <div class="small opacity-75">
+        <i class="bi bi-circle-fill text-success" style="font-size:.5rem;"></i>
+        Online now
+      </div>
+    </div>
+    <button type="button" class="btn-close btn-close-white" id="closeChat"></button>
+  </div>
+  <div class="chat-body" id="chatBody">
+    <div class="chat-bubble them">Hi! Looking for something specific, or need help with an order?</div>
+  </div>
+  <form class="chat-footer" id="chatForm">
+    <input type="text" id="chatInput" placeholder="Type a message...">
+    <button type="submit" class="btn btn-brass btn-sm" id="sendMsg">
+      <i class="bi bi-send"></i>
+    </button>
+  </form>
+</div>
+
+<script>
+
+  (function () {
+    const chatBox = document.getElementById("chatBox");
+    const closeChat = document.getElementById("closeChat");
+    const chatForm = document.getElementById("chatForm");
+    const chatInput = document.getElementById("chatInput");
+    const chatBody = document.getElementById("chatBody");
+    const productId = chatBox.dataset.productId || "0";
+
+    let CURRENT_THREAD_ID = null;
+    let chatSocket = null;
+    let messagesLoaded = false;
+
+    function appendMessage(sender, text) {
+      const div = document.createElement("div");
+      div.className = `chat-bubble ${sender === "user" ? "me" : "them"}`;
+      div.textContent = text;
+      chatBody.appendChild(div);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    function connectSocket(threadId) {
+      if (chatSocket) chatSocket.close();
+      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+      chatSocket = new WebSocket(
+        `${protocol}://${window.location.host}/ws/chat/${threadId || 0}/${productId}/`
+      );
+      chatSocket.onopen = () => console.log("Chat socket connected");
+      chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        if (data.type === "thread_created") {
+          CURRENT_THREAD_ID = data.thread_id;
+          return;
+        }
+        appendMessage(data.sender === "user" ? "user" : "admin", data.message);
+      };
+      chatSocket.onerror = (e) => console.error("Chat socket error", e);
+      chatSocket.onclose = () => console.log("Chat socket closed");
+    }
+
+    function loadMessages() {
+      const getMessagesBaseUrl = "{% url 'get_messages' 0 %}";
+      const url = getMessagesBaseUrl.replace("0", productId);
+      fetch(url)
+        .then(r => r.json())
+        .then(data => {
+          chatBody.innerHTML = "";
+          CURRENT_THREAD_ID = data.thread_id;
+          connectSocket(CURRENT_THREAD_ID);
+          data.messages.forEach(m => {
+            appendMessage(m.sender === "user" ? "user" : "admin", m.message);
+          });
+        })
+        .catch(err => console.error("Failed to load chat history", err));
+    }
+
+    function sendMessage() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+      if (!chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+        console.warn("Chat socket not connected");
+        return;
+      }
+      chatSocket.send(JSON.stringify({ message: text }));
+      chatInput.value = "";
+    }
+
+    document.getElementById("chatForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      sendMessage();
+    });
+
+    document.getElementById("chatToggle").addEventListener("click", function () {
+      chatBox.classList.toggle("show");
+      if (chatBox.classList.contains("show") && !messagesLoaded) {
+        messagesLoaded = true;
+        loadMessages();
+      }
+    });
+
+    closeChat.addEventListener("click", function () {
+      chatBox.classList.toggle("show");
+    });
+  })();
+</script>
+{% endif %}
+
+<script src="{% static 'js/szui.js' %}"></script>
+<script src="{% static 'js/cart.js' %}"></script>
+<script src="{% static 'js/app.js' %}"></script>
+<script src="{% static 'js/motion.js' %}" defer></script>
+
+<script>
+ 
+ 
+    function applyHeaderCounts(data) {
+    window.HeaderCounts.cart = data.cart_count || 0;
+    window.HeaderCounts.wishlist = data.wishlist_count || 0;
+    window.HeaderCounts.notifications = data.notification_count || 0;
+
+    document.querySelectorAll("[data-cart-count]").forEach(el => {
+      el.textContent = window.HeaderCounts.cart;
+    });
+
+    document.querySelectorAll("[data-wishlist-count]").forEach(el => {
+      el.textContent = window.HeaderCounts.wishlist;
+    });
+
+    const notifBadge = document.getElementById("notificationCount");
+    if (notifBadge) {
+      notifBadge.textContent = window.HeaderCounts.notifications;
+      notifBadge.classList.toggle("d-none", window.HeaderCounts.notifications === 0);
+    }
+  }
+
+
+  // ============ TOPBAR (fetched) ============
+  const TOPBAR_CACHE_KEY = "topbar:v1";
+  const TOPBAR_SAFE_HREF = /^(#|\/|https?:\/\/|tel:|mailto:|sms:)/i;   // never put javascript: in an href
+  const TOPBAR_SAFE_ICON = /^bi-[a-z0-9-]+$/;
+
+  // Hide below a breakpoint, e.g. "md" -> d-none d-md-flex (spans / anchors use flex / inline)
+  function topbarVisibility(visibleFrom, display) {
+    return (!visibleFrom || visibleFrom === "always") ? [] : ["d-none", `d-${visibleFrom}-${display}`];
+  }
+
+  // Built with createElement / textContent, so a label can never inject HTML
+  function buildTopbarItem(item, side) {
+    if (item.kind === "divider") {
+      const divider = document.createElement("span");
+      divider.className = "divider";
+      divider.classList.add(...topbarVisibility(item.visible_from, "inline"));
+      divider.textContent = "|";
+      return divider;
+    }
+
+    const isLink = item.kind === "link" && item.href && TOPBAR_SAFE_HREF.test(item.href);
+    const el = document.createElement(isLink ? "a" : "span");
+
+    if (isLink) {
+      el.href = item.href;
+      if (item.open_in_new_tab) {
+        el.target = "_blank";
+        el.rel = "noopener noreferrer";
+      }
+    }
+
+    // left items (and plain text) use .topbar-perk; right-hand links are plain anchors
+    if (isLink && side === "right") {
+      el.classList.add(...topbarVisibility(item.visible_from, "inline"));
+    } else {
+      el.classList.add("topbar-perk", ...topbarVisibility(item.visible_from, "flex"));
+    }
+
+    if (item.icon && TOPBAR_SAFE_ICON.test(item.icon)) {
+      const icon = document.createElement("i");
+      icon.className = "bi " + item.icon;
+      el.append(icon, " ");
+    }
+    el.append(item.label || "");
+    return el;
+  }
+
+  function renderTopbar(data) {
+    const bar = document.getElementById("topbar");
+    if (!bar) return;
+
+    const left = (data && data.left) || [];
+    const right = (data && data.right) || [];
+
+    if (!left.length && !right.length) {          // nothing to show: no empty green strip
+      bar.hidden = true;
+      bar.replaceChildren();
+      return;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "container-xl d-flex justify-content-between align-items-center flex-wrap gap-2";
+
+    const leftBox = document.createElement("div");
+    leftBox.className = "d-flex gap-4 flex-wrap";
+    left.forEach(item => leftBox.append(buildTopbarItem(item, "left")));
+
+    const rightBox = document.createElement("div");
+    rightBox.className = "d-none d-md-flex align-items-center gap-3";
+    right.forEach(item => rightBox.append(buildTopbarItem(item, "right")));
+
+    wrap.append(leftBox, rightBox);
+    bar.replaceChildren(wrap);
+    bar.hidden = false;
+  }
+
+  function loadTopbar() {
+    // 1) draw the last known bar straight away (no blank flash on later pages)
+    try {
+      const cached = localStorage.getItem(TOPBAR_CACHE_KEY);
+      if (cached) renderTopbar(JSON.parse(cached));
+    } catch (e) { /* storage blocked or bad JSON: just wait for the fetch */ }
+
+    // 2) fetch the current bar, redraw, and remember it
+    return fetch("{% url 'home:topbar-items' %}")
+      .then(res => res.json())
+      .then(data => {
+        renderTopbar(data);
+        try { localStorage.setItem(TOPBAR_CACHE_KEY, JSON.stringify(data)); } catch (e) {}
+      })
+      .catch(err => console.error("Failed to load topbar", err));
+  }
+  window.loadTopbar = loadTopbar;
+
+  document.addEventListener("DOMContentLoaded", loadTopbar);
+ 
+  function refreshHeaderCounts() {
+    return fetch("{% url 'home:header-counts' %}")
+      .then(res => res.json())
+      .then(applyHeaderCounts)
+      .catch(err => console.error("Failed to load header counts", err));
+  }
+  window.refreshHeaderCounts = refreshHeaderCounts;
+ 
+  document.addEventListener("DOMContentLoaded", refreshHeaderCounts);
+  document.addEventListener("DOMContentLoaded", function () {
+
+    // ===== MOBILE SEARCH TOGGLE =====
+    const searchToggle = document.getElementById("mobileSearchToggle");
+    const searchOverlay = document.getElementById("mobileSearchOverlay");
+    const searchClose = document.getElementById("mobileSearchClose");
+    const searchInput = document.getElementById("mobileSearchInput");
+
+    if (searchToggle && searchOverlay) {
+      searchToggle.addEventListener("click", function () {
+        searchOverlay.classList.toggle("show");
+        if (searchOverlay.classList.contains("show")) {
+          setTimeout(() => searchInput.focus(), 100);
+        }
+      });
+    }
+
+    if (searchClose && searchOverlay) {
+      searchClose.addEventListener("click", function () {
+        searchOverlay.classList.remove("show");
+      });
+    }
+
+    // Close overlay on escape
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && searchOverlay && searchOverlay.classList.contains("show")) {
+        searchOverlay.classList.remove("show");
+      }
+    });
+
+    // ===== NOTIFICATIONS =====
+    const notificationBtn = document.getElementById("notificationBtn");
+    const notificationList = document.getElementById("notificationList");
+    const notificationCount = document.getElementById("notificationCount");
+
+    if (notificationBtn && notificationList) {
+      function loadNotifications() {
+        notificationList.innerHTML = `
+          <div class="p-3 text-center text-muted">
+            <span class="spinner-border spinner-border-sm me-2"></span>Loading...
+          </div>
+        `;
+        fetch("{% url 'home:notifications' %}", {
+          method: "GET",
+          credentials: "same-origin",
+          headers: { "Accept": "application/json" }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (!data.success) throw new Error(data.message || "Failed");
+          renderNotifications(data.notifications || []);
+        })
+        .catch(error => {
+          console.error("Notification error:", error);
+          notificationList.innerHTML = `
+            <div class="p-3 text-center text-danger">Failed to load notifications.</div>
+          `;
+        });
+      }
+
+      function renderNotifications(notifications) {
+
+        if (!notifications || notifications.length === 0) {
+
+            notificationList.innerHTML = `
+                <div class="p-4 text-center text-muted">
+                    <i class="bi bi-bell-slash fs-4 d-block mb-2"></i>
+                    No notifications
+                </div>
+            `;
+
+            notificationCount.textContent = "0";
+            notificationCount.style.display = "none";
+
+            return;
+        }
+
+
+        // -----------------------------
+        // Unread count
+        // -----------------------------
+
+        //const unreadCount = notifications.filter(n => !n.is_read).length;
+        //notificationCount.textContent = unreadCount > 99 ? "99+" : unreadCount;
+        //notificationCount.style.display = unreadCount > 0 ? "inline-flex" : "none";
+
+
+        // -----------------------------
+        // Render notifications
+        // -----------------------------
+
+        notificationList.innerHTML = notifications.map(n => {
+
+            let icon = "bi-bell";
+            let iconClass = "";
+
+            switch (n.notification_type) {
+
+                case "order_placed":
+                    icon = "bi-bag-check";
+                    iconClass = "text-primary";
+                    break;
+
+                case "order_dispatched":
+                    icon = "bi-truck";
+                    iconClass = "text-warning";
+                    break;
+
+                case "order_delivered":
+                    icon = "bi-box-seam";
+                    iconClass = "text-success";
+                    break;
+
+                case "order_canceled":
+                    icon = "bi-x-circle";
+                    iconClass = "text-danger";
+                    break;
+
+                case "order_status":
+                    icon = "bi-info-circle";
+                    iconClass = "text-primary";
+                    break;
+
+                case "promotion":
+                    icon = "bi-lightning-charge";
+                    iconClass = "text-warning";
+                    break;
+            }
+
+
+            // -----------------------------
+            // Notification type
+            // -----------------------------
+
+            let notificationType =
+                n.notification_type_display ||
+                n.notification_type ||
+                "Notification";
+
+
+            // -----------------------------
+            // Created date
+            // -----------------------------
+
+            let created =
+                n.created_at_display ||
+                n.created_at ||
+                "";
+
+
+            // -----------------------------
+            // Return notification
+            // -----------------------------
+
+            return `
+                <div
+                    class="notif-item ${n.is_read ? "" : "unread"}"
+
+                    style="cursor:pointer;"
+
+                    onclick="openNotificationModal(this)"
+
+                    data-recipient-id="${n.id}"
+                    data-is-read="${n.is_read ? "1" : "0"}"
+
+                    data-title="${escapeHtml(n.title)}"
+                    data-message="${escapeHtml(n.message)}"
+
+                    data-type="${escapeHtml(notificationType)}"
+
+                    data-created="${escapeHtml(created)}"
+
+                    data-order-url="${escapeHtml(n.order_url || "")}"
+
+                    data-order-number="${escapeHtml(n.order_number || "")}"
+
+                    data-promotion-url="${escapeHtml(n.promotion_url || "")}"
+                >
+
+                    <div class="notif-icon">
+                        <i class="bi ${icon} ${iconClass}"></i>
+                    </div>
+
+
+                    <div class="flex-grow-1">
+
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+
+                            <div class="fw-semibold small">
+                                ${escapeHtml(n.title)}
+                            </div>
+
+                            ${
+                                !n.is_read
+                                ? `<span class="notification-dot"></span>`
+                                : ""
+                            }
+
+                        </div>
+
+
+                        <small class="text-muted-custom">
+                            ${escapeHtml(n.message)}
+                        </small>
+
+
+                        <div class="small text-muted-custom mt-1">
+                            ${escapeHtml(notificationType)}
+                            ${created ? ` · ${escapeHtml(created)}` : ""}
+                        </div>
+
+                    </div>
+
+                </div>
+            `;
+
+        }).join("");
+    }
+
+      function escapeHtml(value) {
+        if (value === null || value === undefined) return "";
+        const div = document.createElement("div");
+        div.textContent = value;
+        return div.innerHTML;
+      }
+
+      notificationBtn.addEventListener("click", loadNotifications);
+    }
+
+    // ===== TOGGLE PASSWORD =====
+    window.togglePassword = function(inputId, iconEl) {
+      const input = document.getElementById(inputId || "password");
+      const icon = iconEl ? iconEl.querySelector("i") : document.getElementById("eyeIcon");
+      if (!input || !icon) return;
+      if (input.type === "password") {
+        input.type = "text";
+        icon.classList.replace("fa-eye", "fa-eye-slash");
+      } else {
+        input.type = "password";
+        icon.classList.replace("fa-eye-slash", "fa-eye");
+      }
+    };
+
+    // ===== LOGIN FORM =====
+    const loginForm = document.getElementById("loginForm");
+    if (loginForm) {
+      loginForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const btn = document.getElementById("loginBtn");
+        const errorDiv = document.getElementById("loginError");
+        const originalBtnText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Logging in...`;
+        errorDiv.classList.add("d-none");
+        const formData = new FormData(this);
+        try {
+          const response = await fetch("{% url 'login_api' %}", {
+            method: "POST",
+            body: formData,
+            headers: { "X-CSRFToken": this.querySelector('[name=csrfmiddlewaretoken]').value }
+          });
+          const data = await response.json();
+          if (data.success) {
+            btn.innerHTML = `<i class="fa-solid fa-check me-2"></i>Success`;
+            window.location.href = data.redirect;
+          } else {
+            errorDiv.textContent = data.message;
+            errorDiv.classList.remove("d-none");
+            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+          }
+        } catch (error) {
+          errorDiv.textContent = "Server error. Please try again.";
+          errorDiv.classList.remove("d-none");
+          btn.disabled = false;
+          btn.innerHTML = originalBtnText;
+        }
+      });
+    }
+
+    // ============================================================
+    // REGISTER FORM HANDLING (UPDATED)
+    // ============================================================
+    
+    const registerForm = document.getElementById("registerForm2");
+    if (registerForm) {
+
+      const btn = document.getElementById("registerBtn");
+      const message = document.getElementById("registerMessage");
+      const fullName = document.getElementById("full_name");
+      const email = document.getElementById("email");
+      const mobile = document.getElementById("mobile");
+      const password1 = document.getElementById("password1");
+      const password2 = document.getElementById("password2");
+
+      let isSubmitting = false;
+
+      // ===== MOBILE VALIDATION =====
+      if (mobile) {
+        mobile.addEventListener("input", function() {
+          this.value = this.value.replace(/\D/g, "").substring(0, 11);
+          validateMobile();
+        });
+      }
+
+      function validateMobile() {
+        const value = mobile.value.trim();
+        if (value === "") {
+          mobile.classList.remove("is-invalid", "is-valid");
+          return true;
+        }
+        const valid = /^03\d{9}$/.test(value);
+        mobile.classList.remove("is-invalid", "is-valid");
+        mobile.classList.add(valid ? "is-valid" : "is-invalid");
+        return valid;
+      }
+
+      // ===== PASSWORD VALIDATION =====
+      if (password1) {
+        password1.addEventListener("input", function() {
+          validatePassword();
+          if (password2.value !== "") validatePasswordMatch();
+        });
+      }
+
+      if (password2) {
+        password2.addEventListener("input", validatePasswordMatch);
+      }
+
+      function validatePassword() {
+        const valid = password1.value.length >= 8;
+        password1.classList.remove("is-invalid", "is-valid");
+        password1.classList.add(valid ? "is-valid" : "is-invalid");
+        return valid;
+      }
+
+      function validatePasswordMatch() {
+        const valid = password2.value !== "" && 
+                      password1.value === password2.value && 
+                      password1.value.length >= 8;
+        password2.classList.remove("is-invalid", "is-valid");
+        password2.classList.add(valid ? "is-valid" : "is-invalid");
+        return valid;
+      }
+
+      // ===== EMAIL VALIDATION =====
+      if (email) {
+        email.addEventListener("input", function() {
+          this.classList.remove("is-invalid");
+          message.classList.add("d-none");
+        });
+      }
+
+      // ===== FULL NAME VALIDATION =====
+      if (fullName) {
+        fullName.addEventListener("input", function() {
+          if (this.value.trim().length >= 2) {
+            this.classList.remove("is-invalid");
+            this.classList.add("is-valid");
+          } else {
+            this.classList.remove("is-valid");
+          }
+        });
+      }
+
+      // ===== FORM SUBMISSION =====
+      registerForm.addEventListener("submit", async function(e) {
+        e.preventDefault();
+
+        if (isSubmitting) return;
+
+        // Clear previous validation
+        clearValidation();
+        message.classList.add("d-none");
+        message.className = "alert d-none";
+
+        // Get values
+        const fullNameValue = fullName.value.trim();
+        const emailValue = email.value.trim();
+        const mobileValue = mobile.value.trim();
+        const passwordValue = password1.value;
+        const confirmPasswordValue = password2.value;
+
+        // Client-side validation
+        let valid = true;
+
+        if (fullNameValue.length < 2) {
+          showFieldError(fullName, "Please enter your full name.");
+          valid = false;
+        }
+
+        if (emailValue === "" || !email.checkValidity()) {
+          showFieldError(email, "Please enter a valid email address.");
+          valid = false;
+        }
+
+        if (mobileValue !== "" && !/^03\d{9}$/.test(mobileValue)) {
+          showFieldError(mobile, "Enter a valid 11-digit number. Example: 03001234567.");
+          valid = false;
+        }
+
+        if (passwordValue.length < 8) {
+          showFieldError(password1, "Password must contain at least 8 characters.");
+          valid = false;
+        }
+
+        if (passwordValue !== confirmPasswordValue) {
+          showFieldError(password2, "Passwords do not match.");
+          valid = false;
+        }
+
+        if (!valid) {
+          const firstError = registerForm.querySelector(".is-invalid");
+          if (firstError) firstError.focus();
+          return;
+        }
+
+        // Set submitting state
+        isSubmitting = true;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Creating...`;
+
+        try {
+          const formData = new FormData(registerForm);
+          
+          const response = await fetch("{% url 'register_api' %}", {
+            method: "POST",
+            body: formData,
+            headers: {
+              "X-Requested-With": "XMLHttpRequest"
+            }
+          });
+
+          // Check if response is OK
+          if (!response.ok) {
+            throw new Error(`Server error (${response.status})`);
+          }
+
+          // Parse response
+          let data;
+          try {
+            data = await response.json();
+          } catch (parseError) {
+            throw new Error("Invalid server response");
+          }
+
+          // Handle success
+          if (data.success) {
+            message.classList.remove("d-none", "alert-danger");
+            message.classList.add("alert-success");
+            message.innerHTML = `<i class="bi bi-check-circle me-2"></i>${data.message || "Account created successfully."}`;
+            
+            if (data.redirect_url) {
+              setTimeout(() => {
+                window.location.href = "https://shanzee.com";
+              }, 1500);
+            }
+            return;
+          }
+
+          // Handle validation errors from server
+          message.classList.remove("d-none");
+          message.classList.add("alert-danger");
+          message.innerHTML = `<i class="bi bi-exclamation-circle me-2"></i>${data.message || "Registration failed."}`;
+
+          // Show field-specific errors
+          if (data.field) {
+            const fieldMap = {
+              'full_name': fullName,
+              'email': email,
+              'mobile': mobile,
+              'password1': password1,
+              'password2': password2
+            };
+            const field = fieldMap[data.field];
+            if (field) {
+              showFieldError(field, data.message);
+              field.focus();
+            }
+          }
+
+        } catch (error) {
+          console.error("Registration error:", error);
+          message.classList.remove("d-none");
+          message.classList.add("alert-danger");
+          message.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>${error.message || "Something went wrong. Please try again."}`;
+        } finally {
+          isSubmitting = false;
+          btn.disabled = false;
+          btn.innerHTML = "Register";
+        }
+      });
+
+      // ===== HELPER FUNCTIONS =====
+      function showFieldError(field, text) {
+        field.classList.remove("is-valid");
+        field.classList.add("is-invalid");
+        
+        const container = field.closest(".mb-3");
+        if (container) {
+          const errorElement = container.querySelector(".invalid-feedback");
+          if (errorElement) {
+            errorElement.textContent = text;
+          }
+        }
+      }
+
+      function clearValidation() {
+        [fullName, email, mobile, password1, password2].forEach(field => {
+          if (field) {
+            field.classList.remove("is-invalid", "is-valid");
+          }
+        });
+        
+        document.querySelectorAll(".invalid-feedback").forEach(el => {
+          // Only reset the text for specific fields, keep default text for others
+          if (el.id === "mobileError") el.textContent = "Enter a valid 11-digit number.";
+          if (el.id === "password1Error") el.textContent = "Password must be at least 8 characters.";
+          if (el.id === "password2Error") el.textContent = "Passwords do not match.";
+        });
+      }
+
+    }
+
+    // ===== CATEGORIES =====
+    function loadCategories() {
+      fetch("{% url 'get_cat' %}")
+        .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+        .then(data => {
+          const cats = data.categories || [];
+          renderSearchDropdown(cats);
+          renderFlyoutPanel(cats);
+          renderMobileList(cats);
+        })
+        .catch(err => console.error("Failed to load categories:", err));
+    }
+
+    function renderSearchDropdown(cats) {
+      const el = document.getElementById("headerSearchCatList");
+      if (!el) return;
+      el.innerHTML = cats.length
+        ? cats.map(c => `
+            <li><a class="dropdown-item" href="/search-products/?category=${encodeURIComponent(c.id)}">${c.name}</a></li>
+          `).join("")
+        : `<li><a class="dropdown-item disabled" href="#">No categories</a></li>`;
+    }
+
+    function renderFlyoutPanel(cats) {
+      const el = document.getElementById("catFlyoutPanel");
+      if (!el) return;
+      el.innerHTML = cats.length
+        ? cats.map(c => `
+            <a class="cat-flyout-item" href="/search-products/?category=${encodeURIComponent(c.id)}">
+              <i class="bi ${c.icon || 'bi-tag'}"></i> ${c.name}
+            </a>
+          `).join("")
+        : `<span class="cat-flyout-item text-muted-custom">No categories</span>`;
+    }
+
+    function renderMobileList(cats) {
+      const el = document.getElementById("mobileCatList");
+      if (!el) return;
+      el.innerHTML = cats.length
+        ? cats.map(c => `
+            <a class="cat-flyout-item" href="/search-products/?category=${encodeURIComponent(c.id)}">
+              <i class="bi ${c.icon || 'bi-tag'}"></i> ${c.name}
+            </a>
+          `).join("")
+        : `<span class="cat-flyout-item text-muted-custom">No categories</span>`;
+    }
+
+    loadCategories();
+
+    // ===== SEARCH ENTER =====
+    document.getElementById("searchInput")?.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const query = this.value.trim();
+        if (!query) return;
+        window.location.href = `{% url 'home:search-products' %}?q=${encodeURIComponent(query)}`;
+      }
+    });
+
+    // ===== WISHLIST =====
+    window.Wishlist = {
+      toggle(id) {
+        const btn = document.querySelector(`[data-wishlist-btn="${id}"]`);
+        if (!btn) return;
+        const icon = btn.querySelector("i");
+        fetch(`{% url 'toggle_wishlist' 0 %}`.replace('/0/', `/${id}/`), {
+          method: "GET",
+          headers: { "X-Requested-With": "XMLHttpRequest" }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "added") {
+            btn.classList.add("active");
+            icon.classList.remove("bi-heart");
+            icon.classList.add("bi-heart-fill");
+            window.showToast?.("Added to wishlist.");
+
+            window.HeaderCounts.wishlist=window.HeaderCounts.wishlist+1;
+ 
+            document.querySelectorAll("[data-wishlist-count]").forEach(el => {
+              el.textContent = window.HeaderCounts.wishlist;
+            });
+          } else if (data.status === "removed") {
+            btn.classList.remove("active");
+            icon.classList.remove("bi-heart-fill");
+            icon.classList.add("bi-heart");
+            window.showToast?.("Removed from wishlist.");
+            window.HeaderCounts.wishlist=window.HeaderCounts.wishlist-1;
+ 
+            document.querySelectorAll("[data-wishlist-count]").forEach(el => {
+              el.textContent = window.HeaderCounts.wishlist;
+            });
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          window.showToast?.("Something went wrong.");
+        });
+      }
+    };
+
+    // ===== BACK TO TOP =====
+    const topBtn = document.querySelector('.fab-top');
+    if (topBtn) {
+      window.addEventListener('scroll', function () {
+        if (window.scrollY > 400) {
+          topBtn.classList.add('show');
+        } else {
+          topBtn.classList.remove('show');
+        }
+      });
+      topBtn.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+  });
+</script>
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

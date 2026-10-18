@@ -1078,7 +1078,8 @@ def Wishlist(request):
         "wishlist_items": wishlist_items,
     })
  
- 
+from accounts.error_logging import log_error
+
 @login_required
 def wish_to_buy(request):
     if request.method == "POST":
@@ -1116,6 +1117,7 @@ def wish_to_buy(request):
             }, status=404)
  
         except Exception as e:
+            log_error(request, e, 500)
             return JsonResponse({
                 "status": "error",
                 "message": str(e)
@@ -1145,6 +1147,7 @@ def wish_to_buy(request):
             return JsonResponse({"status": "error", "message": "Item not found in wishlist"}, status=404)
  
         except Exception as e:
+            log_error(request, e, 500)
             return JsonResponse({
                 "status": "error",
                 "message": str(e)
@@ -1495,34 +1498,6 @@ def wallet_withdraw(request):
     })
 
 
-# ---------- ADMIN SIDE ----------
-@staff_member_required
-def admin_withdrawal_list(request):
-    status = request.GET.get("status", "pending")
-    qs = WithdrawalRequest.objects.select_related("user", "processed_by")
-    if status:
-        qs = qs.filter(status=status)
-    page = Paginator(qs, 20).get_page(request.GET.get("page"))
-    return render(request, "admin_panel/withdrawal_list.html", {
-        "withdrawals": page, "selected_status": status,
-        "status_choices": WithdrawalRequest.STATUS,
-    })
-
-
-@staff_member_required
-@require_POST
-def admin_withdrawal_approve(request, pk):
-    ok, msg = approve_withdrawal(pk, request.user)
-    (messages.success if ok else messages.error)(request, msg)
-    return redirect("home:admin-withdrawals")
-
-
-@staff_member_required
-@require_POST
-def admin_withdrawal_reject(request, pk):
-    ok, msg = reject_withdrawal(pk, request.user, request.POST.get("note", ""))
-    (messages.success if ok else messages.error)(request, msg)
-    return redirect("home:admin-withdrawals")
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse

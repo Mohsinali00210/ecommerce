@@ -1,10 +1,11 @@
 {% extends "base2.html" %}
+{% block body_class %}theme-account{% endblock %}
 {% block content %}
 <section class="py-5">
   <div class="container-xl">
     <div class="row g-4">
       <div class="col-lg-6">
-        <h1 class="font-display mb-3">Withdraw Funds</h1>
+        <h1 class="font-display mb-3 sz-title"><span class="sz-title-ico"><i class="bi bi-cash-coin"></i></span><span>Withdraw Funds</span></h1>
 
         {% for m in messages %}
           <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags }}{% endif %}">{{ m }}</div>
@@ -16,6 +17,21 @@
           <div class="small text-muted-custom">Minimum withdrawal: Rs. {{ min_withdrawal }}</div>
         </div>
 
+
+          <!-- Guidance: withdraw -->
+          <aside class="sz-guide compact" data-guide="withdraw" aria-label="Before you withdraw">
+            <div class="sz-guide-head">
+              <span class="sz-guide-ico"><i class="bi bi-cash-coin"></i></span>
+              <h2 class="sz-guide-title">Before you withdraw<small>Get paid without delays</small></h2>
+            </div>
+            <div class="sz-guide-body"><div>
+              <ol class="sz-steps">
+                <li><b>Check your details</b>Make sure the bank details you enter match your account exactly.</li>
+                <li><b>Submit request</b>The amount is held from your wallet straight away.</li>
+                <li><b>Get approved</b>Money arrives within 2 working days. If rejected, it returns to your wallet.</li>
+              </ol>
+            </div></div>
+          </aside>
         <form method="post" class="border rounded p-3">
           {% csrf_token %}
           {{ form.non_field_errors }}
@@ -30,7 +46,7 @@
             After you submit, the amount is held from your wallet. You will receive it
             within <strong>2 working days</strong> once approved. If rejected, it is refunded to your wallet.
           </div>
-          <button class="btn btn-brass w-100">Request Withdrawal</button>
+          <button class="btn btn-brass w-100"><i class="bi bi-cash-coin me-1"></i>Request Withdrawal</button>
         </form>
       </div>
 

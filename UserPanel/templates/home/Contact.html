@@ -1,4 +1,5 @@
 {% extends "base2.html" %}
+{% block body_class %}theme-support{% endblock %}
 {% load static %}
 {% block content %}
 
@@ -9,7 +10,7 @@
         <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
         <li class="breadcrumb-item active">Contact / Support</li>
       </ol></nav>
-      <h1 class="font-display mb-0">Get in Touch</h1>
+      <h1 class="font-display mb-0 sz-title"><span class="sz-title-ico"><i class="bi bi-headset"></i></span><span>Get in Touch</span></h1>
       <p class="text-muted-custom mb-0 mt-1">Questions about an order, a product, or anything else — we're here to help.</p>
     </div>
   </section>
@@ -54,12 +55,28 @@
           <div class="p-4 border rounded" style="border-color:var(--border) !important;">
             <div class="fw-semibold mb-2"><i class="bi bi-box-seam me-1"></i> Order-related question?</div>
             <p class="small text-muted-custom mb-2">You can also raise a cancel/return request directly from your order.</p>
-            <a href="{% url 'home:Orders' %}" class="btn btn-sm btn-outline-ink">View My Orders</a>
+            <a href="{% url 'home:Orders' %}" class="btn btn-sm btn-outline-ink"><i class="bi bi-box-seam me-1"></i>View My Orders</a>
           </div>
         </div>
 
         <!-- ============ CONTACT FORM ============ -->
         <div class="col-lg-8">
+
+          <!-- Guidance: contact -->
+          <aside class="sz-guide compact" data-guide="contact" aria-label="Get help faster">
+            <div class="sz-guide-head">
+              <span class="sz-guide-ico"><i class="bi bi-chat-heart-fill"></i></span>
+              <h2 class="sz-guide-title">Get help faster<small>Include these details and we can solve it in one reply</small></h2>
+            </div>
+            <div class="sz-guide-body"><div>
+              <ul class="sz-tips">
+                <li><i class="bi bi-hash"></i><span>Mention your <b>order number</b> if it’s about an order.</span></li>
+                <li><i class="bi bi-list-check"></i><span>Pick the closest <b>support type</b> so it reaches the right team.</span></li>
+                <li><i class="bi bi-paperclip"></i><span>Attach a screenshot or photo if something looks wrong.</span></li>
+                <li><i class="bi bi-clock-history"></i><span>Track every reply later in <b>My Support Tickets</b>.</span></li>
+              </ul>
+            </div></div>
+          </aside>
           <div class="p-4 border rounded" style="border-color:var(--border) !important;">
 
             {% if success %}

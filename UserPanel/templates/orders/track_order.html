@@ -1,4 +1,5 @@
  {% extends "base2.html" %}
+{% block body_class %}theme-orders{% endblock %}
 {% load static %}
 {% block content %}
  <style>
@@ -9,18 +10,32 @@
     .track-dot { width: 32px; height: 32px; border-radius: 50%; background: #dee2e6; margin: 0 auto .4rem;
                  display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; color: #fff; }
     .track-step.done, .track-step.current { color: #212529; }
-    .track-step.done .track-dot { background: #198754; }
-    .track-step.done::before, .track-step.current::before { background: #198754; }
-    .track-step.current .track-dot { background: #0d6efd; }
+    .track-step.done .track-dot { background: var(--accent-deep); }
+    .track-step.done::before, .track-step.current::before { background: var(--accent); }
+    .track-step.current .track-dot { background: var(--accent); box-shadow: 0 0 0 6px rgba(var(--accent-rgb), .2); }
     .track-step.stopped .track-dot { background: #dc3545; }
     .item-img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; }
   </style>
 <div class="container py-5" style="max-width: 760px;">
-  <h3 class="mb-3">Track your order</h3>
+  <h1 class="h3 mb-3 sz-title"><span class="sz-title-ico"><i class="bi bi-truck"></i></span><span>Track your order</span></h1>
 
+
+          <!-- Guidance: track -->
+          <aside class="sz-guide compact" data-guide="track" aria-label="How to track">
+            <div class="sz-guide-head">
+              <span class="sz-guide-ico"><i class="bi bi-truck"></i></span>
+              <h2 class="sz-guide-title">How to track<small>Find your parcel in seconds</small></h2>
+            </div>
+            <div class="sz-guide-body"><div>
+              <ul class="sz-tips">
+                <li><i class="bi bi-hash"></i><span>Enter your <b>order number</b> (from your confirmation) or the <b>tracking number</b> sent by SMS/email.</span></li>
+                <li><i class="bi bi-geo-alt-fill"></i><span>The timeline shows each stage — from confirmed to delivered.</span></li>
+              </ul>
+            </div></div>
+          </aside>
   <form id="track-form" class="input-group mb-4">
     <input id="track-input" class="form-control" placeholder="Order number or tracking number" maxlength="100" required>
-    <button class="btn btn-primary" type="submit">Track</button>
+    <button class="btn btn-brass" type="submit"><i class="bi bi-search"></i> Track</button>
   </form>
 
   <div id="track-result"></div>

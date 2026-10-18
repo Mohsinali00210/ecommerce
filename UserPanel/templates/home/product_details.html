@@ -1,13 +1,14 @@
 {% extends "base2.html" %}
+{% block body_class %}theme-product{% endblock %}
 {% load static %}
 
-{% block title %}{{ product.name }} — AUGUST{% endblock %}
+{% block title %}{{ product.name }} — Shan Zee{% endblock %}
 {% block meta_description %}{{ product.description|default:product.name|truncatewords:25 }}{% endblock %}
 
 {% block content %}
 {% comment %} <style>
     /* =========================================================
-   AUGUST — Design Tokens
+   Shan Zee — Design Tokens
    A premium goods retailer. Aesthetic: "the tear-off ticket" —
    perforated tag edges, receipt-mono pricing, brass foil accents.
    ========================================================= */
@@ -18,10 +19,10 @@
     --ink-soft:       #1D2226;
     --paper:          #F7F4EE;   /* warm paper */
     --paper-soft:     #EFEAE0;
-    --brass:          #B08D57;   /* primary accent — foil brass */
-    --brass-deep:     #8C6E3F;
-    --pine:           #2B3A32;   /* secondary — deep bottle green */
-    --pine-soft:      #3C4F45;
+    --brass:          var(--accent);   /* primary accent — foil brass */
+    --brass-deep:     var(--accent-deep);
+    --pine:           var(--accent-deep);   /* secondary — deep bottle green */
+    --pine-soft:      var(--accent);
     --rust:           #C1502E;   /* sale / discount */
     --slate:          #5B6360;   /* muted text on paper */
     --slate-dark:     #A7ADA8;   /* muted text on ink */
@@ -56,11 +57,11 @@
     --ease: cubic-bezier(.4,0,.2,1);
 
 
-     --sz-green-deep:#0f2e22;
-  --sz-green:#153c2b;
-  --sz-green-light:#1f5038;
-  --sz-gold:#c99a3d;
-  --sz-gold-light:#e0b967;
+     --sz-green-deep:var(--accent-dark);
+  --sz-green:var(--accent-dark);
+  --sz-green-light:var(--accent-deep);
+  --sz-gold:var(--accent);
+  --sz-gold-light:var(--accent);
   --sz-cream:#faf8f3;
   --sz-ink:#1c1f1d;
   --sz-muted:#6b756f;
@@ -78,7 +79,7 @@
     --text-muted:    var(--slate-dark);
     --border:        var(--line-dark);
     --accent:        var(--brass);
-    --accent-deep:   #C9A768;
+    --accent-deep:   var(--accent-light);
     --on-accent:     #14181B;
     --shadow:        0 8px 28px -8px rgba(0,0,0,0.55);
     --shadow-lg:     0 28px 56px -16px rgba(0,0,0,0.65);
@@ -89,7 +90,7 @@
   }
 
   /* =========================================================
-    AUGUST — Core Stylesheet
+    Shan Zee — Core Stylesheet
     ========================================================= */
 
   *{ box-sizing: border-box; }
@@ -120,7 +121,7 @@
   .btn-brass {
       background: #000000;
       color: #ffffff;
-      border: 1px solid #185935;
+      border: 1px solid var(--accent-deep);
       font-weight: 600;
       letter-spacing: .01em;
       border-radius: var(--radius-sm);
@@ -314,7 +315,7 @@
     display:flex; flex-direction:column; justify-content:center; color:#fff;
   }
   .promo-card.pine{ background: linear-gradient(135deg, var(--pine), var(--pine-soft)); }
-  .promo-card.rust{ background: linear-gradient(135deg, #205742, #113829); }
+  .promo-card.rust{ background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color:var(--on-accent); }
   .promo-card .promo-eyebrow{ font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; opacity:.8;}
   .promo-card h3{ font-size:1.6rem; margin:.4rem 0 1rem; }
 
@@ -342,7 +343,7 @@
   .testimonial-card .quote-mark{ font-family: var(--font-display); font-size: 3rem; color: var(--accent); line-height:.5; display:block; margin-bottom: .8rem;}
 
   /* Newsletter */
-  .newsletter-band{ background: #0f2e22; color:#fff; border-radius: var(--radius-lg); padding: 2.5rem; }
+  .newsletter-band{ background: var(--accent-dark); color:#fff; border-radius: var(--radius-lg); padding: 2.5rem; }
   .newsletter-band .form-control{ background: transparent; border:none; border-bottom: 1.5px solid rgba(255,255,255,.35); color:#fff; border-radius:0; }
   .newsletter-band .form-control:focus{ box-shadow:none; border-color: var(--brass); }
   .newsletter-band .form-control::placeholder{ color: rgba(255,255,255,.5); }
@@ -464,12 +465,12 @@
   .status-badge{ font-size:.72rem; font-weight:700; padding:.3rem .7rem; border-radius: 20px; letter-spacing:.02em; }
   .status-pending{ background:#FCEFD8; color:#96631A; }
   .status-processing{ background:#DDEAFB; color:#2160B0; }
-  .status-delivered{ background:#DCEEE1; color:#2A7745; }
+  .status-delivered{ background:#d1e7dd; color:#0f5132; }
   .status-cancelled{ background:#FBE0DA; color:#B33A1C; }
   .status-returned{ background:#EAE4F5; color:#5F3FA6; }
   html[data-theme="dark"] .status-pending{ background: rgba(252,239,216,.15); color:#F2C572; }
   html[data-theme="dark"] .status-processing{ background: rgba(221,234,251,.15); color:#7FB2EE; }
-  html[data-theme="dark"] .status-delivered{ background: rgba(220,238,225,.15); color:#7BCB92; }
+  html[data-theme="dark"] .status-delivered{ background: rgba(117,183,152,.15); color:#75b798; }
   html[data-theme="dark"] .status-cancelled{ background: rgba(251,224,218,.15); color:#F0917A; }
   html[data-theme="dark"] .status-returned{ background: rgba(234,228,245,.15); color:#B79AE8; }
 
@@ -493,7 +494,7 @@
     background: linear-gradient(135deg, var(--ink), #262b2f 60%, var(--pine));
     color:#fff; border-radius: var(--radius-lg); padding: 1.8rem; position:relative; overflow:hidden;
   }
-  .wallet-card::after{ content:"AUGUST"; position:absolute; right:1.4rem; bottom:1rem; font-family: var(--font-display); font-size:2.2rem; opacity:.08; letter-spacing:.05em; }
+  .wallet-card::after{ content:"SHAN ZEE"; position:absolute; right:1.4rem; bottom:1rem; font-family: var(--font-display); font-size:2.2rem; opacity:.08; letter-spacing:.05em; }
   .wallet-card .balance{ font-family: var(--font-mono); font-size: 2.2rem; font-weight:700; }
   .txn-row{ display:flex; align-items:center; justify-content:space-between; padding:.9rem 0; border-bottom:1px solid var(--border); }
   .txn-icon{ width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
@@ -709,7 +710,7 @@ body{
 --------------------------------------------- */
 
 .badge-ship {
-  background: linear-gradient(135deg, #2f6b4f 0%, #1f3d2f 100%);
+  background: linear-gradient(135deg, var(--accent-deep) 0%, var(--accent-deep) 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
@@ -919,6 +920,21 @@ body{
           </div>
         {% endfor %}
 
+
+          <!-- Guidance: product -->
+          <aside class="sz-guide compact" data-guide="product" aria-label="Before you add to cart">
+            <div class="sz-guide-head">
+              <span class="sz-guide-ico"><i class="bi bi-info-circle-fill"></i></span>
+              <h2 class="sz-guide-title">Before you add to cart<small>Quick buying guide</small></h2>
+            </div>
+            <div class="sz-guide-body"><div>
+              <ul class="sz-tips">
+                <li><i class="bi bi-palette-fill"></i><span>Choose your <b>colour / size</b> first — the price and stock update for that option.</span></li>
+                <li><i class="bi bi-bag-plus"></i><span><b>Add to Cart</b> keeps shopping; <b>Buy Now</b> goes straight to checkout.</span></li>
+                <li><i class="bi bi-heart"></i><span>Not sure yet? Save it to your <b>wishlist</b> with the heart button.</span></li>
+              </ul>
+            </div></div>
+          </aside>
         <div class="mb-4">
           <label class="form-label d-block">Quantity</label>
           <div class="qty-stepper">
@@ -1017,11 +1033,11 @@ body{
               </div>
 
               {% if can_review %}
-                <button class="btn btn-brass w-100" data-bs-toggle="modal" data-bs-target="#reviewModal">Write a Review</button>
+                <button class="btn btn-brass w-100" data-bs-toggle="modal" data-bs-target="#reviewModal"><i class="bi bi-pencil-square me-1"></i>Write a Review</button>
               {% elif user.is_authenticated %}
                 <div class="small text-muted-custom text-center">Purchase and receive this item to leave a review.</div>
               {% else %}
-                <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-outline-ink w-100">Log in to Review</a>
+                <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-outline-ink w-100"><i class="bi bi-box-arrow-in-right me-1"></i>Log in to Review</a>
               {% endif %}
             </div>
 
@@ -1048,7 +1064,7 @@ body{
         <div class="tab-pane fade" id="tab-qa">
           <div class="mb-3 d-flex justify-content-between align-items-center">
             <strong>Questions &amp; Answers ({{ Questions|length }})</strong>
-            <button class="btn btn-sm btn-outline-ink" data-bs-toggle="modal" data-bs-target="#messageModal">Ask a Question</button>
+            <button class="btn btn-sm btn-outline-ink" data-bs-toggle="modal" data-bs-target="#messageModal"><i class="bi bi-question-circle me-1"></i>Ask a Question</button>
           </div>
           {% for qa in Questions %}
             <div class="review-item">

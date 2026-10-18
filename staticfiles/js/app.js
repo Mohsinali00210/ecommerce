@@ -6,33 +6,7 @@
 (function(){
   "use strict";
 
-  /* ---------- Theme (dark/light) ---------- */
-  const root = document.documentElement;
-  const THEME_KEY = "august-theme";
-
-  function applyTheme(theme){
-    root.setAttribute("data-theme", theme);
-    localStorage.setItem(THEME_KEY, theme);
-    document.querySelectorAll(".theme-toggle i").forEach(icon=>{
-      icon.className = theme === "dark" ? "bi bi-sun" : "bi bi-moon-stars";
-    });
-    document.querySelectorAll(".theme-toggle-checkbox").forEach(cb=> cb.checked = theme === "dark");
-  }
-
-  function initTheme(){
-    const saved = localStorage.getItem(THEME_KEY);
-    const prefers = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    applyTheme(saved || prefers);
-  }
-
-  document.addEventListener("click", (e)=>{
-    if(e.target.closest(".theme-toggle")){
-      const current = root.getAttribute("data-theme");
-      applyTheme(current === "dark" ? "light" : "dark");
-    }
-  });
-
-  initTheme();
+  /* Theme (mode + colour picker) now lives in theme.js, loaded in <head>. */
 
   /* ---------- Sticky header shadow ---------- */
   const header = document.querySelector(".site-header");
@@ -77,27 +51,9 @@
   });
 
   /* ---------- Toast helper ---------- */
+  // Branded toast (see szui.js). Falls back to a no-op if szui.js is not loaded.
   window.showToast = function(message, variant="brass"){
-    let container = document.getElementById("toastStack");
-    if(!container){
-      container = document.createElement("div");
-      container.id = "toastStack";
-      container.className = "toast-container position-fixed top-0 end-0 p-3";
-      container.style.zIndex = 1100;
-      document.body.appendChild(container);
-    }
-    const el = document.createElement("div");
-    el.className = "toast align-items-center border-0 mb-2";
-    el.setAttribute("role","alert");
-    el.innerHTML = `
-      <div class="d-flex">
-        <div class="toast-body"><i class="bi bi-check-circle-fill text-${variant === 'rust' ? 'danger':'success'} me-2"></i>${message}</div>
-        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>`;
-    container.appendChild(el);
-    const toast = new bootstrap.Toast(el, { delay: 2800 });
-    toast.show();
-    el.addEventListener("hidden.bs.toast", ()=> el.remove());
+    if (window.SZ && SZ.toast) SZ.toast(message, variant === "rust" ? "danger" : "success");
   };
 
   /* ---------- Chat widget ---------- */

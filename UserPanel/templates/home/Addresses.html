@@ -1,4 +1,5 @@
 {% extends "base2.html" %}
+{% block body_class %}theme-account{% endblock %}
 {% load static %}
 {% block content %}
 
@@ -11,7 +12,7 @@
           <li class="breadcrumb-item"><a href="profile">My Account</a></li>
           <li class="breadcrumb-item active">Addresses</li>
         </ol></nav>
-        <h1 class="font-display mb-0">My Addresses</h1>
+        <h1 class="font-display mb-0 sz-title"><span class="sz-title-ico"><i class="bi bi-geo-alt-fill"></i></span><span>My Addresses</span></h1>
       </div>
       <button type="button" class="btn btn-brass" onclick="openAddressModal()"><i class="bi bi-plus-lg me-1"></i> Add New Address</button>
     </div>
@@ -25,21 +26,37 @@
         <div class="col-lg-3">
           <div class="account-sidebar p-3">
             <a href="{% url 'home:user-profile' %}" class="account-nav-link"><i class="bi bi-person me-2"></i>Profile</a>
-            <a href="{% url 'home:Orders' %}" class="account-nav-link active"><i class="bi bi-box-seam me-2"></i>Orders</a>
+            <a href="{% url 'home:Orders' %}" class="account-nav-link"><i class="bi bi-box-seam me-2"></i>Orders</a>
             <a href="{% url 'home:user-wallet' %}" class="account-nav-link"><i class="bi bi-wallet2 me-2"></i>Wallet</a>
-            <a href="{% url 'home:user-address' %}" class="account-nav-link"><i class="bi bi-geo-alt me-2"></i>Addresses</a>
+            <a href="{% url 'home:user-address' %}" class="account-nav-link active"><i class="bi bi-geo-alt me-2"></i>Addresses</a>
             <a href="{% url 'home:Wishlist' %}" class="account-nav-link"><i class="bi bi-heart me-2"></i>Wishlist</a>
             <a href="{% url 'home:Contact' %}" class="account-nav-link"><i class="bi bi-life-preserver me-2"></i>Support</a>
           </div>
         </div>
 
         <div class="col-lg-9">
+
+          <!-- Guidance: addresses -->
+          <aside class="sz-guide compact" data-guide="addresses" aria-label="Managing your addresses">
+            <div class="sz-guide-head">
+              <span class="sz-guide-ico"><i class="bi bi-geo-alt-fill"></i></span>
+              <h2 class="sz-guide-title">Managing your addresses<small>Save once, reuse at every checkout</small></h2>
+            </div>
+            <div class="sz-guide-body"><div>
+              <ul class="sz-tips">
+                <li><i class="bi bi-plus-circle-fill"></i><span>Press <b>Add Address</b> to save a home, work or other address.</span></li>
+                <li><i class="bi bi-star-fill"></i><span>Mark one as <b>Default</b> — it’s pre-selected at checkout so you order faster.</span></li>
+                <li><i class="bi bi-telephone-fill"></i><span>Include a phone number the courier can call on delivery day.</span></li>
+                <li><i class="bi bi-trash3-fill"></i><span>Removing an address never changes orders you already placed.</span></li>
+              </ul>
+            </div></div>
+          </aside>
           {% if not addresses %}
             <div class="text-center py-5" id="addressEmptyState">
               <i class="bi bi-geo-alt" style="font-size:3rem;color:var(--text-muted);"></i>
               <h5 class="font-display mt-3">No saved addresses</h5>
               <p class="text-muted-custom">Add an address to speed up checkout.</p>
-              <button type="button" class="btn btn-brass mt-2" onclick="openAddressModal()">Add Address</button>
+              <button type="button" class="btn btn-brass mt-2" onclick="openAddressModal()"><i class="bi bi-plus-circle me-1"></i>Add Address</button>
             </div>
           {% else %}
             <div class="row g-3" id="addressGrid">
@@ -156,7 +173,7 @@
           </form>
         </div>
         <div class="modal-footer">
-          <button type="submit" form="addressForm" class="btn btn-brass">Save Address</button>
+          <button type="submit" form="addressForm" class="btn btn-brass"><i class="bi bi-check2-circle me-1"></i>Save Address</button>
         </div>
       </div>
     </div>
@@ -173,11 +190,7 @@
 {% block extra_js %}
   <script>
     function showAlert(message, type) {
-      if (typeof window.showAlert === "function" && window.showAlert !== showAlert) {
-        window.showAlert(message, type);
-        return;
-      }
-      alert(message);
+      if (window.SZ) { SZ.toast(message, type); }
     }
 
     function getCookie(name) {
@@ -270,7 +283,7 @@
           if (status === 200 && data.success) {
             showAlert(data.message, "success");
             addressModal.hide();
-            window.location.reload();
+            setTimeout(() => window.location.reload(), 1100);
           } else if (data.errors) {
             Object.entries(data.errors).forEach(([field, errors]) => {
               const el = addressForm.querySelector(`[data-error-for="${field}"]`);
@@ -289,8 +302,12 @@
         });
     });
 
-    function deleteAddress(addressId) {
-      if (!confirm("Remove this address?")) return;
+    async function deleteAddress(addressId) {
+      const ok = await SZ.confirm("This address will be removed from your account. Past orders are not affected.", {
+        title: "Remove this address?", okText: "Yes, remove it", cancelText: "Keep it", tone: "danger", icon: "bi-geo-alt-fill",
+        note: "You can always add it again later from the “Add address” button."
+      });
+      if (!ok) return;
 
       const deleteBaseUrl = "{% url 'home:address-delete' 0 %}";
       const url = deleteBaseUrl.replace("0", addressId);
@@ -303,8 +320,9 @@
         .then(data => {
           if (data.success) {
             document.querySelector(`[data-address-card="${addressId}"]`)?.remove();
+            showAlert("Address removed.", "success");
             if (!document.querySelector("[data-address-card]")) {
-              window.location.reload();
+              setTimeout(() => window.location.reload(), 900);
             }
           } else {
             showAlert(data.message || "Failed to remove address", "warning");
@@ -327,7 +345,8 @@
         .then(res => res.json())
         .then(data => {
           if (data.success) {
-            window.location.reload();
+            showAlert("Default address updated.", "success");
+            setTimeout(() => window.location.reload(), 900);
           } else {
             showAlert(data.message || "Failed to set default address", "warning");
           }

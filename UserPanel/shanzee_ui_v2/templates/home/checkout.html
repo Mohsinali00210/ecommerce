@@ -1,0 +1,1475 @@
+{% extends "base2.html" %}
+{% block body_class %}theme-checkout{% endblock %}
+
+{% block content %}
+
+<!-- ============ PAGE HEADER + STEPPER ============ -->
+<section class="page-bar py-4 border-bottom page-header-band">
+    <div class="container-xl">
+        <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2 small">
+                        <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'home:MyCart' %}">Cart</a></li>
+                        <li class="breadcrumb-item active">Checkout</li>
+                    </ol>
+                </nav>
+                <h1 class="font-display mb-0 sz-title"><span class="sz-title-ico"><i class="bi bi-shield-lock-fill"></i></span><span>Secure Checkout</span></h1>
+            </div>
+            <a href="{% url 'home:MyCart' %}" class="btn btn-outline-ink btn-sm align-self-center">
+                <i class="bi bi-arrow-left me-1"></i> Back to cart
+            </a>
+        </div>
+
+        <div class="mz-stepper" id="mzCheckoutSteps" aria-label="Checkout progress">
+            <div class="mz-step done"><span class="dot"><i class="bi bi-check-lg"></i></span><span>Cart</span></div>
+            <span class="mz-step-line done"></span>
+            <div class="mz-step active" data-step="1"><span class="dot">1</span><span>Shipping</span></div>
+            <span class="mz-step-line"></span>
+            <div class="mz-step" data-step="2"><span class="dot">2</span><span>Billing</span></div>
+            <span class="mz-step-line"></span>
+            <div class="mz-step" data-step="3"><span class="dot">3</span><span>Payment</span></div>
+            <span class="mz-step-line"></span>
+            <div class="mz-step" data-step="4"><span class="dot">4</span><span>Review</span></div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ============ CHECKOUT ============ -->
+<section class="py-5">
+
+    <div class="container-xl">
+
+        {% if items.cart_items %}
+
+          <!-- Guidance: checkout -->
+          <aside class="sz-guide" data-guide="checkout" aria-label="Checkout guide">
+            <div class="sz-guide-head">
+              <span class="sz-guide-ico"><i class="bi bi-shield-check"></i></span>
+              <h2 class="sz-guide-title">Checkout guide<small>Takes about 2 minutes — here’s what to do</small></h2>
+            </div>
+            <div class="sz-guide-body"><div>
+              <ol class="sz-steps">
+                <li><b>Delivery address</b>Choose a saved address or type a new one. Use a phone number the courier can reach.</li>
+                <li><b>Payment method</b>Cash on Delivery means you pay when the parcel arrives. Wallet uses your Shan Zee balance.</li>
+                <li><b>Review &amp; place order</b>Check the summary on the right, add a note if needed, then press <em>Place Order</em>.</li>
+              </ol>
+              <ul class="sz-tips">
+                <li><i class="bi bi-geo-alt-fill"></i><span>A correct <b>postal code</b> and street address avoid delivery delays.</span></li>
+                <li><i class="bi bi-lock-fill"></i><span>Your details are sent securely and only used to deliver this order.</span></li>
+                <li><i class="bi bi-info-circle-fill"></i><span>Billing address is the same as shipping unless you untick that box.</span></li>
+              </ul>
+            </div></div>
+          </aside>
+
+        <!-- =========================================
+             CHECKOUT FORM
+        ========================================== -->
+
+        <form id="checkoutForm"
+              class="row g-4 needs-validation"
+              novalidate>
+
+
+            <!-- =====================================
+                 LEFT SIDE
+            ====================================== -->
+
+            <div class="col-lg-8 d-flex flex-column gap-4">
+
+
+                <!-- ================================
+                     SHIPPING ADDRESS
+                ================================= -->
+
+                <div class="checkout-panel is-current p-4">
+
+                    <h5 class="font-display mb-3">
+
+                        <i class="bi bi-truck me-2"></i>
+
+                        Shipping Address
+
+                    </h5>
+
+
+                    <div class="row g-3">
+
+
+                        <!-- Saved Address -->
+                        <div class="col-12">
+
+                            <select class="form-select"
+                                    id="addressSelect">
+
+                                <option value="">
+                                    Select Address (or fill in a new one below)
+                                </option>
+
+                                {% for address in addresses %}
+
+                                <option
+                                    value="{{ address.id }}"
+                                    data-full-name="{{ address.full_name }}"
+                                    data-phone="{{ address.phone }}"
+                                    data-street="{{ address.street_address }}"
+                                    data-city="{{ address.city }}"
+                                    data-state="{{ address.state|default:'' }}"
+                                    data-postal-code="{{ address.postal_code|default:'' }}"
+                                    data-country="{{ address.country|default:'' }}"
+
+                                    {% if address.is_default %}
+                                        selected
+                                    {% endif %}
+                                >
+
+                                    {{ address.full_name }}
+                                    -
+                                    {{ address.city }}
+
+                                </option>
+
+                                {% endfor %}
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- Full Name -->
+                        <div class="col-md-6">
+
+                            <label class="form-label small">
+                                Full Name
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="shippingFullName"
+                                name="shipping_full_name"
+                                value="{{ defaultaddresses.first.full_name }}"
+                                required>
+
+                        </div>
+
+
+                        <!-- Phone -->
+                        <div class="col-md-6">
+
+                            <label class="form-label small">
+                                Phone
+                            </label>
+
+                            <input
+                                type="tel"
+                                class="form-control"
+                                id="shippingPhone"
+                                value="{{ defaultaddresses.first.phone }}"
+                                name="shipping_phone"
+                                inputmode="numeric"
+                                pattern="[0-9]{10,}"
+                                title="Digits only, at least 10 numbers"
+                                required>
+
+                        </div>
+
+
+                        <!-- Street -->
+                        <div class="col-12">
+
+                            <label class="form-label small">
+                                Street Address
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="shippingStreetAddress"
+                                value="{{ defaultaddresses.first.street_address }}"
+                                name="shipping_street_address"
+                                required>
+
+                        </div>
+
+
+                        <!-- City -->
+                        <div class="col-md-4">
+
+                            <label class="form-label small">
+                                City
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="shippingCity"
+                                value="{{ defaultaddresses.first.city }}"
+                                name="shipping_city"
+                                required>
+
+                        </div>
+
+
+                        <!-- State -->
+                        <div class="col-md-4">
+
+                            <label class="form-label small">
+                                State / Province
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="shippingState"
+                                value="{{ defaultaddresses.first.state }}"
+                                name="shipping_state"
+                                required>
+
+                        </div>
+
+
+                        <!-- Postal Code -->
+                        <div class="col-md-4">
+
+                            <label class="form-label small">
+                                Postal Code
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="shippingPostalCode"
+                                value="{{ defaultaddresses.first.postal_code }}"
+                                name="shipping_postal_code"
+                                inputmode="numeric"
+                                autocomplete="postal-code"
+                                required>
+
+                            <div class="invalid-feedback">
+                                Postal code is required.
+                            </div>
+
+                        </div>
+
+
+                        <!-- Country -->
+                        <div class="col-md-6">
+
+                            <label class="form-label small">
+                                Country
+                            </label>
+
+                            <select
+                                class="form-select"
+                                id="shippingCountry"
+                                name="shipping_country"
+                                required>
+
+                                <option value="">
+                                    Select country
+                                </option>
+
+                                <option
+                                    {% if defaultaddresses.first.country == "United States" %}
+                                        selected
+                                    {% endif %}>
+                                    United States
+                                </option>
+
+                                <option
+                                    {% if defaultaddresses.first.country == "Pakistan" %}
+                                        selected
+                                    {% endif %}>
+                                    Pakistan
+                                </option>
+
+                                <option
+                                    {% if defaultaddresses.first.country == "United Kingdom" %}
+                                        selected
+                                    {% endif %}>
+                                    United Kingdom
+                                </option>
+
+                                <option
+                                    {% if defaultaddresses.first.country == "Canada" %}
+                                        selected
+                                    {% endif %}>
+                                    Canada
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================
+                     BILLING ADDRESS
+                ================================== -->
+
+                <div class="checkout-panel p-4">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+
+                        <h5 class="font-display mb-0">
+
+                            <i class="bi bi-receipt me-2"></i>
+
+                            Billing Address
+
+                        </h5>
+
+                        <div class="form-check">
+
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                id="sameAsShipping"
+                                checked>
+
+                            <label
+                                class="form-check-label small"
+                                for="sameAsShipping">
+
+                                Same as shipping
+
+                            </label>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="row g-3"
+                         id="billingFields"
+                         style="display:none;">
+
+                        <div class="col-12">
+
+                            <div class="alert alert-warning small mb-0">
+
+                                Note: the current place-order API only stores
+                                a single address and uses it for both shipping
+                                and billing.
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label small">
+                                Full Name
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="billing_full_name">
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label small">
+                                Phone
+                            </label>
+
+                            <input
+                                type="tel"
+                                class="form-control"
+                                name="billing_phone">
+
+                        </div>
+
+
+                        <div class="col-12">
+
+                            <label class="form-label small">
+                                Street Address
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="billing_street_address">
+
+                        </div>
+
+
+                        <div class="col-md-4">
+
+                            <label class="form-label small">
+                                City
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="billing_city">
+
+                        </div>
+
+
+                        <div class="col-md-4">
+
+                            <label class="form-label small">
+                                State / Province
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="billing_state">
+
+                        </div>
+
+
+                        <div class="col-md-4">
+
+                            <label class="form-label small">
+                                Postal Code
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="billing_postal_code">
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================
+                     PAYMENT
+                ================================== -->
+
+                <div class="checkout-panel p-4">
+
+                    <h5 class="font-display mb-3">
+
+                        <i class="bi bi-credit-card me-2"></i>
+
+                        Payment Method
+
+                    </h5>
+
+
+                    <div class="d-flex flex-column gap-2">
+
+
+                        <!-- COD -->
+                        <label class="payment-option d-flex align-items-center gap-3 p-3">
+
+                            <input
+                                type="radio"
+                                name="payment_method"
+                                value="COD"
+                                checked>
+
+                            <i class="bi bi-cash-stack fs-4"></i>
+
+                            <div>
+
+                                <div class="fw-semibold">
+                                    Cash on Delivery
+                                </div>
+
+                                <small class="text-muted-custom">
+                                    Pay when your order arrives
+                                </small>
+
+                            </div>
+
+                        </label>
+
+
+                        <!-- Card -->
+                        <label class="payment-option d-flex align-items-center gap-3 p-3">
+
+                            <input
+                                type="radio"
+                                name="payment_method"
+                                value="card" disabled>
+
+                            <i class="bi bi-credit-card-2-front fs-4"></i>
+
+                            <div>
+
+                                <div class="fw-semibold">
+                                    Card Payment
+                                </div>
+
+                                <small class="text-muted-custom">
+                                    Visa, Mastercard, Amex
+                                </small>
+
+                            </div>
+
+                        </label>
+
+
+                        <!-- Wallet -->
+                        {% comment %} <label class="payment-option d-flex align-items-center gap-3 p-3">
+
+                            <input
+                                type="radio"
+                                name="payment_method"
+                                value="wallet">
+
+                            <i class="bi bi-wallet2 fs-4"></i>
+
+                            <div>
+
+                                <div class="fw-semibold">
+                                    Shan Zee Wallet
+                                </div>
+
+                                <small class="text-muted-custom">
+
+                                    Balance available:
+
+                                    <span id="walletBalance">
+                                        RS 42.00
+                                    </span>
+
+                                </small>
+
+                            </div>
+
+                        </label> {% endcomment %}
+
+                    </div>
+
+
+                    <div class="small text-muted-custom mt-2">
+
+                        <i class="bi bi-info-circle me-1"></i>
+
+                        Currently all orders are placed as Cash on Delivery
+                        on the backend.
+
+                    </div>
+
+
+                    <!-- Card Fields -->
+                    <div id="cardFields"
+                         class="row g-3 mt-2"
+                         style="display:none;">
+
+                        <div class="col-md-6">
+
+                            <label class="form-label small">
+                                Card Number
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                placeholder="•••• •••• •••• ••••">
+
+                        </div>
+
+                        <div class="col-md-3">
+
+                            <label class="form-label small">
+                                Expiry
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                placeholder="MM/YY">
+
+                        </div>
+
+                        <div class="col-md-3">
+
+                            <label class="form-label small">
+                                CVC
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                placeholder="•••">
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================
+                     ORDER NOTES
+                ================================== -->
+
+                <div class="checkout-panel p-4">
+
+                    <h5 class="font-display mb-3">
+
+                        <i class="bi bi-sticky me-2"></i>
+
+                        Order Notes (optional)
+
+                    </h5>
+
+                    <textarea
+                        class="form-control"
+                        name="notes"
+                        id="orderNotes"
+                        rows="3"
+                        placeholder="Delivery instructions, gift notes, etc."></textarea>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- =====================================
+                 RIGHT SIDE - ORDER SUMMARY
+            ====================================== -->
+
+            <div class="col-lg-4">
+
+                <div class="summary-card p-4">
+
+                    <h5 class="font-display mb-3">
+                        Order Summary
+                    </h5>
+
+
+                    <!-- Products: line total = quantity x price, with the variant price struck through when discounted -->
+                    <div class="d-flex flex-column gap-3 mb-3">
+
+
+                        {% for cart in items.cart_items %}
+
+                        <div class="d-flex gap-2 align-items-center">
+
+
+                            <!-- Product Image -->
+                            <img
+                                src="{% if cart.product.images.first %}{{ cart.product.images.first.image.url }}{% endif %}"
+                                class="checkout-thumb"
+                                width="100px"
+                                alt="{{ cart.product.name }}">
+
+
+                            <!-- Product Information -->
+                            <div class="flex-grow-1">
+
+                                <div class="small fw-semibold">
+
+                                    {{ cart.product.name }}
+
+                                </div>
+
+
+                                {% if cart.variant %}
+
+                                <div class="small text-muted">
+
+                                    {{ cart.variant.name }}
+                                    ·
+                                    SKU:
+                                    {{ cart.variant.sku }}
+
+                                </div>
+
+                                {% endif %}
+
+
+                                <div class="small text-muted-custom">
+
+                                    Qty {{ cart.quantity }}
+                                    ×
+                                    RS {{ cart.unit_final|floatformat:2 }}
+
+                                </div>
+
+
+                                {% if cart.product.free_shipping %}
+
+                                <div class="small text-success">
+
+                                    <i class="bi bi-truck me-1"></i>Free shipping
+
+                                </div>
+
+                                {% endif %}
+
+                            </div>
+
+
+                            <!-- Price -->
+                            <div class="text-end">
+
+                                <div class="small fw-semibold {% if cart.line_saved %}text-danger{% endif %}">
+
+                                    RS {{ cart.line_final|floatformat:2 }}
+
+                                </div>
+
+
+                                {% if cart.line_saved %}
+
+                                    <small class="text-decoration-line-through text-muted d-block">
+
+                                        RS {{ cart.line_original|floatformat:2 }}
+
+                                    </small>
+
+
+                                    <span class="badge badge-sale">
+                                        -{{ cart.percent_off|floatformat:"-2" }}%
+                                    </span>
+
+
+                                    <div class="small text-success">
+
+                                        Save RS {{ cart.line_saved|floatformat:2 }}
+
+                                    </div>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                        {% endfor %}
+
+                    </div>
+
+
+                    <hr>
+
+
+                    <!-- Subtotal (at list / variant prices) -->
+                    <div class="summary-row d-flex justify-content-between">
+
+                        <span>
+                            Subtotal
+                        </span>
+
+                        <span>
+                            RS {{ items.subtotal|floatformat:2 }}
+                        </span>
+
+                    </div>
+
+
+                    <!-- Saved amount -->
+                    {% if items.total_off_price > 0 %}
+
+                    <div class="summary-row d-flex justify-content-between text-success">
+
+                        <span>
+                            You Saved
+                        </span>
+
+                        <span>
+                            -RS {{ items.total_off_price|floatformat:2 }}
+                        </span>
+
+                    </div>
+
+                    {% endif %}
+
+
+                    <!-- Shipping: sum of the lines, free-shipping products add 0, never above the cap -->
+                    <div class="summary-row d-flex justify-content-between">
+
+                        <span>
+                            Shipping
+                        </span>
+
+                        <span>
+
+                            {% if items.shipping_capped %}
+                                <small class="text-decoration-line-through text-muted me-1">
+                                    RS {{ items.shipping_raw|floatformat:2 }}
+                                </small>
+                            {% endif %}
+
+                            {% if items.shipping_total > 0 %}
+                                RS {{ items.shipping_total|floatformat:2 }}
+                            {% else %}
+                                <strong class="text-success">FREE</strong>
+                            {% endif %}
+
+                        </span>
+
+                    </div>
+
+                    {% if items.shipping_capped %}
+
+                    <div class="small text-muted mb-2">
+
+                        Shipping is capped at RS {{ items.max_shipping|floatformat:0 }}.
+
+                    </div>
+
+                    {% endif %}
+
+
+                    <hr>
+
+
+                    <!-- Final Total -->
+                    <div class="summary-row d-flex justify-content-between fw-semibold fs-5">
+
+                        <span>
+                            Total
+                        </span>
+
+                        <span>
+                            RS {{ items.final_total|floatformat:2 }}
+                        </span>
+
+                    </div>
+
+
+                    <!-- Estimated Delivery -->
+                    <div class="alert alert-light mt-3">
+
+                        <i class="bi bi-truck"></i>
+
+                        Estimated Delivery
+
+                        <strong>
+
+                            {{ items.estimated_date|date:"d M Y" }}
+
+                        </strong>
+
+                    </div>
+
+
+                    <!-- Place Order -->
+                    <button
+                        type="submit"
+                        class="btn btn-brass w-100 mt-4"
+                        id="placeOrderBtn">
+
+                        Place Order
+
+                    </button>
+
+
+                    <div class="d-flex align-items-center gap-2 mt-3 text-muted-custom small">
+
+                        <i class="bi bi-shield-check"></i>
+
+                        Secure checkout · 256-bit SSL
+
+                    </div>
+
+                    <div class="d-flex justify-content-between text-center small text-muted-custom mt-3 pt-3 border-top">
+                        <span><i class="bi bi-cash-coin d-block fs-5 mb-1" style="color:var(--accent)"></i>COD</span>
+                        <span><i class="bi bi-arrow-repeat d-block fs-5 mb-1" style="color:var(--accent)"></i>7-day returns</span>
+                        <span><i class="bi bi-headset d-block fs-5 mb-1" style="color:var(--accent)"></i>Support</span>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+        </form>
+
+
+        {% else %}
+
+
+        <!-- =========================================
+             EMPTY CART
+        ========================================== -->
+
+        <div class="checkout-panel text-center py-5 px-4">
+
+            <div class="mb-4">
+
+                <i
+                    class="bi bi-cart-x"
+                    style="font-size: 5rem; opacity: .6;">
+                </i>
+
+            </div>
+
+
+            <h2 class="font-display mb-2">
+
+                Your Cart Is Empty
+
+            </h2>
+
+
+            <p class="text-muted-custom mb-4">
+
+                There are no active products available in your cart.
+
+            </p>
+
+
+            <a
+                href="{% url 'home:home' %}"
+                class="btn btn-brass">
+
+                <i class="bi bi-arrow-left me-2"></i>
+
+                Continue Shopping
+
+            </a>
+
+        </div>
+
+
+        {% endif %}
+
+    </div>
+
+</section>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script>
+
+function showAlert(message, type) {
+      if (window.SZ) { SZ.toast(message, type); }
+    }
+
+
+// ==============================================
+// FIRST DRF ERROR
+// ==============================================
+
+function firstErrorMessage(errors) {
+
+    if (
+        !errors ||
+        typeof errors !== "object"
+    ) {
+        return null;
+    }
+
+    const firstKey =
+        Object.keys(errors)[0];
+
+    if (!firstKey) {
+        return null;
+    }
+
+    const val =
+        errors[firstKey];
+
+    if (Array.isArray(val)) {
+        return val[0];
+    }
+
+    if (typeof val === "object") {
+        return firstErrorMessage(val);
+    }
+
+    return val;
+
+}
+
+
+// ==============================================
+// CHECKOUT ONLY IF CART HAS ITEMS
+// ==============================================
+
+const checkoutForm =
+    document.getElementById("checkoutForm");
+
+
+// If cart is empty there is no checkout form.
+// Therefore don't execute checkout JavaScript.
+if (checkoutForm) {
+
+
+    // ==========================================
+    // ADDRESS SELECT
+    // ==========================================
+
+    const addressSelect =
+        document.getElementById("addressSelect");
+
+
+    if (addressSelect) {
+
+        addressSelect.addEventListener(
+            "change",
+            function () {
+
+                const opt =
+                    this.options[this.selectedIndex];
+
+                if (!opt.value) {
+                    return;
+                }
+
+
+                document.getElementById(
+                    "shippingFullName"
+                ).value =
+                    opt.dataset.fullName || "";
+
+
+                document.getElementById(
+                    "shippingPhone"
+                ).value =
+                    opt.dataset.phone || "";
+
+
+                document.getElementById(
+                    "shippingStreetAddress"
+                ).value =
+                    opt.dataset.street || "";
+
+
+                document.getElementById(
+                    "shippingCity"
+                ).value =
+                    opt.dataset.city || "";
+
+
+                document.getElementById(
+                    "shippingState"
+                ).value =
+                    opt.dataset.state || "";
+
+
+                document.getElementById(
+                    "shippingPostalCode"
+                ).value =
+                    opt.dataset.postalCode || "";
+
+
+                const countrySelect =
+                    document.getElementById(
+                        "shippingCountry"
+                    );
+
+
+                if (opt.dataset.country) {
+
+                    [
+                        ...countrySelect.options
+                    ].forEach(o => {
+
+                        if (
+                            o.text ===
+                            opt.dataset.country
+                        ) {
+
+                            countrySelect.value =
+                                o.value;
+
+                        }
+
+                    });
+
+                }
+
+            }
+        );
+
+    }
+
+
+    // ==========================================
+    // SAME AS SHIPPING
+    // ==========================================
+
+    const sameAsShipping =
+        document.getElementById(
+            "sameAsShipping"
+        );
+
+
+    const billingFields =
+        document.getElementById(
+            "billingFields"
+        );
+
+
+    if (
+        sameAsShipping &&
+        billingFields
+    ) {
+
+        sameAsShipping.addEventListener(
+            "change",
+            () => {
+
+                billingFields.style.display =
+                    sameAsShipping.checked
+                        ? "none"
+                        : "flex";
+
+            }
+        );
+
+    }
+
+
+    // ==========================================
+    // PAYMENT METHOD
+    // ==========================================
+
+    document
+        .querySelectorAll(
+            'input[name="payment_method"]'
+        )
+        .forEach(radio => {
+
+            radio.addEventListener(
+                "change",
+                () => {
+
+                    const selected =
+                        document.querySelector(
+                            'input[name="payment_method"]:checked'
+                        );
+
+
+                    const cardFields =
+                        document.getElementById(
+                            "cardFields"
+                        );
+
+
+                    if (
+                        selected &&
+                        cardFields
+                    ) {
+
+                        cardFields.style.display =
+                            selected.value === "card"
+                                ? "flex"
+                                : "none";
+
+                    }
+
+                }
+            );
+
+        });
+
+
+    // ==========================================
+    // PLACE ORDER
+    // ==========================================
+
+    checkoutForm.addEventListener(
+        "submit",
+        async function (e) {
+
+            e.preventDefault();
+
+
+            // Browser validation
+            if (!this.checkValidity()) {
+
+                this.classList.add(
+                    "was-validated"
+                );
+
+                showAlert(
+                    "Please fill in all required shipping details, including postal code.",
+                    "warning"
+                );
+
+                return;
+
+            }
+
+
+            const placeOrderBtn =
+                document.getElementById(
+                    "placeOrderBtn"
+                );
+
+
+            const originalLabel =
+                placeOrderBtn.textContent;
+
+
+            placeOrderBtn.disabled = true;
+
+            placeOrderBtn.textContent =
+                "Placing Order…";
+
+
+            try {
+
+
+                // =================================
+                // GET ADDRESS
+                // =================================
+
+                let addressId =
+                    addressSelect.value;
+
+
+                // =================================
+                // CREATE NEW ADDRESS
+                // =================================
+
+                if (!addressId) {
+
+                    const addressPayload = {
+
+                        address_type:
+                            "shipping",
+
+                        full_name:
+                            document.getElementById(
+                                "shippingFullName"
+                            ).value,
+
+                        phone:
+                            document.getElementById(
+                                "shippingPhone"
+                            ).value,
+
+                        street_address:
+                            document.getElementById(
+                                "shippingStreetAddress"
+                            ).value,
+
+                        city:
+                            document.getElementById(
+                                "shippingCity"
+                            ).value,
+
+                        state:
+                            document.getElementById(
+                                "shippingState"
+                            ).value,
+
+                        postal_code:
+                            document.getElementById(
+                                "shippingPostalCode"
+                            ).value,
+
+                        country:
+                            document.getElementById(
+                                "shippingCountry"
+                            ).value
+
+                    };
+
+
+                    const addressRes =
+                        await fetch(
+                            "{% url 'add_address' %}",
+                            {
+
+                                method: "POST",
+
+                                headers: {
+
+                                    "Content-Type":
+                                        "application/json",
+
+                                    "X-CSRFToken":
+                                        "{{ csrf_token }}"
+
+                                },
+
+                                body:
+                                    JSON.stringify(
+                                        addressPayload
+                                    )
+
+                            }
+                        );
+
+
+                    const addressData =
+                        await addressRes.json();
+
+
+                    if (!addressRes.ok) {
+
+                        showAlert(
+                            firstErrorMessage(
+                                addressData
+                            ) ||
+                            "Please check your address details.",
+                            "danger"
+                        );
+
+                        return;
+
+                    }
+
+
+                    addressId =
+                        addressData.address.id;
+
+                }
+
+
+                // =================================
+                // PLACE ORDER
+                // =================================
+
+              const orderRes = await fetch(
+                  "{% url 'place_order' %}",
+                  {
+                      method: "POST",
+
+                      headers: {
+                          "Content-Type": "application/json",
+                          "X-CSRFToken": "{{ csrf_token }}",
+                          "Accept": "application/json"
+                      },
+
+                      body: JSON.stringify({
+                          address_id: addressId
+                      })
+                  }
+              );
+
+
+              let orderData = {};
+
+              try {
+                  orderData = await orderRes.json();
+              }
+              catch (jsonError) {
+
+                  console.error(
+                      "Invalid JSON response:",
+                      jsonError
+                  );
+
+                  showAlert(
+                      "Server returned an invalid response. Please try again.",
+                      "danger"
+                  );
+
+                  return;
+              }
+
+
+              // =================================
+              // HANDLE ERROR RESPONSE
+              // =================================
+
+              if (!orderRes.ok) {
+
+                  let errorMessage =
+                      orderData.message ||
+                      firstErrorMessage(orderData) ||
+                      "Unable to place order.";
+
+                  // If message is an array/object
+                  if (typeof errorMessage !== "string") {
+
+                      if (Array.isArray(errorMessage)) {
+
+                          errorMessage =
+                              errorMessage.join(", ");
+
+                      }
+                      else {
+
+                          errorMessage =
+                              JSON.stringify(errorMessage);
+
+                      }
+                  }
+
+                  showAlert(
+                      errorMessage,
+                      "danger"
+                  );
+
+                  return;
+              }
+
+
+              // =================================
+              // SUCCESS
+              // =================================
+
+              if (
+                  !orderData.success &&
+                  !orderData.order_id
+              ) {
+
+                  showAlert(
+                      orderData.message ||
+                      "Unable to place order.",
+                      "danger"
+                  );
+
+                  return;
+              }
+
+
+              // =================================
+              // ORDER CONFIRMATION
+              // =================================
+
+              window.location.href =
+                  `{% url 'OrderConfirmation' %}?order_id=${encodeURIComponent(orderData.order_id)}`;
+
+
+
+            }
+
+            catch (err) {
+
+                console.error(
+                    "Place order error:",
+                    err
+                );
+
+                showAlert(
+                    "Something went wrong placing your order. Please try again.",
+                    "danger"
+                );
+
+            }
+
+            finally {
+
+                placeOrderBtn.disabled =
+                    false;
+
+                placeOrderBtn.textContent =
+                    originalLabel;
+
+            }
+
+        }
+    );
+
+}
+
+</script>
+
+{% endblock %}

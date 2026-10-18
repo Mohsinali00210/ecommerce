@@ -1,0 +1,268 @@
+/* =====================================================================
+   Shan Zee — theme.css  (section-wise colour system + stylish finish)
+   Load AFTER modern.css.  Every section / page sets three tokens:
+       --sec        main accent          --sec-deep   darker shade (text, hover)
+       --sec-soft   very light tint      (backgrounds, chips)
+   so changing one palette block recolours the whole section.
+   ===================================================================== */
+
+:root {
+  /* brand base */
+  --c-forest: #0c2018;
+  --c-pine:   #1f3d2f;
+  --c-emerald:#1f7a57;
+  --c-gold:   #b8923f;
+  --c-gold-lt:#e9c46a;
+  --c-ivory:  #faf7ef;
+  --c-sand:   #f3ead6;
+  --c-ink:    #14201a;
+
+  /* section palettes (accent / deep / soft) */
+  --p-emerald: #1f7a57; --p-emerald-d: #135238; --p-emerald-s: #e4f2ea;
+  --p-gold:    #b8923f; --p-gold-d:    #8a6a22; --p-gold-s:    #f7efd9;
+  --p-terra:   #c2512f; --p-terra-d:   #8f3519; --p-terra-s:   #fbe9e0;
+  --p-rose:    #c2456b; --p-rose-d:    #8f2849; --p-rose-s:    #fbe6ed;
+  --p-slate:   #3b5b8c; --p-slate-d:   #263f66; --p-slate-s:   #e5ecf6;
+  --p-teal:    #1b7f86; --p-teal-d:    #0f5a60; --p-teal-s:    #dff1f2;
+  --p-plum:    #6d3b6e; --p-plum-d:    #4b2349; --p-plum-s:    #f1e4f1;
+
+  --sec: var(--p-emerald); --sec-deep: var(--p-emerald-d); --sec-soft: var(--p-emerald-s);
+}
+
+/* ---------- Page canvas ------------------------------------------------ */
+body.sz-modern {
+  background:
+    radial-gradient(900px 500px at 8% -5%, rgba(184, 146, 63, .10), transparent 60%),
+    radial-gradient(800px 500px at 100% 20%, rgba(31, 122, 87, .08), transparent 60%),
+    var(--c-ivory);
+  background-attachment: fixed;
+}
+
+/* ---------- Per-page accent (body[data-page] = Django url name) -------- */
+body[data-page="Orders"], body[data-page="order-detail"], body[data-page="track-order"], body[data-page="OrderDetail"]
+  { --sec: var(--p-slate); --sec-deep: var(--p-slate-d); --sec-soft: var(--p-slate-s); }
+body[data-page="user-wallet"], body[data-page="user-withdraw"]
+  { --sec: var(--p-gold);  --sec-deep: var(--p-gold-d);  --sec-soft: var(--p-gold-s); }
+body[data-page="Wishlist"]
+  { --sec: var(--p-rose);  --sec-deep: var(--p-rose-d);  --sec-soft: var(--p-rose-s); }
+body[data-page="Contact"], body[data-page="ContactHistory"], body[data-page="TicketDetail"]
+  { --sec: var(--p-teal);  --sec-deep: var(--p-teal-d);  --sec-soft: var(--p-teal-s); }
+body[data-page="blog"], body[data-page="blog-detail"]
+  { --sec: var(--p-plum);  --sec-deep: var(--p-plum-d);  --sec-soft: var(--p-plum-s); }
+body[data-page="best-deals"], body[data-page="wish-to-buy"]
+  { --sec: var(--p-terra); --sec-deep: var(--p-terra-d); --sec-soft: var(--p-terra-s); }
+/* cart, checkout, profile, addresses, search keep the emerald default */
+
+/* ---------- Page header band (every inner page) ------------------------ */
+body.sz-modern > section.border-bottom {
+  position: relative; overflow: hidden; border-bottom: 0 !important;
+  background:
+    radial-gradient(520px 220px at 92% 0%, color-mix(in srgb, var(--sec) 22%, transparent), transparent 70%),
+    linear-gradient(135deg, var(--sec-soft), #fff 70%);
+}
+body.sz-modern > section.border-bottom::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+  background: linear-gradient(180deg, var(--sec), var(--sec-deep));
+}
+body.sz-modern > section.border-bottom::after {
+  content: ""; position: absolute; right: -60px; top: -80px; width: 260px; height: 260px; border-radius: 50%;
+  border: 38px solid color-mix(in srgb, var(--sec) 12%, transparent);
+  animation: t-spin 40s linear infinite;
+}
+@keyframes t-spin { to { transform: rotate(360deg); } }
+body.sz-modern > section.border-bottom h1 {
+  font-weight: 700; letter-spacing: -.025em;
+  background: linear-gradient(90deg, var(--c-ink), var(--sec-deep)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+body.sz-modern .breadcrumb-item.active { color: var(--sec-deep); font-weight: 600; }
+body.sz-modern .breadcrumb-item a { color: var(--sec); text-decoration: none; }
+body.sz-modern .breadcrumb-item + .breadcrumb-item::before { color: var(--sec); content: "›"; font-size: 1.1em; line-height: 1; }
+
+/* ---------- Top bar & header ------------------------------------------ */
+body.sz-modern .topbar {
+  background: linear-gradient(90deg, var(--c-forest), var(--c-pine) 50%, var(--c-forest)) !important;
+  background-size: 200% 100%; animation: t-slide 14s ease-in-out infinite alternate;
+}
+@keyframes t-slide { to { background-position: 100% 0; } }
+body.sz-modern .category-navbar {
+  background: linear-gradient(90deg, var(--c-pine), #17372a 60%, var(--c-forest)) !important;
+  border-top: 1px solid rgba(233, 196, 106, .18);
+}
+body.sz-modern .cat-flyout-btn { background: linear-gradient(135deg, var(--c-gold), var(--c-gold-lt)); color: var(--c-ink); font-weight: 700; border-radius: 10px; }
+body.sz-modern .cat-flyout-btn:hover { background: linear-gradient(135deg, var(--c-gold-lt), var(--c-gold)); color: var(--c-ink); }
+body.sz-modern .find-deal-btn {
+  background: linear-gradient(135deg, var(--p-terra), #e0743f); color: #fff; border: 0; border-radius: 999px; padding-inline: 1.1rem;
+  box-shadow: 0 8px 20px -8px rgba(194, 81, 47, .8);
+}
+body.sz-modern .find-deal-btn i { animation: t-bolt 1.8s ease-in-out infinite; }
+@keyframes t-bolt { 50% { transform: scale(1.3) rotate(-10deg); color: #ffe08a; } }
+body.sz-modern .header-search-btn { background: linear-gradient(135deg, var(--c-pine), var(--c-emerald)); }
+body.sz-modern .icon-badge { background: linear-gradient(135deg, #e04e7b, #c2456b); box-shadow: 0 3px 8px -2px rgba(194, 69, 107, .7); }
+
+/* ---------- Global buttons -------------------------------------------- */
+body.sz-modern .btn-brass, body.sz-modern .btn-hero {
+  background: linear-gradient(135deg, var(--c-gold) 0%, var(--c-gold-lt) 55%, var(--c-gold) 100%); background-size: 200% 100%;
+  color: var(--c-ink); border: 0; font-weight: 700; letter-spacing: .02em;
+  box-shadow: 0 10px 24px -10px rgba(184, 146, 63, .9), inset 0 1px 0 rgba(255, 255, 255, .5);
+  transition: background-position .6s var(--m-ease), transform .25s var(--m-spring), box-shadow .3s ease;
+}
+body.sz-modern .btn-brass:hover, body.sz-modern .btn-hero:hover { background-position: 100% 0; color: var(--c-ink); box-shadow: 0 16px 30px -12px rgba(184, 146, 63, 1); }
+body.sz-modern .btn-outline-ink { border: 1.5px solid var(--c-ink); color: var(--c-ink); background: transparent; font-weight: 600; }
+body.sz-modern .btn-outline-ink:hover { background: var(--c-ink); color: #fff; border-color: var(--c-ink); }
+/* inner pages: primary buttons take the page accent */
+body[data-page="Orders"] .btn-brass, body[data-page="Wishlist"] .btn-brass, body[data-page="Contact"] .btn-brass, body[data-page="blog"] .btn-brass, body[data-page="best-deals"] .btn-brass {
+  background: linear-gradient(135deg, var(--sec), var(--sec-deep)); color: #fff;
+  box-shadow: 0 10px 24px -10px color-mix(in srgb, var(--sec) 80%, transparent);
+}
+body[data-page="Orders"] .btn-brass:hover, body[data-page="Wishlist"] .btn-brass:hover, body[data-page="Contact"] .btn-brass:hover, body[data-page="blog"] .btn-brass:hover, body[data-page="best-deals"] .btn-brass:hover { color: #fff; }
+
+/* ---------- Section: HERO --------------------------------------------- */
+body.sz-modern .hero .hero-slide::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background:
+    radial-gradient(700px 420px at 12% 85%, rgba(184, 146, 63, .28), transparent 65%),
+    linear-gradient(100deg, rgba(8, 28, 20, .88) 0%, rgba(12, 32, 24, .55) 45%, rgba(12, 32, 24, .10) 100%);
+}
+body.sz-modern .hero .hero-slide > .container-xl { position: relative; z-index: 2; }
+body.sz-modern .hero .hero-eyebrow {
+  display: inline-flex; align-items: center; gap: .6rem; padding: .35rem .9rem; border-radius: 999px;
+  background: rgba(233, 196, 106, .14); border: 1px solid rgba(233, 196, 106, .45); color: var(--c-gold-lt);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+body.sz-modern .hero .hero-eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c-gold-lt); box-shadow: 0 0 0 0 rgba(233, 196, 106, .7); animation: t-ping 2s infinite; }
+@keyframes t-ping { 70% { box-shadow: 0 0 0 10px rgba(233, 196, 106, 0); } 100% { box-shadow: 0 0 0 0 rgba(233, 196, 106, 0); } }
+body.sz-modern .hero h1 { font-size: clamp(2.3rem, 5.4vw, 4.4rem); line-height: 1.05; letter-spacing: -.03em; }
+body.sz-modern .hero h1::first-line { background: linear-gradient(90deg, #fff, var(--c-gold-lt)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+body.sz-modern .hero .btn-lg { padding: .95rem 2.1rem; border-radius: 999px; }
+body.sz-modern .hero .carousel-indicators-custom button { background: rgba(255, 255, 255, .45); }
+body.sz-modern .hero .carousel-indicators-custom button.active { background: var(--c-gold-lt); }
+
+/* ---------- Section: MARQUEE ------------------------------------------ */
+.m-marquee { background: linear-gradient(90deg, var(--c-gold), var(--c-gold-lt), var(--c-gold)); background-size: 200% 100%; animation: t-slide 10s linear infinite alternate; color: var(--c-ink); }
+.m-marquee::before { background: linear-gradient(90deg, var(--c-gold), transparent); }
+.m-marquee::after  { background: linear-gradient(-90deg, var(--c-gold), transparent); }
+.m-marquee-track i { color: var(--c-forest); }
+.m-marquee-track span { font-weight: 700; }
+
+/* ---------- Section: CATEGORIES (warm sand) ---------------------------- */
+body.sz-modern [data-section="categories"] {
+  position: relative; padding: 2.2rem 0 1.6rem;
+  background: linear-gradient(180deg, var(--c-sand), var(--c-ivory));
+  --sec: var(--p-gold); --sec-deep: var(--p-gold-d); --sec-soft: var(--p-gold-s);
+}
+body.sz-modern .cat-circle { transition: transform .45s var(--m-spring), box-shadow .4s ease, border-color .3s ease; border: 2px solid transparent; background: #fff; box-shadow: 0 10px 24px -14px rgba(138, 106, 34, .6); }
+body.sz-modern .cat-circle-item:hover .cat-circle { transform: translateY(-6px) scale(1.07); border-color: var(--c-gold); box-shadow: 0 18px 30px -14px rgba(184, 146, 63, .9); }
+
+/* ---------- Section: TRUST (sage) -------------------------------------- */
+body.sz-modern [data-section="trust"] {
+  --sec: var(--p-emerald); --sec-deep: var(--p-emerald-d); --sec-soft: var(--p-emerald-s);
+  padding: 2.2rem 0 !important;
+}
+body.sz-modern [data-section="trust"] .trust-row { background: linear-gradient(135deg, #e8f3ec, #f6faf7); border: 1px solid #cfe5d7; border-radius: 22px; padding: 1.4rem; box-shadow: 0 20px 40px -26px rgba(19, 82, 56, .55); }
+body.sz-modern [data-section="trust"] .trust-item { background: #fff; border: 1px solid #d9eadf; border-radius: 16px; padding: .85rem 1rem; }
+body.sz-modern .trust-icon { background: linear-gradient(135deg, var(--p-emerald), #35a77a); color: #fff; border-radius: 12px; box-shadow: 0 8px 18px -8px rgba(31, 122, 87, .9); }
+body.sz-modern [data-section="trust"] .trust-item h6 { color: var(--p-emerald-d); font-weight: 700; }
+
+/* ---------- Section: FEATURED / NEW ARRIVALS --------------------------- */
+body.sz-modern [data-section="featured"] { position: relative; --sec: var(--p-emerald); --sec-deep: var(--p-emerald-d); --sec-soft: var(--p-emerald-s); }
+body.sz-modern [data-section="featured"]:has(#tab-new.show) { --sec: var(--p-terra); --sec-deep: var(--p-terra-d); --sec-soft: var(--p-terra-s); }
+body.sz-modern [data-section="featured"]:has(#tab-best.show) { --sec: var(--p-plum); --sec-deep: var(--p-plum-d); --sec-soft: var(--p-plum-s); }
+body.sz-modern [data-section="featured"]::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 100%; z-index: -1; pointer-events: none;
+  background: radial-gradient(700px 360px at 85% 0%, var(--sec-soft), transparent 70%), radial-gradient(520px 300px at 0% 100%, color-mix(in srgb, var(--sec) 8%, transparent), transparent 70%);
+  transition: background .6s ease;
+}
+body.sz-modern .section-head .eyebrow {
+  display: block; width: fit-content; margin-bottom: .55rem; padding: .22rem .7rem; border-radius: 999px; font-weight: 700; font-size: .7rem;
+  background: var(--sec-soft); color: var(--sec-deep); border: 1px solid color-mix(in srgb, var(--sec) 35%, transparent);
+}
+body.sz-modern .section-head h2 { font-weight: 700; background: linear-gradient(90deg, var(--c-ink), var(--sec-deep)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+body.sz-modern .section-head h2::after { background: linear-gradient(90deg, var(--sec), transparent); }
+body.sz-modern .nav-tabs-custom { background: #fff; padding: .3rem; border-radius: 999px; border: 1px solid var(--m-line); box-shadow: var(--m-shadow-sm); gap: .15rem; }
+body.sz-modern .nav-tabs-custom .nav-link { border-radius: 999px; padding: .5rem 1.15rem; border: 0; font-weight: 600; color: #6b6757; }
+body.sz-modern .nav-tabs-custom .nav-link::after { display: none; }
+body.sz-modern .nav-tabs-custom .nav-link.active { background: linear-gradient(135deg, var(--sec), var(--sec-deep)); color: #fff; box-shadow: 0 8px 18px -8px var(--sec); }
+
+/* product card: coloured accents driven by the section */
+body.sz-modern .product-card:hover { box-shadow: 0 30px 55px -22px color-mix(in srgb, var(--sec, #1f7a57) 55%, #000); }
+body.sz-modern .product-card .price-now { color: var(--sec-deep, var(--c-ink)); font-weight: 800; }
+body.sz-modern .badge-sale { background: linear-gradient(135deg, #e0452b, #c2512f) !important; color: #fff; }
+body.sz-modern .badge-new  { background: linear-gradient(135deg, var(--c-pine), var(--c-emerald)) !important; color: #fff; }
+body.sz-modern .badge-ship { background: linear-gradient(135deg, var(--c-gold), var(--c-gold-lt)) !important; color: var(--c-ink); }
+body.sz-modern .m-quick-add { background: linear-gradient(135deg, var(--c-ink), var(--sec-deep, #135238)); }
+body.sz-modern .m-quick-add:hover { background: linear-gradient(135deg, var(--sec-deep, #135238), var(--sec, #1f7a57)); }
+body.sz-modern .product-card .ticket-divider { opacity: .6; }
+body.sz-modern .product-card::after {            /* gradient hairline on hover */
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none; opacity: 0; transition: opacity .4s ease;
+  background: linear-gradient(135deg, var(--sec, #1f7a57), transparent 45%, var(--c-gold-lt));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+}
+body.sz-modern .product-card { position: relative; }
+body.sz-modern .product-card:hover::after { opacity: 1; }
+
+/* ---------- Section: NEWSLETTER (deep mesh) ---------------------------- */
+body.sz-modern .newsletter-band {
+  background:
+    radial-gradient(500px 260px at 90% 10%, rgba(233, 196, 106, .28), transparent 65%),
+    radial-gradient(520px 300px at 0% 100%, rgba(53, 167, 122, .35), transparent 65%),
+    linear-gradient(135deg, #0a1c14, #14402e 55%, #0f2e22);
+  border: 1px solid rgba(233, 196, 106, .25); box-shadow: 0 40px 70px -35px rgba(10, 28, 20, .9); padding: 3rem !important;
+}
+body.sz-modern .newsletter-band h3 { font-size: clamp(1.5rem, 3vw, 2.2rem); background: linear-gradient(90deg, #fff, var(--c-gold-lt)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+body.sz-modern .newsletter-band .btn-brass { border-radius: 999px; }
+
+/* ---------- Section: FOOTER ------------------------------------------- */
+body.sz-modern .site-footer {
+  position: relative; margin-top: 3rem; color: #b9c6bd;
+  background:
+    radial-gradient(600px 260px at 100% 0%, rgba(184, 146, 63, .16), transparent 65%),
+    linear-gradient(180deg, #0c2018, #071710);
+  border-top: 0;
+}
+body.sz-modern .site-footer::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg, transparent, var(--c-gold), var(--c-gold-lt), var(--c-gold), transparent); }
+body.sz-modern .site-footer h6 { color: var(--c-gold-lt); letter-spacing: .14em; }
+body.sz-modern .site-footer a { color: #b9c6bd; }
+body.sz-modern .site-footer a:hover { color: var(--c-gold-lt); }
+body.sz-modern .site-footer .btn-icon { background: rgba(255, 255, 255, .07); color: #fff; border: 1px solid rgba(255, 255, 255, .12); }
+body.sz-modern .site-footer .footer-bottom { border-top: 1px solid rgba(255, 255, 255, .1); margin-top: 2.2rem; padding: 1.2rem 0; color: #8da093; }
+
+/* ---------- Cart & checkout (emerald, with gold CTA) ------------------- */
+body.sz-modern .m-step.active b { background: linear-gradient(135deg, var(--c-pine), var(--c-emerald)); }
+body.sz-modern .col-lg-4 > .card { background: linear-gradient(180deg, #fff, var(--sec-soft)); }
+body.sz-modern .col-lg-4 > .card::before { background: linear-gradient(90deg, var(--sec), var(--c-gold-lt), var(--sec-deep)); }
+body.sz-modern .checkout-panel h5 i { background: var(--sec-soft); color: var(--sec-deep); }
+body.sz-modern .checkout-panel:focus-within { border-color: var(--sec); }
+body.sz-modern .checkout-steps .step.active { background: linear-gradient(135deg, var(--c-pine), var(--c-emerald)); }
+body.sz-modern .m-summary-ship .bar > i, body.sz-modern .m-ship .bar > i { background: linear-gradient(90deg, var(--c-gold), var(--c-gold-lt)); }
+
+/* ---------- Account / listing pages: tinted cards ----------------------- */
+body.sz-modern > section .card, body.sz-modern > section .list-card, body.sz-modern > section .order-card,
+body.sz-modern > section .address-card, body.sz-modern > section .wallet-card {
+  border: 1px solid color-mix(in srgb, var(--sec) 16%, #e6e1d6); background: #fff;
+}
+body.sz-modern > section .card:hover, body.sz-modern > section .order-card:hover, body.sz-modern > section .address-card:hover {
+  border-color: color-mix(in srgb, var(--sec) 45%, transparent);
+}
+body.sz-modern .account-nav-link { border-radius: 12px; transition: background .25s ease, color .25s ease, padding-left .3s var(--m-ease); }
+body.sz-modern .account-nav-link:hover, body.sz-modern .account-nav-link.active { background: var(--sec-soft); color: var(--sec-deep); padding-left: 1.1rem; }
+body.sz-modern .badge.bg-success, body.sz-modern .status-delivered { background: var(--p-emerald-s) !important; color: var(--p-emerald-d) !important; }
+body.sz-modern .table thead th { background: var(--sec-soft); color: var(--sec-deep); border-bottom: 0; font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; }
+body.sz-modern .form-check-input:checked { background-color: var(--sec); border-color: var(--sec); }
+body.sz-modern ::selection { background: var(--c-gold-lt); color: var(--c-ink); }
+
+/* ---------- Mini cart / toasts / bottom nav pick up the brand ---------- */
+.m-drawer-foot .btn-brass { color: var(--c-ink); }
+.m-bottom-nav a.active::before { background: linear-gradient(90deg, var(--c-gold), var(--c-gold-lt)); }
+.m-toast { background: linear-gradient(135deg, #0c2018, #14402e); border: 1px solid rgba(233, 196, 106, .25); }
+.m-top { background: linear-gradient(135deg, var(--c-pine), var(--c-emerald)); }
+.m-progress > i { background: linear-gradient(90deg, var(--c-emerald), var(--c-gold-lt), var(--p-terra)); }
+
+/* ---------- Scrollbar --------------------------------------------------- */
+html { scrollbar-color: var(--c-gold) var(--c-sand); scrollbar-width: thin; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--c-sand); }
+::-webkit-scrollbar-thumb { background: linear-gradient(var(--c-gold), var(--c-emerald)); border-radius: 10px; border: 2px solid var(--c-sand); }
+
+@media (prefers-reduced-motion: reduce) {
+  body.sz-modern *, body.sz-modern *::before, body.sz-modern *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
+}

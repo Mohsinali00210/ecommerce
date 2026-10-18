@@ -1,4 +1,5 @@
 {% extends "base2.html" %}
+{% block body_class %}theme-orders{% endblock %}
 {% load static %}
 {% block content %}
 
@@ -51,6 +52,21 @@
         </div>
 
         <div class="col-lg-9">
+
+          <!-- Guidance: order-detail -->
+          <aside class="sz-guide compact" data-guide="order-detail" aria-label="Reading this order">
+            <div class="sz-guide-head">
+              <span class="sz-guide-ico"><i class="bi bi-receipt"></i></span>
+              <h2 class="sz-guide-title">Reading this order<small>Everything about this purchase in one place</small></h2>
+            </div>
+            <div class="sz-guide-body"><div>
+              <ul class="sz-tips">
+                <li><i class="bi bi-truck"></i><span>The <b>status badge</b> at the top shows where your order is right now.</span></li>
+                <li><i class="bi bi-hash"></i><span>Quote your <b>order number</b> if you contact support.</span></li>
+                <li><i class="bi bi-headset"></i><span>Something wrong? Open <b>Support</b> from your account menu and we’ll help.</span></li>
+              </ul>
+            </div></div>
+          </aside>
 
           <!-- ============ Status tracker ============ -->
           {% if order.status == "cancelled" or order.status == "returned" or order.status == "failed" %}
@@ -339,7 +355,7 @@
           </form>
         </div>
         <div class="modal-footer">
-          <button type="submit" form="cancelReturnForm" class="btn btn-danger">Submit Request</button>
+          <button type="submit" form="cancelReturnForm" class="btn btn-danger"><i class="bi bi-send-fill me-1"></i>Submit Request</button>
         </div>
       </div>
     </div>
@@ -356,11 +372,7 @@
 {% block extra_js %}
   <script>
     function showAlert(message, type) {
-      if (typeof window.showAlert === "function" && window.showAlert !== showAlert) {
-        window.showAlert(message, type);
-        return;
-      }
-      alert(message);
+      if (window.SZ) { SZ.toast(message, type); }
     }
 
       
@@ -514,9 +526,9 @@
         .then(res => res.json())
         .then(data => {
           if (data.success) {
-            showAlert("Request submitted successfully", "warning");
+            showAlert("Request submitted successfully", "success");
             new bootstrap.Modal(document.getElementById("cancelReturnModal")).hide();
-            window.location.reload();
+            setTimeout(() => window.location.reload(), 1400);
           } else {
             showAlert("Failed to submit request: " + (data.error || "Unknown error"), "warning");
           }

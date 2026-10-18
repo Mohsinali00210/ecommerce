@@ -78,9 +78,9 @@
   //     items() {
   //         return Store.get(LS.wishlist);
   //     },
-  //     has(id) {
-  //         return Store.get(LS.wishlist).some(i => i.id == id);
-  //     },
+  //     // has(id) {
+  //     //     return Store.get(LS.wishlist).some(i => i.id == id);
+  //     // },
   //     toggle(id) {
   //       debugger
   //         let items = Store.get(LS.wishlist);

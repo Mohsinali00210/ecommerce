@@ -3,12 +3,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#198754">
+<script>document.documentElement.classList.add("js");</script>
+<!-- theme engine: applies saved mode + colours before first paint (no flash) -->
+<script src="{% static 'js/theme.js' %}"></script>
 <title>Shan Zee — Considered Goods, Well Made</title>
-<meta name="description" content="AUGUST is a premium goods retailer — apparel, home, and accessories made to last.">
+<meta name="description" content="Shan Zee — considered goods, delivered across Pakistan. Free shipping, cash on delivery and easy returns.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Poppins:wght@400;500;600;700&family=Sacramento&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Poppins:wght@400;500;600;700&family=Sacramento&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -237,8 +241,8 @@
 }
 .btn-brass2 {
   background: var(--brass);
-  color: #ffffff;
-  border: 1px solid #185935;
+  color: var(--on-accent);
+  border: 1px solid var(--accent-deep);
   font-weight: 600;
   letter-spacing: .01em;
   border-radius: var(--radius-sm);
@@ -484,7 +488,7 @@
 }
 </style>
 </head>
-<body>
+<body class="{% block body_class %}theme-shop{% endblock %}">
 
 <!-- ============ TOPBAR ============ -->
 <!-- ============ TOPBAR (loaded with fetch from /api/topbar/, edited at /manage/topbar/) ============ -->
@@ -522,10 +526,16 @@
       <button class="mobile-search-toggle d-lg-none" id="mobileSearchToggle" aria-label="Search">
         <i class="bi bi-search"></i>
       </button>
-{% comment %} 
-      <button class="btn-icon theme-toggle d-none d-md-inline-flex" aria-label="Toggle dark mode">
-        <i class="bi bi-moon-stars"></i>
-      </button> {% endcomment %}
+<!-- Colour picker + theme toggle -->
+      <button type="button" class="sz-palette-btn sz-attn" aria-label="Change theme colours" aria-haspopup="dialog" aria-expanded="false" aria-controls="szPicker" title="Change theme colours">
+        <i class="bi bi-palette2" aria-hidden="true"></i>
+      </button>
+      <!-- Theme toggle (light / dark) -->
+      <button type="button" class="sz-theme-toggle theme-toggle" role="switch" aria-checked="false" aria-label="Dark mode" title="Switch to dark mode">
+        <i class="bi bi-sun-fill sz-tt-ico sz-tt-sun" aria-hidden="true"></i>
+        <i class="bi bi-moon-stars-fill sz-tt-ico sz-tt-moon" aria-hidden="true"></i>
+        <span class="sz-tt-knob" aria-hidden="true"></span>
+      </button>
 
       <!-- Notifications -->
       <div class="dropdown">
@@ -590,7 +600,7 @@
               <div class="fw-semibold text-truncate">{{ request.user.full_name|default:"Welcome" }}</div>
               <div class="small text-muted-custom text-truncate">{{ request.user.email }}</div>
             </li>
-            <li><a class="dropdown-item rounded" href="user-profile"><i class="bi bi-person me-2"></i>Profile</a></li>
+            <li><a class="dropdown-item rounded" href="{% url 'home:user-profile' %}"><i class="bi bi-person me-2"></i>Profile</a></li>
             <li><a class="dropdown-item rounded" href="{% url 'home:Orders' %}"><i class="bi bi-box-seam me-2"></i>Orders</a></li>
             <li><a class="dropdown-item rounded" href="{% url 'home:user-wallet' %}"><i class="bi bi-wallet2 me-2"></i>Wallet</a></li>
             <li><a class="dropdown-item rounded" href="{% url 'home:Wishlist' %}"><i class="bi bi-heart me-2"></i>Wishlist</a></li>
@@ -603,8 +613,8 @@
             <li><a class="dropdown-item rounded text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
           {% else %}
             <li class="px-1">
-              <button type="button" class="btn btn-brass w-100 mb-2" data-bs-toggle="modal" data-bs-target="#loginModal">Login</button>
-              <button type="button" class="btn btn-outline-ink w-100" data-bs-toggle="modal" data-bs-target="#registerModal">Create Account</button>
+              <button type="button" class="btn btn-brass w-100 mb-2" data-bs-toggle="modal" data-bs-target="#loginModal"><i class="bi bi-box-arrow-in-right me-1"></i>Login</button>
+              <button type="button" class="btn btn-outline-ink w-100" data-bs-toggle="modal" data-bs-target="#registerModal"><i class="bi bi-person-plus me-1"></i>Create Account</button>
             </li>
           {% endif %}
         </ul>
@@ -630,7 +640,7 @@
         <nav class="main-nav">
           <a href="{% url 'home:home' %}" class="nav-link">Home</a>
           <a href="{% url 'home:blog' %}" class="nav-link">Blog</a>
-          <a href="new-arrivals" class="nav-link">New Arrivals</a>
+          <a href="/new-arrivals" class="nav-link">New Arrivals</a>
           <a href="{% url 'home:Contact' %}" class="nav-link">Contact</a>
         </nav>
       </div>
@@ -670,14 +680,19 @@
     <nav class="nav flex-column">
       <a class="nav-link py-2" href="{% url 'home:home' %}">Home</a>
       <a class="nav-link py-2" href="{% url 'home:blog' %}">Blog</a>
-      <a class="nav-link py-2" href="new-arrivals">New Arrivals</a>
-      <a class="nav-link py-2" href="best-sellers">Best Sellers</a>
-      <a class="nav-link py-2" href="profile.html">My Account</a>
+      <a class="nav-link py-2" href="/new-arrivals">New Arrivals</a>
+      <a class="nav-link py-2" href="{% url 'home:best-deals' %}">Best Deals</a>
+      <a class="nav-link py-2" href="{% url 'home:user-profile' %}">My Account</a>
       <a class="nav-link py-2" href="{% url 'home:Contact' %}">Contact</a>
     </nav>
   </div>
 </div>
+<main id="main">
 {% block content %}{% endblock %}
+</main>
+
+<!-- Modern design layer: intentionally loaded after page content so it overrides inline page styles -->
+<link rel="stylesheet" href="{% static 'css/modern.css' %}">
 
 <!-- ============ FOOTER ============ -->
 <footer class="site-footer">
@@ -687,7 +702,7 @@
          <a class="footer-brand ms-2" href="{% url 'home:home' %}" style="font-size: 15px;">
             <img src="{% static 'images/logo2.png' %}" width="90px" alt="Logo">
         </a>
-        <p class="text-muted-custom">Considered goods for people who keep things a long time. Est. 2014.</p>
+        <p class="text-muted-custom">Considered goods for people who keep things a long time. Free shipping, cash on delivery and 7-day returns.</p>
         <div class="d-flex gap-2">
           <a href="#" class="btn-icon"><i class="bi bi-instagram"></i></a>
           <a href="#" class="btn-icon"><i class="bi bi-twitter-x"></i></a>
@@ -696,15 +711,15 @@
       </div>
       <div class="col-6 col-lg-2">
         <h6>Shop</h6>
-        <ul><li><a href="{% url 'home:home' %}">All Products</a></li><li><a href="categories.html">Categories</a></li><li><a href="index.html#sale">Sale</a></li><li><a href="wishlist.html">Wishlist</a></li></ul>
+        <ul><li><a href="{% url 'home:home' %}">All Products</a></li><li><a href="{% url 'home:search-products' %}">Categories</a></li><li><a href="{% url 'home:best-deals' %}">Best Deals</a></li><li><a href="{% url 'home:Wishlist' %}">Wishlist</a></li></ul>
       </div>
       <div class="col-6 col-lg-2">
         <h6>Account</h6>
-        <ul><li><a href="user-profile">profile</a></li><li><a href="{% url 'home:Orders' %}">Orders</a></li><li><a href="{% url 'home:user-wallet' %}">Wallet</a></li><li><a href="{% url 'home:user-address' %}">Addresses</a></li></ul>
+        <ul><li><a href="{% url 'home:user-profile' %}">Profile</a></li><li><a href="{% url 'home:Orders' %}">Orders</a></li><li><a href="{% url 'home:user-wallet' %}">Wallet</a></li><li><a href="{% url 'home:user-address' %}">Addresses</a></li></ul>
       </div>
       <div class="col-6 col-lg-2">
         <h6>Support</h6>
-        <ul><li><a href="faq.html">FAQ</a></li><li><a href="{% url 'home:Contact' %}">Support Tickets</a></li><li><a href="{% url 'home:Contact' %}">Contact</a></li><li><a href="return-order.html">Returns</a></li></ul>
+        <ul><li><a href="{% url 'home:track-order' %}">Track Order</a></li><li><a href="{% url 'home:Contact' %}">Support Tickets</a></li><li><a href="{% url 'home:Contact' %}">Contact</a></li><li><a href="{% url 'home:ContactHistory' %}">My Tickets</a></li></ul>
       </div>
       <div class="col-6 col-lg-2">
         <h6>Company</h6>
@@ -712,13 +727,22 @@
       </div>
     </div>
     <div class="footer-bottom d-flex flex-wrap justify-content-between align-items-center">
-      <span>© 2026 AUGUST Goods Co. All rights reserved.</span>
+      <span>© 2026 Shan Zee. All rights reserved.</span>
       <div class="payment-icons">
         <i class="bi bi-credit-card"></i><i class="bi bi-paypal"></i><i class="bi bi-apple"></i><i class="bi bi-google"></i>
       </div>
     </div>
   </div>
 </footer>
+
+<!-- ============ MOBILE BOTTOM NAV ============ -->
+<nav class="mz-bottom-nav" aria-label="Quick navigation">
+  <a href="{% url 'home:home' %}"><i class="bi bi-house-door"></i><span>Home</span></a>
+  <button type="button" id="mzNavMenu"><i class="bi bi-grid"></i><span>Shop</span></button>
+  <a href="{% url 'home:MyCart' %}" data-bump="cart"><i class="bi bi-bag"></i><span>Cart</span><b class="mz-count" id="mzNavCart" style="display:none">0</b></a>
+  <a href="{% url 'home:Wishlist' %}"><i class="bi bi-heart"></i><span>Wishlist</span><b class="mz-count" id="mzNavWish" style="display:none">0</b></a>
+  <a href="{% url 'home:user-profile' %}"><i class="bi bi-person"></i><span>Account</span></a>
+</nav>
 
 <!-- ============ FLOATING BUTTONS ============ -->
 <div class="floating-stack">
@@ -812,7 +836,7 @@ function executeScripts(container) {
               </button>
             </div>
           </div>
-          <button type="submit" class="btn btn-brass w-100 py-2" id="loginBtn">Login</button>
+          <button type="submit" class="btn btn-brass w-100 py-2" id="loginBtn"><i class="bi bi-box-arrow-in-right me-1"></i>Login</button>
           {% load socialaccount %}
           <a href="{% provider_login_url 'google' %}" class="btn btn-outline-danger w-100 mt-3">
             <i class="fa-brands fa-google me-2"></i>Continue with Google
@@ -923,7 +947,7 @@ function executeScripts(container) {
             <div class="invalid-feedback" id="password2Error">Passwords do not match.</div>
           </div>
 
-          <button type="submit" class="btn btn-brass w-100" id="registerBtn">Register</button>
+          <button type="submit" class="btn btn-brass w-100" id="registerBtn"><i class="bi bi-person-plus me-1"></i>Register</button>
           
           <div class="text-center mt-3">
             <span style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal" class="text-decoration-underline">
@@ -1050,8 +1074,10 @@ function executeScripts(container) {
 </script>
 {% endif %}
 
+<script src="{% static 'js/szui.js' %}"></script>
 <script src="{% static 'js/cart.js' %}"></script>
 <script src="{% static 'js/app.js' %}"></script>
+<script src="{% static 'js/motion.js' %}" defer></script>
 
 <script>
  

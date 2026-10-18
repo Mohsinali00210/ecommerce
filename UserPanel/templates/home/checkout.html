@@ -1,73 +1,40 @@
 {% extends "base2.html" %}
+{% block body_class %}theme-checkout{% endblock %}
 
 {% block content %}
 
-<!-- ============ HEADER ============ -->
-<header class="site-header">
-    <div class="container-xl py-3 d-flex align-items-center justify-content-between">
-
-        <div class="d-flex align-items-center gap-4">
-
-            <div class="container-xl">
-
+<!-- ============ PAGE HEADER + STEPPER ============ -->
+<section class="page-bar py-4 border-bottom page-header-band">
+    <div class="container-xl">
+        <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+            <div>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-2 small">
-
-                        <li class="breadcrumb-item">
-                            <a href="{% url 'home:home' %}">Home</a>
-                        </li>
-
-                        <li class="breadcrumb-item">
-                            <a href="{% url 'home:MyCart' %}">Cart</a>
-                        </li>
-
-                        <li class="breadcrumb-item active">
-                            Checkout
-                        </li>
-
+                        <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'home:MyCart' %}">Cart</a></li>
+                        <li class="breadcrumb-item active">Checkout</li>
                     </ol>
                 </nav>
-
-                <h1 class="font-display mb-0">
-                    Checkout
-                </h1>
-
+                <h1 class="font-display mb-0 sz-title"><span class="sz-title-ico"><i class="bi bi-shield-lock-fill"></i></span><span>Secure Checkout</span></h1>
             </div>
-
+            <a href="{% url 'home:MyCart' %}" class="btn btn-outline-ink btn-sm align-self-center">
+                <i class="bi bi-arrow-left me-1"></i> Back to cart
+            </a>
         </div>
 
-        <div class="checkout-steps d-none d-md-flex align-items-center gap-2 small text-muted-custom">
-
-            <span class="step done">
-                <i class="bi bi-check-circle-fill text-success"></i>
-                Cart
-            </span>
-
-            <i class="bi bi-chevron-right"></i>
-
-            <span class="step active fw-semibold"
-                  style="color:var(--ink);">
-                Checkout
-            </span>
-
-            <i class="bi bi-chevron-right"></i>
-
-            <span class="step">
-                Confirmation
-            </span>
-
+        <div class="mz-stepper" id="mzCheckoutSteps" aria-label="Checkout progress">
+            <div class="mz-step done"><span class="dot"><i class="bi bi-check-lg"></i></span><span>Cart</span></div>
+            <span class="mz-step-line done"></span>
+            <div class="mz-step active" data-step="1"><span class="dot">1</span><span>Shipping</span></div>
+            <span class="mz-step-line"></span>
+            <div class="mz-step" data-step="2"><span class="dot">2</span><span>Billing</span></div>
+            <span class="mz-step-line"></span>
+            <div class="mz-step" data-step="3"><span class="dot">3</span><span>Payment</span></div>
+            <span class="mz-step-line"></span>
+            <div class="mz-step" data-step="4"><span class="dot">4</span><span>Review</span></div>
         </div>
-
-        <a href="{% url 'home:MyCart' %}"
-           class="btn-icon"
-           aria-label="Back to cart">
-
-            <i class="bi bi-arrow-left"></i>
-
-        </a>
-
     </div>
-</header>
+</section>
 
 
 <!-- ============ CHECKOUT ============ -->
@@ -76,6 +43,26 @@
     <div class="container-xl">
 
         {% if items.cart_items %}
+
+          <!-- Guidance: checkout -->
+          <aside class="sz-guide" data-guide="checkout" aria-label="Checkout guide">
+            <div class="sz-guide-head">
+              <span class="sz-guide-ico"><i class="bi bi-shield-check"></i></span>
+              <h2 class="sz-guide-title">Checkout guide<small>Takes about 2 minutes — here’s what to do</small></h2>
+            </div>
+            <div class="sz-guide-body"><div>
+              <ol class="sz-steps">
+                <li><b>Delivery address</b>Choose a saved address or type a new one. Use a phone number the courier can reach.</li>
+                <li><b>Payment method</b>Cash on Delivery means you pay when the parcel arrives. Wallet uses your Shan Zee balance.</li>
+                <li><b>Review &amp; place order</b>Check the summary on the right, add a note if needed, then press <em>Place Order</em>.</li>
+              </ol>
+              <ul class="sz-tips">
+                <li><i class="bi bi-geo-alt-fill"></i><span>A correct <b>postal code</b> and street address avoid delivery delays.</span></li>
+                <li><i class="bi bi-lock-fill"></i><span>Your details are sent securely and only used to deliver this order.</span></li>
+                <li><i class="bi bi-info-circle-fill"></i><span>Billing address is the same as shipping unless you untick that box.</span></li>
+              </ul>
+            </div></div>
+          </aside>
 
         <!-- =========================================
              CHECKOUT FORM
@@ -97,7 +84,7 @@
                      SHIPPING ADDRESS
                 ================================= -->
 
-                <div class="checkout-panel p-4">
+                <div class="checkout-panel is-current p-4">
 
                     <h5 class="font-display mb-3">
 
@@ -546,7 +533,7 @@
                             <div>
 
                                 <div class="fw-semibold">
-                                    AUGUST Wallet
+                                    Shan Zee Wallet
                                 </div>
 
                                 <small class="text-muted-custom">
@@ -892,6 +879,12 @@
 
                     </div>
 
+                    <div class="d-flex justify-content-between text-center small text-muted-custom mt-3 pt-3 border-top">
+                        <span><i class="bi bi-cash-coin d-block fs-5 mb-1" style="color:var(--accent)"></i>COD</span>
+                        <span><i class="bi bi-arrow-repeat d-block fs-5 mb-1" style="color:var(--accent)"></i>7-day returns</span>
+                        <span><i class="bi bi-headset d-block fs-5 mb-1" style="color:var(--accent)"></i>Support</span>
+                    </div>
+
                 </div>
 
             </div>
@@ -960,21 +953,8 @@
 <script>
 
 function showAlert(message, type) {
-
-    if (
-        typeof window.showAlert === "function" &&
-        window.showAlert !== showAlert
-    ) {
-
-        window.showAlert(message, type);
-
-        return;
-
+      if (window.SZ) { SZ.toast(message, type); }
     }
-
-    alert(message);
-
-}
 
 
 // ==============================================

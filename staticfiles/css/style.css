@@ -278,7 +278,7 @@
 
 
  /* .product-card .badge-tag{
-  position:absolute; top:.75rem; left:.75rem; font-size:.72rem; font-weight:700; padding:.28rem .6rem; border-radius:20px; color:#fff;
+    position:absolute; top:.75rem; left:.75rem; font-size:.72rem; font-weight:700; padding:.28rem .6rem; border-radius:20px; color:#fff;
   } */
   .product-card .badge-tag{
     position: static;       /* let the flex column place them */
@@ -304,7 +304,6 @@
   .badge-new{background:var(--sz-green-deep);}
   .badge-sale{background:var(--sz-red);}
     .badge-ship{ background: var(--sz-red); color:#fff; }
-
 
   .product-actions{
     position:absolute; top:.6rem; right:.6rem; display:flex; flex-direction:column; gap:.4rem; z-index:2;
@@ -765,13 +764,13 @@ body{
 .size-pill.sold-out, .variant-swatch.sold-out{ opacity:.4; cursor:not-allowed; }
 .size-pill.sold-out{ text-decoration: line-through; }
 
-
 .header-profile-pic {
     width: 34px;
     height: 34px;
     border-radius: 50%;
     object-fit: cover;
 }
+
 
   .hero-slide { position: relative; }
  

@@ -1,0 +1,558 @@
+{% load static %}
+
+<style>
+    /* =========================================================
+    COMPACT PRODUCT CARD
+  ========================================================= */
+
+  .product-card {
+      width: 100%;
+      min-width: 0;
+      overflow: hidden;
+      border-radius: 9px;
+  }
+
+
+  /* =========================================================
+    PRODUCT IMAGE
+  ========================================================= */
+
+  .product-media {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+  }
+
+  .product-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+  }
+
+
+  /* =========================================================
+    PRODUCT INFORMATION
+  ========================================================= */
+
+  .product-info {
+      min-width: 0;
+      padding: 8px;
+  }
+
+
+  /* Product title - ONE LINE */
+  .product-info .name {
+      width: 100%;
+
+      font-size: 13px;
+      line-height: 1.3;
+      font-weight: 600;
+
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      min-width: 0;
+      height: 17px;
+
+      cursor: help;
+  }
+
+
+  /* =========================================================
+    RATING
+  ========================================================= */
+
+  .rating-stars {
+      font-size: 11px;
+      line-height: 1.2;
+
+      white-space: nowrap;
+      overflow: hidden;
+
+      margin-top: 3px;
+  }
+
+
+  /* =========================================================
+    PRICE
+  ========================================================= */
+
+  .price-row {
+      display: flex;
+      align-items: center;
+
+      flex-wrap: nowrap;
+      gap: 5px;
+
+      min-width: 0;
+  }
+
+  .price-now {
+      font-size: 14px;
+      font-weight: 700;
+
+      white-space: nowrap;
+  }
+
+  .price-was {
+      font-size: 10px;
+
+      text-decoration: line-through;
+      opacity: 0.65;
+
+      white-space: nowrap;
+  }
+
+
+  /* =========================================================
+    CART BUTTON
+  ========================================================= */
+
+  .product-cart-btn {
+      min-height: 34px;
+
+      padding: 5px 7px !important;
+
+      border-radius: 6px;
+
+      font-size: 11px;
+      font-weight: 600;
+
+      white-space: nowrap;
+
+      line-height: 1;
+  }
+
+  .product-cart-btn i {
+      font-size: 11px;
+  }
+
+
+  /* =========================================================
+    BADGES
+  ========================================================= */
+
+  .badge-stack {
+      position: absolute;
+
+      top: 7px;
+      left: 7px;
+
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+
+      gap: 3px;
+
+      z-index: 5;
+
+      max-width: calc(100% - 14px);
+  }
+
+  .badge-tag {
+      font-size: 9px;
+      line-height: 1;
+
+      padding: 4px 6px;
+
+      border-radius: 4px;
+
+      white-space: nowrap;
+  }
+
+
+  /* =========================================================
+    PRODUCT ACTIONS
+  ========================================================= */
+
+  .product-actions {
+      position: absolute;
+
+      top: 7px;
+      right: 7px;
+
+      display: flex;
+      gap: 4px;
+
+      z-index: 10;
+  }
+
+  .btn-icon {
+      width: 29px;
+      height: 29px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      padding: 0;
+
+      border-radius: 50%;
+
+      font-size: 12px;
+  }
+
+
+  /* =========================================================
+    DESKTOP
+  ========================================================= */
+
+  @media (min-width: 992px) {
+
+      .product-info {
+          padding: 8px;
+      }
+
+      .product-info .name {
+          font-size: 13px;
+      }
+
+      .product-cart-btn {
+          min-height: 34px;
+      }
+  }
+
+
+  /* =========================================================
+    TABLET
+  ========================================================= */
+
+  @media (max-width: 991.98px) {
+
+      .product-card {
+          border-radius: 8px;
+      }
+
+      .product-info {
+          padding: 7px;
+      }
+
+      .product-info .name {
+          font-size: 12px;
+          height: 16px;
+      }
+
+      .rating-stars {
+          font-size: 10px;
+      }
+
+      .price-now {
+          font-size: 13px;
+      }
+
+      .price-was {
+          font-size: 9px;
+      }
+
+      .product-cart-btn {
+          min-height: 32px;
+          font-size: 10px;
+      }
+  }
+
+
+  /* =========================================================
+    MOBILE
+  ========================================================= */
+
+  @media (max-width: 575.98px) {
+
+      .product-card {
+          border-radius: 7px;
+      }
+
+      .product-info {
+          padding: 6px;
+      }
+
+      .product-info .name {
+          font-size: 11px;
+          height: 14px;
+          line-height: 1.25;
+      }
+
+      .rating-stars {
+          font-size: 9px;
+          margin-top: 2px;
+      }
+
+      .text-muted-custom {
+          font-size: 8px;
+      }
+
+      .price-row {
+          gap: 3px;
+          margin-top: 2px !important;
+      }
+
+      .price-now {
+          font-size: 11px;
+      }
+
+      .price-was {
+          font-size: 8px;
+      }
+
+      .product-cart-btn {
+          min-height: 29px;
+
+          padding: 4px 3px !important;
+
+          font-size: 9px;
+          border-radius: 5px;
+      }
+
+      .product-cart-btn i {
+          font-size: 9px;
+          margin-right: 1px !important;
+      }
+
+      .btn-icon {
+          width: 26px;
+          height: 26px;
+          font-size: 11px;
+      }
+
+      .product-actions {
+          top: 5px;
+          right: 5px;
+      }
+
+      .badge-stack {
+          top: 5px;
+          left: 5px;
+      }
+
+      .badge-tag {
+          font-size: 8px;
+          padding: 3px 5px;
+      }
+  }
+
+
+  /* =========================================================
+    VERY SMALL PHONES
+  ========================================================= */
+
+  @media (max-width: 380px) {
+
+      .product-info {
+          padding: 5px;
+      }
+
+      .product-info .name {
+          font-size: 10px;
+          height: 13px;
+      }
+
+      .rating-stars {
+          font-size: 8px;
+      }
+
+      .text-muted-custom {
+          font-size: 7px;
+      }
+
+      .price-now {
+          font-size: 10px;
+      }
+
+      .price-was {
+          font-size: 7px;
+      }
+
+      .product-cart-btn {
+          min-height: 27px;
+          font-size: 8px;
+      }
+
+      .product-cart-btn i {
+          display: none;
+      }
+
+      .btn-icon {
+          width: 24px;
+          height: 24px;
+          font-size: 10px;
+      }
+  }
+
+
+  /* =========================================================
+    OPTIONAL: TOOLTIP STYLE
+    Native title tooltip is already provided by HTML.
+  ========================================================= */
+
+  .product-info .name[title] {
+      cursor: help;
+  }
+
+</style>
+
+<div class="col-6 col-sm-6 col-md-3 col-lg-2 d-flex mb-2">
+  <div class="product-card reveal in h-100 d-flex flex-column w-100"
+       data-id="{{ product.id }}"
+       data-name="{{ product.name }}"
+       data-price="{{ product.price }}"
+       data-was="{{ product.compare_at_price|default:0 }}"
+       data-image="{{ product.images.all.0.image.url }}"
+       data-cat="{{ product.category.name }}">
+
+    <!-- PRODUCT IMAGE -->
+    <div class="product-media">
+
+      <a href="{% url 'home:Product_Details' slug=product.slug %}">
+        <img
+          class="img-primary"
+          src="{{ product.images.all.0.image.url }}"
+          alt="{{ product.name }}"
+          loading="lazy">
+      </a>
+
+      {% if product.images.all.1 %}
+        <a href="{% url 'home:Product_Details' slug=product.slug %}">
+          <img
+            class="img-hover"
+            src="{{ product.images.all.1.image.url }}"
+            alt="{{ product.name }} alternate view"
+            loading="lazy">
+        </a>
+      {% else %}
+        <a href="{% url 'home:Product_Details' slug=product.slug %}">
+          <img
+            class="img-hover"
+            src="{{ product.images.all.0.image.url }}"
+            alt="{{ product.name }} alternate view"
+            loading="lazy">
+        </a>
+      {% endif %}
+
+      <!-- BADGES -->
+      <div class="badge-stack">
+
+        {% if product.has_discount %}
+          <span class="badge-tag badge-sale">
+            -{{ product.discount_percent }}%
+          </span>
+        {% endif %}
+
+        {% if product.mark_as_new %}
+          <span class="badge-tag badge-new">
+            New
+          </span>
+        {% endif %}
+
+        {% if product.free_shipping %}
+          <span class="badge-tag badge-ship">
+            Free Ship
+          </span>
+        {% endif %}
+
+      </div>
+
+      <!-- QUICK ADD (slides up on hover, opens the quick-view so variants are never skipped) -->
+      <button type="button" class="mz-quickadd" onclick="openQuickView('{{ product.id }}')">
+        <i class="bi bi-bag-plus me-1"></i> Quick add
+      </button>
+
+      <!-- ACTIONS -->
+      <div class="product-actions">
+
+        <button type="button" class="btn-icon" onclick="openQuickView('{{ product.id }}')" aria-label="Quick view">
+          <i class="bi bi-eye me-1"></i>
+        </button>
+        <button
+            type="button"
+            class="btn-icon {% if product.is_wishlisted %}active{% endif %}"
+            data-wishlist-btn="{{ product.id }}"
+            onclick="if(!requireLogin()) return; Wishlist.toggle('{{ product.id }}')"
+            aria-label="{% if product.is_wishlisted %}Remove from wishlist{% else %}Add to wishlist{% endif %}">
+
+            <i class="bi {% if product.is_wishlisted %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+
+        </button>
+
+      </div>
+
+    </div>
+
+    <div class="ticket-divider"></div>
+
+    <!-- PRODUCT INFO -->
+    <div class="product-info d-flex flex-column flex-grow-1">
+
+      <div
+          class="name"
+          title="{{ product.name }}"
+      >
+          {{ product.name }}
+      </div>
+
+      <!-- RATING -->
+      <div class="rating-stars">
+
+        {% with rating=product.rating|default:4 %}
+
+          {% for _ in "12345"|make_list %}
+
+            {% if forloop.counter <= rating %}
+              ★
+            {% else %}
+              ☆
+            {% endif %}
+
+          {% endfor %}
+
+        {% endwith %}
+
+        <span class="text-muted-custom">
+          ({{ product.review_count|default:0 }})
+        </span>
+
+      </div>
+
+      <!-- PRICE -->
+      <div class="price-row mt-1">
+
+        {% if product.has_discount %}
+
+          <span class="price-now">
+            RS {{ product.final_price|floatformat:2 }}
+          </span>
+
+          <span class="price-was">
+            RS {{ product.price|floatformat:2 }}
+          </span>
+
+        {% else %}
+
+          <span class="price-now">
+            RS {{ product.price|floatformat:2 }}
+          </span>
+
+        {% endif %}
+
+      </div>
+
+      <!-- ADD TO CART -->
+      {% comment %} <button
+        type="button"
+        class="btn btn-brass w-100 mt-auto product-cart-btn"
+        onclick="Cart.add(
+          '{{ product.id }}',
+          {{ product.variants.all.0.id|default:'null' }},
+          1
+        )">
+
+        <i class="bi bi-bag-plus me-1"></i>
+        <span>Add to Cart</span>
+
+      </button> {% endcomment %}
+
+    </div>
+
+  </div>
+</div>

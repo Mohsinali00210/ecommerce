@@ -1,28 +1,57 @@
 {% extends "base2.html" %}
+{% block body_class %}theme-checkout{% endblock %}
 {% block content %}
 
 
   <!-- ============ PAGE HEADER ============ -->
-  <section class="py-4 border-bottom" style="border-color:var(--border) !important;">
+  <section class="py-4 border-bottom page-header-band" style="border-color:var(--border) !important;">
     <div class="container-xl">
       <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
         <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
         <li class="breadcrumb-item active">Cart</li>
       </ol></nav>
-      <h1 class="font-display mb-0">Your Cart</h1>
+      <h1 class="font-display mb-0 sz-title"><span class="sz-title-ico"><i class="bi bi-bag-heart-fill"></i></span><span>Your Cart</span></h1>
+
+      <div class="mz-stepper" aria-label="Checkout progress">
+        <div class="mz-step active"><span class="dot">1</span><span>Cart</span></div>
+        <span class="mz-step-line"></span>
+        <div class="mz-step"><span class="dot">2</span><span>Checkout</span></div>
+        <span class="mz-step-line"></span>
+        <div class="mz-step"><span class="dot">3</span><span>Confirmation</span></div>
+      </div>
     </div>
   </section>
 
   <!-- ============ CART ============ -->
   <section class="py-5">
     <div class="container-xl">
+
+          <!-- Guidance: cart -->
+          <aside class="sz-guide" data-guide="cart" aria-label="How your cart works">
+            <div class="sz-guide-head">
+              <span class="sz-guide-ico"><i class="bi bi-lightbulb-fill"></i></span>
+              <h2 class="sz-guide-title">How your cart works<small>Three quick things to know before you check out</small></h2>
+            </div>
+            <div class="sz-guide-body"><div>
+              <ol class="sz-steps">
+                <li><b>Pick what you want to buy</b>Tick the items you’re ready to order. Untick anything you’d like to keep for later.</li>
+                <li><b>Adjust quantity</b>Use the quantity box. Some products get a lower price when you buy in bulk — we’ll show you when it unlocks.</li>
+                <li><b>Go to checkout</b>Review the total on the right, then press <em>Proceed to Checkout</em>.</li>
+              </ol>
+              <ul class="sz-tips">
+                <li><i class="bi bi-truck"></i><span>Reach the <b>free-shipping goal</b> bar to save on delivery.</span></li>
+                <li class="is-warn"><i class="bi bi-exclamation-triangle-fill"></i><span>Items marked <b>low stock</b> may not be available in the quantity you chose.</span></li>
+              </ul>
+            </div></div>
+          </aside>
       <div class="row g-4">
-        <div class="mb-3">
+        <div class="mb-1 d-flex align-items-center gap-2">
 
             <input type="checkbox"
+                  class="form-check-input m-0"
                   id="selectAll">
 
-            <label for="selectAll">
+            <label for="selectAll" class="form-check-label fw-semibold">
                 Select All
             </label>
 
@@ -33,10 +62,16 @@
             <i class="bi bi-bag-x" style="font-size:3rem;color:var(--text-muted);"></i>
             <h4 class="font-display mt-3">Your cart is empty</h4>
             <p class="text-muted-custom">Looks like you haven't added anything yet.</p>
-            <a href="{% url 'home:home' %}" class="btn btn-brass mt-2">Continue Shopping</a>
+            <a href="{% url 'home:home' %}" class="btn btn-brass mt-2"><i class="bi bi-arrow-left me-1"></i>Continue Shopping</a>
           </div>
 
           {% if cart and items %}
+
+            <!-- Free-shipping progress (goal matches the "free shipping over PKR 3,500" promise; change data-goal if the rule changes) -->
+            <div class="mz-ship mb-3" id="mzShipMeter" data-goal="3500">
+              <div class="msg small"></div>
+              <div class="bar"><i></i></div>
+            </div>
 
             {% for item in items %}
 
@@ -178,7 +213,7 @@
 
             {% endif %}
 
-          <a href="shop.html" class="btn btn-outline-ink mt-4"><i class="bi bi-arrow-left me-1"></i> Continue Shopping</a>
+          <a href="{% url 'home:home' %}" class="btn btn-outline-ink mt-4"><i class="bi bi-arrow-left me-1"></i> Continue Shopping</a>
         </div>
 
         <!-- Order summary -->
@@ -254,7 +289,13 @@
                       </strong>
 
                   </p>
-                  <button type="button" class="checkout-btn  btn btn-brass w-100">Proceed to Checkout</button>
+                  <button type="button" class="checkout-btn  btn btn-brass w-100">Proceed to Checkout <i class="bi bi-arrow-right ms-1"></i></button>
+
+                  <div class="d-flex justify-content-between text-center small text-muted-custom mt-3 pt-3 border-top">
+                      <span><i class="bi bi-shield-check d-block fs-5 mb-1" style="color:var(--accent)"></i>Secure</span>
+                      <span><i class="bi bi-cash-coin d-block fs-5 mb-1" style="color:var(--accent)"></i>COD</span>
+                      <span><i class="bi bi-arrow-repeat d-block fs-5 mb-1" style="color:var(--accent)"></i>7-day returns</span>
+                  </div>
 
                 </div>
 
@@ -275,12 +316,8 @@
 <script>
 
   function showAlert(message, type) {
-    if (typeof window.showAlert === "function" && window.showAlert !== showAlert) {
-      window.showAlert(message, type);
-      return;
+      if (window.SZ) { SZ.toast(message, type); }
     }
-    alert(message);
-  }
 
   // ============ PRICING RULES (from the server) ============
   // CART.lines[itemId] = { price, promo_price, promo_percent, min_qty, shipping, stock }
