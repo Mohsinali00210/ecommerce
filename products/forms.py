@@ -93,22 +93,86 @@ class ProductForm(BootstrapFormMixin, forms.ModelForm):
         return cleaned
 
 
+class ColorInput(forms.TextInput):
+    input_type = "color"
+
+import re
+from django.core.validators import RegexValidator
+from django.db import transaction
+
 class ProductVariantForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = ProductVariant
-        fields = ['name', 'sku', 'price', 'stock_quantity', 'image']
+        fields = ['name', 'sku', 'price', 'stock_quantity', 'images']   # 'image' removed
         widgets = {
             'name': forms.TextInput(attrs={'placeholder': 'e.g. Color: Red, Size: XL'}),
             'price': forms.NumberInput(attrs={'step': '0.01'}),
+            'images': forms.CheckboxSelectMultiple,
         }
 
     def __init__(self, *args, product=None, **kwargs):
         super().__init__(*args, **kwargs)
         self._apply_bootstrap_classes()
-        self.fields['image'].required = False
+        self.fields['images'].required = False
+        self._color_matches = []
+
         if product is not None:
-            # Only let a variant be linked to one of this product's own images
-            self.fields['image'].queryset = product.images.all()
+            self.fields['images'].queryset = product.images.all()
+            if self.instance.pk:
+                self._add_color_fields(product)
+
+        # Legacy rows: only the old single FK is set, so pre-select it
+        if self.instance.pk and not self.is_bound:
+            if not self.instance.images.exists() and self.instance.image_id:
+                self.initial['images'] = [self.instance.image_id]
+
+    def selected_image_ids(self):
+        # After a failed POST, keep whatever the user had ticked
+        if self.is_bound:
+            return {int(v) for v in self.data.getlist('images') if v.isdigit()}
+        ids = set()
+        if self.instance.pk:
+            ids = set(self.instance.images.values_list('pk', flat=True))
+            if self.instance.image_id:          # legacy rows / primary image
+                ids.add(self.instance.image_id)
+        return ids
+    def _add_color_fields(self, product):
+        # "Red / Small" or "Color: Red, Size: XL" -> ["Red", "Small"]
+        parts = [p.split(":")[-1].strip().lower()
+                 for p in re.split(r"\s*[/,]\s*", self.instance.name) if p.strip()]
+
+        for opt in product.variant_options.all():
+            if not opt.is_color:
+                continue
+            labels = opt.get_options_list()
+            for i, label in enumerate(labels):
+                if label.lower() in parts:
+                    name = f"color_{opt.pk}"
+                    self.fields[name] = forms.CharField(
+                        label=f"{opt.option_name} code ({label})",
+                        required=False,
+                        initial=opt.get_color_at(i) or "#000000",
+                        widget=ColorInput(attrs={"class": "form-control form-control-color"}),
+                        validators=[RegexValidator(r"^#[0-9a-fA-F]{6}$", "Enter a valid hex color.")],
+                        help_text=f'Changes the color for every "{label}" variant of this product.',
+                    )
+                    self._color_matches.append((opt, i, label, name))
+                    break  # one match per option group
+
+    @property
+    def color_fields(self):
+        return [self[name] for *_, name in self._color_matches]
+
+    def save_color_codes(self, user=None):
+        with transaction.atomic():
+            for opt, idx, _label, name in self._color_matches:
+                code = self.cleaned_data.get(name)
+                if not code:
+                    continue
+                opt.set_color_at(idx, code)
+                if user:
+                    opt.modified_by = user
+                opt.save()
 
 
 class ProductImageForm(BootstrapFormMixin, forms.ModelForm):

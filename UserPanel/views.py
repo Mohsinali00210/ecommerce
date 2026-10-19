@@ -137,7 +137,7 @@ def build_variant_data(product, promo, sku=None):
     """
     data = []
     selected = None
-    for v in product.variants.select_related("image"):
+    for v in product.variants.filter(is_active=True).select_related("image"):
         vp = build_pricing(v.price, promo)
         entry = {
             "id": v.id,
@@ -773,7 +773,7 @@ def ProductDetails(request, slug, sku=None):
     ).select_related("user").order_by("-created_at")
 
     # ---- Variants: real price + discounted price per variant ----
-    variants = product.variants.select_related("image")
+    variants = product.variants.filter(is_active=True).select_related("image")
     variant_data = []
     selected_variant = None
 

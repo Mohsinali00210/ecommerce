@@ -348,7 +348,16 @@ form.addEventListener("submit", async function (e) {
 
 {% else %}
 <!-- Single variant edit form -->
-<form method="post" action="{% url 'variant_edit' product.id variant.id %}">
+<style>
+    .variant-img-menu { width: 360px; max-width: 90vw; max-height: 300px; overflow-y: auto; }
+    .image-tile { position: relative; cursor: pointer; border: 2px solid transparent; border-radius: 6px; line-height: 0; }
+    .image-tile img { width: 72px; height: 72px; object-fit: cover; border-radius: 4px; }
+    .image-tile input { position: absolute; top: 4px; left: 4px; z-index: 1; }
+    .image-tile.selected { border-color: #0d6efd; }
+    .variant-thumb { width: 44px; height: 44px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; }
+</style>
+
+<form id="variantEditForm" method="post" action="{% url 'variant_edit' product.id variant.id %}">
     {% csrf_token %}
 
     {% if form.non_field_errors %}
@@ -376,10 +385,46 @@ form.addEventListener("submit", async function (e) {
             {{ form.stock_quantity }}
             {% for error in form.stock_quantity.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
         </div>
-        <div class="col-md-4">
-            <label class="form-label">Image</label>
-            {{ form.image }}
-            <div class="form-text">Only images already uploaded for this product can be assigned.</div>
+
+        {% for bf in form.color_fields %}
+            <div class="col-md-4">
+                <label class="form-label" for="{{ bf.id_for_label }}">{{ bf.label }}</label>
+                {{ bf }}
+                {% for error in bf.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                <div class="form-text">{{ bf.help_text }}</div>
+            </div>
+        {% endfor %}
+
+        <div class="col-12">
+            <label class="form-label">Images</label>
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
+                        data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    <span id="variantImageCount">Select images</span>
+                </button>
+               <div class="dropdown-menu variant-img-menu p-2">
+                    <div class="d-flex flex-wrap gap-2">
+                        {% with selected=form.selected_image_ids %}
+                        {% for cb in form.images %}
+                            {% with pk=cb.data.value.value %}
+                            <label class="image-tile{% if pk in selected %} selected{% endif %}" title="{{ cb.choice_label }}">
+                                <input type="checkbox" class="form-check-input variant-image-check"
+                                    name="{{ cb.data.name }}" value="{{ pk }}"
+                                    data-src="{{ cb.data.value.instance.image.url }}"
+                                    {% if pk in selected %}checked{% endif %}>
+                                <img src="{{ cb.data.value.instance.image.url }}" alt="">
+                            </label>
+                            {% endwith %}
+                        {% empty %}
+                            <div class="text-muted small p-2">No images uploaded for this product yet.</div>
+                        {% endfor %}
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+            <div id="variantImagePreview" class="d-flex flex-wrap gap-1 mt-2"></div>
+            {% for error in form.images.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            <div class="form-text">Only images already uploaded for this product can be assigned. The first selected is the primary image.</div>
         </div>
     </div>
 
@@ -388,4 +433,76 @@ form.addEventListener("submit", async function (e) {
         <button type="submit" class="btn btn-dark">Save Variant</button>
     </div>
 </form>
+
+<script>
+(function () {
+    const form = document.getElementById('variantEditForm');
+    if (!form) return;
+
+    const strip = form.querySelector('#variantImagePreview');
+    const countEl = form.querySelector('#variantImageCount');
+    const boxes = form.querySelectorAll('.variant-image-check');
+
+    // Live preview of selected images
+    function refreshPreview() {
+        strip.innerHTML = '';
+        let n = 0;
+        boxes.forEach(cb => {
+            cb.closest('.image-tile').classList.toggle('selected', cb.checked);
+            if (cb.checked) {
+                n++;
+                const img = document.createElement('img');
+                img.src = cb.dataset.src;
+                img.className = 'variant-thumb';
+                strip.appendChild(img);
+            }
+        });
+        countEl.textContent = n ? n + ' selected' : 'Select images';
+    }
+    boxes.forEach(cb => cb.addEventListener('change', refreshPreview));
+    refreshPreview();
+
+    // innerHTML doesn't run <script> tags, so re-create them after swapping in the re-rendered form
+    function setHtmlWithScripts(container, html) {
+        container.innerHTML = html;
+        container.querySelectorAll('script').forEach(old => {
+            const s = document.createElement('script');
+            s.textContent = old.textContent;
+            old.replaceWith(s);
+        });
+    }
+
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        e.stopPropagation();   // keep the modal's document-level delegated handler from also submitting
+
+        const btn = form.querySelector('button[type="submit"]');
+        btn.disabled = true;
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),   // includes csrf token + every checked image
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                window.location.reload();
+                return;
+            }
+            if (data.html) {                       // validation errors: re-render the form in place
+                setHtmlWithScripts(form.parentElement, data.html);
+                return;
+            }
+            alert(data.message || 'Could not save the variant.');
+        } catch (err) {
+            console.error(err);
+            alert('Something went wrong.');
+        }
+        btn.disabled = false;
+    });
+})();
+</script>
 {% endif %}

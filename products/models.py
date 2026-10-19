@@ -529,7 +529,12 @@ class ProductVariant(BaseAuditModel):
     price = models.DecimalField(max_digits=12, decimal_places=2)
     stock_quantity = models.PositiveIntegerField(default=0)
     # Variant can have a specific image assigned
-    image = models.ForeignKey('ProductImage',related_name="variant_image", on_delete=models.CASCADE, null=True, blank=True)
+    #image = models.ForeignKey('ProductImage',related_name="variant_image", on_delete=models.CASCADE, null=True, blank=True)
+    image = models.ForeignKey(
+        'ProductImage', related_name="variant_image",
+        on_delete=models.SET_NULL, null=True, blank=True,   # was CASCADE, see note below
+    )
+    images = models.ManyToManyField('ProductImage', related_name='variant_gallery', blank=True)
 
 
 class ProductVariantOption(BaseAuditModel):
@@ -541,7 +546,22 @@ class ProductVariantOption(BaseAuditModel):
     value = models.CharField(max_length=255, null=True, blank=True)
     def get_options_list(self):
         return [opt.strip() for opt in self.option.split(",") if opt.strip()]
+    def get_values_list(self):
+        return [v.strip() for v in self.value.split(",")] if self.value else []
 
+    @property
+    def is_color(self):
+        return "colo" in self.option_name.lower()  # matches color / colour
+
+    def get_color_at(self, index):
+        values = self.get_values_list()
+        return values[index] if index < len(values) and values[index] else ""
+
+    def set_color_at(self, index, code):
+        values = self.get_values_list()
+        values += [""] * (len(self.get_options_list()) - len(values))  # pad so positions stay aligned
+        values[index] = code.lower()
+        self.value = ",".join(values)
     def __str__(self):
         return f"{self.option_name} - {self.product.name}"
 

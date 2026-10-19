@@ -1284,7 +1284,13 @@ def variant_edit_modal(request, product_id, variant_id):
             instance = form.save(commit=False)
             instance.product = product
             instance.modified_by = request.user
+            # primary image = first selected (keeps the old FK in sync)
+            selected = form.cleaned_data['images']
+            instance.image = selected.first()
             instance.save()
+            form.save_m2m()                                   # saves the `images` M2M
+            form.save_color_codes(user=request.user)
+
             return JsonResponse({'success': True, 'message': 'Variant saved successfully.'})
         html = render_to_string(
             'products/partials/variant_form.html',

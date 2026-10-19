@@ -106,14 +106,17 @@
   function read(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
   function write(k, v) { try { v == null ? window.localStorage.removeItem(k) : window.localStorage.setItem(k, v); } catch (e) {} }
   var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
-  var st = { mode: read(MODE_KEY), a: DEFAULT.a, b: DEFAULT.b, bAuto: true };
+  var savedMode = read(MODE_KEY);
+  var st = { mode: savedMode === null ? "light" : savedMode, a: DEFAULT.a, b: DEFAULT.b, bAuto: true };
   try {
     var saved = JSON.parse(read(COLOR_KEY) || "null");
     if (saved && hexOk(saved.a)) { st.a = saved.a; if (hexOk(saved.b)) { st.b = saved.b; st.bAuto = !!saved.auto; } else st.b = autoB(saved.a); }
   } catch (e) {}
-  if (st.mode !== "light" && st.mode !== "dark") st.mode = null;      // null = follow the system
+  if (st.mode !== "light" && st.mode !== "dark" && st.mode !== "auto") st.mode = "light";
 
-  function effective() { return st.mode || (mq && mq.matches ? "dark" : "light"); }
+  function effective() {
+    return st.mode === "auto" ? (mq && mq.matches ? "dark" : "light") : st.mode;
+  }
   function autoB(a) { var h = rgb2hsl.apply(null, hex2rgb(a)); return hsl2hex(h[0] + 150, clamp(h[1], 55, 90), 52); }
 
   var KEYS = [];
@@ -135,8 +138,8 @@
 
   var API = (window.SZTheme = {
     presets: PRESETS, defaults: DEFAULT,
-    state: function () { return { mode: st.mode || "auto", effective: effective(), main: st.a, highlight: st.b }; },
-    setMode: function (m) { st.mode = (m === "light" || m === "dark") ? m : null; save(); apply(true); },
+    state: function () { return { mode: st.mode, effective: effective(), main: st.a, highlight: st.b }; },
+    setMode: function (m) { st.mode = (m === "light" || m === "dark" || m === "auto") ? m : "auto"; save(); apply(true); },
     toggle: function () { API.setMode(effective() === "dark" ? "light" : "dark"); },
     setColors: function (a, b) {
       if (!hexOk(a)) return;
@@ -144,11 +147,11 @@
       if (b && hexOk(b)) { st.b = b.toLowerCase(); st.bAuto = false; } else { st.b = autoB(st.a); st.bAuto = true; }
       save(); apply(true);
     },
-    reset: function () { st.a = DEFAULT.a; st.b = DEFAULT.b; st.bAuto = false; st.mode = null; save(); apply(true); }
+    reset: function () { st.a = DEFAULT.a; st.b = DEFAULT.b; st.bAuto = false; st.mode = "light"; save(); apply(true); }
   });
   apply(false);                                   // before first paint
   if (mq) {
-    var onSys = function () { if (!st.mode) apply(true); };
+    var onSys = function () { if (st.mode === "auto") apply(true); };
     mq.addEventListener ? mq.addEventListener("change", onSys) : mq.addListener && mq.addListener(onSys);
   }
 
