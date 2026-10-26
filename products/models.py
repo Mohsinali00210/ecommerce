@@ -495,7 +495,7 @@ class Product(BaseAuditModel):
         ('1', 'Simple'),
         ('2', 'Grouped'),
     )
-    product_type = models.CharField( max_length=20, choices=PRODUCT_TYPE_CHOICES, default='simple')
+    product_type = models.CharField( max_length=20, choices=PRODUCT_TYPE_CHOICES, default='1')
     available_start_date = models.DateField(null=True, blank=True)
     available_end_date = models.DateField(null=True, blank=True)
     allow_customer_reviews = models.BooleanField(default=True)
@@ -517,10 +517,82 @@ class Product(BaseAuditModel):
 
     def get_price_for_promotion(self, promotion):
         return promotion.get_discounted_price(self.price)
+
+    # ------------------------------------------------------------------
+    # Simple vs Grouped
+    #   Simple  -> exactly ONE default variant, created/kept in sync
+    #              automatically from the product's own price / stock.
+    #   Grouped -> two or more real variants managed by the admin.
+    # Old rows may still hold the words 'simple' / 'grouped', so both
+    # spellings are accepted everywhere.
+    # ------------------------------------------------------------------
+    DEFAULT_VARIANT_NAME = 'Default'
+    _SIMPLE_VALUES = ('1', 'simple')
+
+    @property
+    def is_simple(self):
+        return str(self.product_type) in self._SIMPLE_VALUES
+
+    @property
+    def is_grouped(self):
+        return not self.is_simple
+
+    @property
+    def default_variant(self):
+        """The one variant a simple product owns (None if not created yet)."""
+        return self.variants.filter(is_active=True).order_by('id').first()
+
+    def _default_variant_sku(self, exclude_pk=None):
+        base = (self.sku or f'P{self.pk}')[:100]
+        sku, n = base, 1
+        taken = ProductVariant.objects.all()
+        if exclude_pk:
+            taken = taken.exclude(pk=exclude_pk)
+        while taken.filter(sku=sku).exists():
+            suffix = f'-{self.pk}-{n}'
+            sku = f'{base[:100 - len(suffix)]}{suffix}'
+            n += 1
+        return sku
+
+    def sync_default_variant(self):
+        """
+        Make sure a simple product has exactly one active variant that mirrors the
+        product's price and stock. Safe to call any number of times.
+        Extra variants (should not exist on a simple product) are deactivated, not
+        deleted, so old cart / order rows that point at them keep working.
+        """
+        if not self.pk or not self.is_simple:
+            return None
+
+        variants = list(self.variants.order_by('id'))
+        active = [v for v in variants if v.is_active]
+        variant = active[0] if active else (variants[0] if variants else None)
+
+        if variant is None:
+            variant = ProductVariant(
+                product=self,
+                name=self.DEFAULT_VARIANT_NAME,
+                sku=self._default_variant_sku(),
+                created_by=self.created_by,
+            )
+        variant.is_active = True
+        variant.price = self.price
+        variant.stock_quantity = self.stock_quantity
+        variant.save()
+
+        self.variants.exclude(pk=variant.pk).filter(is_active=True).update(is_active=False)
+        return variant
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
+        update_fields = kwargs.get('update_fields')
+        if self.is_simple and (
+            update_fields is None
+            or {'price', 'stock_quantity', 'sku', 'product_type'} & set(update_fields)
+        ):
+            self.sync_default_variant()
 
 class ProductVariant(BaseAuditModel):
     product = models.ForeignKey(Product, related_name='variants', on_delete=models.CASCADE)
@@ -535,6 +607,17 @@ class ProductVariant(BaseAuditModel):
         on_delete=models.SET_NULL, null=True, blank=True,   # was CASCADE, see note below
     )
     images = models.ManyToManyField('ProductImage', related_name='variant_gallery', blank=True)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # A simple product's price / stock live on the product too: when its default
+        # variant changes (inventory log, order stock deduction...) push it back up.
+        if self.is_active:
+            Product.objects.filter(
+                pk=self.product_id, product_type__in=Product._SIMPLE_VALUES
+            ).exclude(
+                price=self.price, stock_quantity=self.stock_quantity
+            ).update(price=self.price, stock_quantity=self.stock_quantity)
 
 
 class ProductVariantOption(BaseAuditModel):

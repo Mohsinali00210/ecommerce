@@ -921,6 +921,7 @@ body{
         {% endfor %}
 
 
+          {% if show_variant_picker %}
           <!-- Guidance: product -->
           <aside class="sz-guide compact" data-guide="product" aria-label="Before you add to cart">
             <div class="sz-guide-head">
@@ -935,6 +936,7 @@ body{
               </ul>
             </div></div>
           </aside>
+          {% endif %}
         <div class="mb-4">
           <label class="form-label d-block">Quantity</label>
           <div class="qty-stepper">
@@ -1525,12 +1527,13 @@ body{
         // No options
         if (!values.length) {
 
-            // Only one variant
+            // No picker shown (simple product = its default variant): use it automatically.
+            // With several variants, use the first one that is in stock.
             if (PRODUCT_VARIANTS.length === 1) {
                 return PRODUCT_VARIANTS[0];
             }
 
-            return null;
+            return PRODUCT_VARIANTS.find(v => Number(v.stock) > 0) || PRODUCT_VARIANTS[0] || null;
         }
 
         const wanted = normalize(values);

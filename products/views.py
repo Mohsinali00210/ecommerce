@@ -1266,6 +1266,11 @@ def variant_add_modal(request, product_id):
     """Returns the multi-variant builder partial (option groups -> generated
     combination table). Saving happens via variant_bulk_create, not here."""
     product = get_object_or_404(Product, pk=product_id)
+    if product.is_simple:
+        return JsonResponse(
+            {'html': '<div class="alert alert-info m-3">A simple product has a single default variant, '
+                     'which is created automatically. Variants cannot be added.</div>'}
+        )
     html = render_to_string(
         'products/partials/variant_form.html',
         {'product': product, 'mode': 'add'}, request=request,
@@ -1309,6 +1314,9 @@ def variant_edit_modal(request, product_id, variant_id):
 @login_required
 def variant_delete(request, product_id, variant_id):
     variant = get_object_or_404(ProductVariant, pk=variant_id, product_id=product_id)
+    if variant.product.is_simple:
+        messages.error(request, "A simple product's default variant cannot be deleted.")
+        return redirect('product_edit', pk=product_id)
     variant.delete()
     messages.success(request, "Variant deleted.")
     return redirect('product_edit', pk=product_id)
@@ -1323,6 +1331,12 @@ def variant_bulk_create(request, product_id):
  
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': 'Invalid request method.'}, status=405)
+
+    if product.is_simple:
+        return JsonResponse({
+            'success': False,
+            'message': 'A simple product has one default variant (created automatically). Variants cannot be added.',
+        })
  
     raw_variants = request.POST.get('variants')
     raw_options = request.POST.get('options')

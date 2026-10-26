@@ -203,10 +203,21 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-diagram-3"></i> Variants</span>
+                {% if product.is_simple %}
+                <button type="button" class="btn btn-sm btn-dark" disabled title="A simple product has one default variant">
+                    <i class="bi bi-plus-lg"></i> Add Variants
+                </button>
+                {% else %}
                 <button type="button" class="btn btn-sm btn-dark" onclick="openModal('{% url 'variant_add' product.id %}')">
                     <i class="bi bi-plus-lg"></i> Add Variants
                 </button>
+                {% endif %}
             </div>
+            {% if product.is_simple %}
+            <div class="px-3 py-2 small text-muted border-bottom">
+                <i class="bi bi-info-circle"></i> Simple product: one default variant, saved automatically from the price and stock above.
+            </div>
+            {% endif %}
             <div class="card-body p-0">
                 <table class="table table-sm mb-0">
                     <thead class="table-light"><tr><th>Name</th><th>SKU</th><th>Price</th><th>Stock</th><th></th></tr></thead>
@@ -219,7 +230,11 @@
                             <td>{{ variant.stock_quantity }}</td>
                             <td class="text-end">
                                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="openModal('{% url 'variant_edit' product.id variant.id %}')"><i class="bi bi-pencil"></i></button>
+                                {% if product.is_simple %}
+                                <button type="button" class="btn btn-sm btn-outline-danger" disabled title="The default variant cannot be deleted"><i class="bi bi-trash"></i></button>
+                                {% else %}
                                 <a href="{% url 'variant_delete' product.id variant.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this variant?')"><i class="bi bi-trash"></i></a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% empty %}

@@ -73,6 +73,11 @@ class ProductForm(BootstrapFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._apply_bootstrap_classes()
+        # Product type is fixed once the product exists (simple <-> grouped would break its variants).
+        # Legacy rows may hold 'simple' / 'grouped', so show the normalised '1' / '2'.
+        if self.instance and self.instance.pk:
+            self.initial['product_type'] = '1' if self.instance.is_simple else '2'
+            self.fields['product_type'].disabled = True
         # These have model-level defaults, so make them feel optional in the UI
         # even though they're technically required fields on the model.
         for name in ('weight', 'length', 'width', 'height', 'handling_time',

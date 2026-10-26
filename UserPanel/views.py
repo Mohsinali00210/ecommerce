@@ -128,6 +128,47 @@ from django.utils import timezone
 #   get_active_promotion(product, now)  and  build_pricing(price, promo)
 
 
+# ---------------------------------------------------------------------------
+# Simple vs Grouped on the storefront
+#   Simple  -> one default variant, never shown to the customer; it is attached
+#              to the cart line / order automatically.
+#   Grouped -> several variants; the customer picks one (colour, size...).
+# Flip the flag below to hide the picker on grouped products as well - the first
+# in-stock variant is then used automatically.
+# ---------------------------------------------------------------------------
+HIDE_VARIANT_PICKER_FOR_GROUPED = False
+
+
+def show_variant_picker(product):
+    return product.is_grouped and not HIDE_VARIANT_PICKER_FOR_GROUPED
+
+
+def ensure_default_variant(product):
+    """A simple product always owns its default variant (created on first view if missing)."""
+    if product.is_simple and not product.variants.filter(is_active=True).exists():
+        product.sync_default_variant()
+
+
+def ensure_item_variant(item):
+    """
+    Cart line without a variant -> attach the default / only variant, so the order
+    always records one even though the customer never picked it.
+    """
+    if item.variant_id or not item.product_id:
+        return
+    product = item.product
+    ensure_default_variant(product)
+    variants = list(product.variants.filter(is_active=True).order_by("id")[:50])
+    if len(variants) == 1:
+        chosen = variants[0]
+    elif variants and not show_variant_picker(product):
+        chosen = next((v for v in variants if (v.stock_quantity or 0) > 0), variants[0])
+    else:
+        return                      # grouped + picker shown: the customer must choose
+    item.variant = chosen
+    item.save(update_fields=["variant"])
+
+
 def build_variant_data(product, promo, sku=None):
     """
     Same payload as ProductDetails: real price, discounted price, was price,
@@ -163,11 +204,14 @@ def product_quick_view(request, product_id):
         id=product_id,
     )
 
+    ensure_default_variant(product)
+
     # One promotion query for the product + all its variants (was 1 + N before)
     promo = get_active_promotion(product, now)
     pricing = build_pricing(product.price, promo)
 
     variant_data, _ = build_variant_data(product, promo)
+    picker = show_variant_picker(product)
 
     # In stock if the product itself OR any variant has stock
     # Stock shown before the JS picks a variant: product stock, else total across variants
@@ -180,7 +224,9 @@ def product_quick_view(request, product_id):
         "available_stock": available_stock,
         "pricing": pricing,  # pricing.final / .was / .percent_off
         "images": product.images.all(),
-        "options": product.variant_options.order_by("option_name", "id"),
+        # no option groups -> no variant picker; the JS then uses the default variant
+        "options": product.variant_options.order_by("option_name", "id") if picker else product.variant_options.none(),
+        "show_variant_picker": picker,
         "variants_json": json.dumps(variant_data, cls=DjangoJSONEncoder),
         "estimated_date": now + timedelta(days=product.handling_time),
     })
@@ -739,6 +785,8 @@ def ProductDetails(request, slug, sku=None):
 
     estimated_date = now + timedelta(days=product.handling_time)
 
+    ensure_default_variant(product)    # simple product: its default variant always exists
+
     # ---- Product-level pricing ----
     promo = get_active_promotion(product, now)
     pricing = build_pricing(product.price, promo)
@@ -819,7 +867,8 @@ def ProductDetails(request, slug, sku=None):
         
         "variants_json": variants_json,
         # "options": product.variant_options.all(),
-        "options": product.variant_options.order_by("option_name", "id"),
+        "options": product.variant_options.order_by("option_name", "id") if show_variant_picker(product) else product.variant_options.none(),
+        "show_variant_picker": show_variant_picker(product),
         "related_products": related_products,
         "Reviews": Reviews,
         "Questions": Questions,
@@ -891,6 +940,7 @@ def CheckoutPage(request):
             if session_item is None:
                 continue
  
+            ensure_item_variant(item)      # simple product: attach the default variant
             qty = _checkout_quantity(session_item, item)
             item.quantity = qty
  
@@ -964,6 +1014,7 @@ def MyCart(request):
     handling_days = []
 
     for item in items:
+        ensure_item_variant(item)          # simple product: attach the default variant
         line = price_cart_item(item, item.quantity)
         lines.append(line)
 

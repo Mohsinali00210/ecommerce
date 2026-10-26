@@ -38,8 +38,8 @@
                         <div class="col-md-4">
                             <label class="form-label">Product Type</label>
                             <select class="form-select form-select-sm" id="product_type" width="100%" required>
-                                <option value="1" >Simple</option>
-                                <option value="2" selected>Grouped</option>
+                                <option value="1" selected>Simple</option>
+                                <option value="2">Grouped</option>
                             </select>
                         </div>
 
@@ -213,6 +213,15 @@
                     <!-- Tags Preview -->
                     <div id="tagsPreview" class="d-flex flex-wrap gap-1"></div>
 
+                    <!-- Simple product: one default variant, saved automatically -->
+                    <div id="simpleVariantNote" class="alert alert-info small py-2 mt-3 d-none">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Simple product.</strong> One default variant is created and saved automatically
+                        from the price and stock above. Variants cannot be added or deleted.
+                    </div>
+
+                    <!-- Variant builder (Grouped products only) -->
+                    <div id="variantBuilder">
                     <!-- Variant Inputs -->
                     <div id="variantsInputs">
                         <div class="row g-2 mb-2 variant-row" data-index="1">
@@ -267,6 +276,7 @@
                             <tbody id="variantsTableBody"></tbody>
                         </table>
                     </div>
+                    </div><!-- /#variantBuilder -->
 
 
 
@@ -754,6 +764,9 @@
     }
 
     $(document).ready(function() {
+    // Simple / Grouped: show or hide the variant builder
+    $('#product_type').on('change', applyProductTypeUI);
+    applyProductTypeUI();
     // Initialize Select2
     $('#Category').select2({ placeholder: "Select Categories",});
     $('#Brand').select2({ placeholder: "Select Categories",});
@@ -1244,6 +1257,25 @@ function saveProduct(e) {
 
 
 
+// Simple  (value '1'): one default variant, saved automatically by the server ->
+//                      variant builder hidden, Stock editable, nothing to add/delete.
+// Grouped (value '2'): variant builder shown, Stock is the sum of the variants.
+// On edit the type is locked and "Add Variant" stays disabled.
+function applyProductTypeUI() {
+    const simple  = $('#product_type').val() === '1';
+    const editing = !!$('#id').val();
+
+    $('#simpleVariantNote').toggleClass('d-none', !simple);
+    $('#variantBuilder').toggle(!simple);
+    $('#stockQuantity').prop('disabled', !simple);
+    $('.add-variant-btn').prop('disabled', simple || editing);
+    $('#product_type').prop('disabled', editing);
+
+    if (simple) {                       // drop anything built while Grouped was selected
+        $('#variantsTableBody').empty();
+    }
+}
+
 function setSelect2Value(selector, values) {
     const $el = $(selector);
     $el.val(values).trigger('change');
@@ -1351,7 +1383,7 @@ function fillProductForm(product) {
     const tbody = $('#variantsTableBody');
     tbody.empty();
 
-    if (product.variants && product.variants.length > 0) {
+    if (String(product.product_type) !== '1' && product.variants && product.variants.length > 0) {
         product.variants.forEach(variant => {
             tbody.append(`
                 <tr>
@@ -1418,6 +1450,7 @@ function fillProductForm(product) {
     attachAutoFillVariants();
     $("#promotionSection").hide();
     $(".add-variant-btn").prop("disabled",true);
+    applyProductTypeUI();
 }
 {% comment %} function loadProduct(productId) {
     fetch(`/api/v1/products/${productId}/`, {

@@ -397,12 +397,31 @@ class ProductSerializer(serializers.ModelSerializer):
 
         ]
         read_only_fields = [ 'created_at', 'modified_at']
+
+    # ---- Simple / Grouped ------------------------------------------------
+    @staticmethod
+    def _normalize_type(value):
+        return {'simple': '1', 'grouped': '2'}.get(str(value).strip().lower(), str(value).strip())
+
+    def validate_product_type(self, value):
+        value = self._normalize_type(value)
+        if value not in ('1', '2'):
+            raise serializers.ValidationError("Product type must be Simple or Grouped.")
+        return value
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['product_type'] = '1' if instance.is_simple else '2'   # always '1' / '2' for the UI
+        return data
+
     @transaction.atomic
     def update(self, instance, validated_data):
         request = self.context.get("request")
         categories = validated_data.pop("category", None)
+        # The type is fixed once the product exists (simple <-> grouped would break its variants)
+        validated_data.pop("product_type", None)
 
-        instance = super().update(instance, validated_data)
+        instance = super().update(instance, validated_data)   # Product.save() keeps a simple product's default variant in sync
 
         if categories is not None:
             instance.category.set(categories)
@@ -420,7 +439,9 @@ class ProductSerializer(serializers.ModelSerializer):
                 instance.tags.add(tag_obj)
 
         # ---- Variants: update existing, create new, delete removed ----
-        raw_variants = request.data.get("variants")
+        # Simple product: its single default variant is managed automatically, so the
+        # submitted variants are ignored (nothing can be added or deleted).
+        raw_variants = request.data.get("variants") if instance.is_grouped else None
         if raw_variants is not None:
             try:
                 variants_data = json.loads(raw_variants)
@@ -502,7 +523,22 @@ class ProductSerializer(serializers.ModelSerializer):
         tags_data = validated_data.pop("tags", [])
 
         # ----------------------------
-        # Create Product
+        # Grouped products need two or more variants
+        # ----------------------------
+        is_grouped = validated_data.get("product_type") == "2"
+        if is_grouped:
+            try:
+                submitted = json.loads(request.data.get("variants") or "[]")
+            except json.JSONDecodeError:
+                raise serializers.ValidationError({"variants": "Invalid JSON format."})
+            if len(submitted) < 2:
+                raise serializers.ValidationError(
+                    {"variants": "A grouped product needs at least two variants."}
+                )
+
+        # ----------------------------
+        # Create Product  (a simple product gets its one default variant
+        # automatically inside Product.save())
         # ----------------------------
         product = Product.objects.create(**validated_data)
 
@@ -535,7 +571,7 @@ class ProductSerializer(serializers.ModelSerializer):
         raw_variants = request.data.get("variants")
         #variant_images = request.FILES.getlist("variants[]")
 
-        if raw_variants:
+        if raw_variants and product.is_grouped:
             try:
                 variants_data = json.loads(raw_variants)
             except json.JSONDecodeError:
@@ -571,7 +607,7 @@ class ProductSerializer(serializers.ModelSerializer):
         # ----------------------------
         raw_options = request.data.get("options")
 
-        if raw_options:
+        if raw_options and product.is_grouped:
             try:
                 options_data = json.loads(raw_options)
             except json.JSONDecodeError:
@@ -583,7 +619,7 @@ class ProductSerializer(serializers.ModelSerializer):
                 option_name = item.get("option_name")
                 option_values = item.get("option", [])
 
-                color_values = item.get("value", [])
+                color_values = item.get("value") or []
                 for index, value in enumerate(option_values):
                     color_code = None
                     if option_name.lower() == "color" and index < len(color_values):
