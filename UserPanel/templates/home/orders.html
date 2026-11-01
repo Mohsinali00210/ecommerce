@@ -173,10 +173,10 @@
           <div class="d-flex flex-wrap gap-2 mb-4" id="orderStatusFilters">
             <button class="btn btn-sm btn-outline-ink filter-btn {% if type_filter == "all" %}active{% endif %}" data-filter="all">All</button>
             <button class="btn btn-sm btn-outline-ink filter-btn {% if type_filter == "" %}active{% endif %}" data-filter="pending">Pending</button>
+            <button class="btn btn-sm btn-outline-ink filter-btn {% if type_filter == "processing" %}active{% endif %}" data-filter="processing">Processing</button>
             <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="ordersuccessfull">Order Successful</button>
             <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="delivered">Delivered</button>
             <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="shipped">Shipped</button>
-            <button class="btn btn-sm btn-outline-ink filter-btn {% if type_filter == "processing" %}active{% endif %}" data-filter="processing">Processing</button>
             <button class="btn btn-sm btn-outline-ink filter-btn" data-filter="cancelled">Cancelled</button>
           </div>
 

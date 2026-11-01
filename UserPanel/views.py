@@ -779,7 +779,10 @@ def ProductDetails(request, slug, sku=None):
     )
 
     product = get_object_or_404(
-        Product.objects.prefetch_related("images", "variants", "variant_options"),
+        Product.objects.prefetch_related("images",   Prefetch(
+            "variants",
+            queryset=ProductVariant.objects.filter(is_active=True),
+        ), "variant_options"),
         slug=slug,
     )
 
@@ -794,7 +797,7 @@ def ProductDetails(request, slug, sku=None):
     # ---- Related products (no per-item promotion queries) ----
     related_products = list(
         Product.objects
-        .filter(category__in=product.category.all(), brand=product.brand)
+        .filter(category__in=product.category.all(), brand=product.brand,is_active=True)
         .exclude(id=product.id)
         .distinct()
         .prefetch_related(
@@ -1218,7 +1221,7 @@ from django.core.paginator import Paginator
 from django.db.models import Count, Max, Min, Q
 from django.shortcuts import render
 
-from products.models import Brand, Category, Product, ProductVariantOption, Tag  # adjust import path
+from products.models import Brand, Category, Product, ProductVariant,ProductVariantOption, Tag  # adjust import path
 
 
 PAGE_SIZE = 24

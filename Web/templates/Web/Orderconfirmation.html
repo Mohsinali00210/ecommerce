@@ -1,71 +1,154 @@
 {% extends "base2.html" %}
+{% block body_class %}theme-account{% endblock %}
+{% load static %}
 {% block content %}
 
-  <!-- ============ HEADER ============ -->
-  <header class="site-header">
-    <div class="container-xl py-3 d-flex align-items-center justify-content-between">
-      <div class="d-flex align-items-center gap-4">
+  <!-- ============ PAGE HEADER ============ -->
+  <section class="py-4 border-bottom" style="border-color:var(--border) !important;">
+    <div class="container-xl d-flex justify-content-between align-items-end flex-wrap gap-2">
+      <div>
+        <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
+          <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'home:user-profile' %}">My Account</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'home:Orders' %}">Orders</a></li>
+          <li class="breadcrumb-item active">Confirmation</li>
+        </ol></nav>
+        <h1 class="font-display mb-0 sz-title"><span class="sz-title-ico"><i class="bi bi-check-circle-fill"></i></span><span>Order Confirmed</span></h1>
       </div>
-      <div class="checkout-steps d-none d-md-flex align-items-center gap-2 small text-muted-custom">
-        <span class="step done"><i class="bi bi-check-circle-fill text-success"></i> Cart</span>
-        <i class="bi bi-chevron-right"></i>
-        <span class="step done"><i class="bi bi-check-circle-fill text-success"></i> Checkout</span>
-        <i class="bi bi-chevron-right"></i>
-        <span class="step active fw-semibold" style="color:var(--ink);">Confirmation</span>
-      </div>
-      <a href="" class="btn-icon" aria-label="Back to home"><i class="bi bi-house"></i></a>
+      <a href="{% url 'home:order-detail' order.order_number %}" class="btn btn-brass"><i class="bi bi-truck me-1"></i> Track This Order</a>
     </div>
-  </header>
+  </section>
 
-  <!-- ============ CONFIRMATION ============ -->
   <section class="py-5">
     <div class="container-xl">
-      <div class="row justify-content-center">
-        <div class="col-lg-8">
+      <div class="row g-4">
 
-          <div class="confirmation-hero text-center py-5">
-            <div class="confirmation-check mx-auto mb-4">
-              <i class="bi bi-check-lg"></i>
-            </div>
-            <div class="hero-eyebrow" style="color:var(--brass);">Order Placed</div>
-            <h1 class="font-display mb-2">Thank you, {{ order.user.full_name }}</h1>
-            <p class="text-muted-custom">
-              Your order is confirmed.
-              {% if order.user.email %}A confirmation email has been sent to <strong>{{ order.user.email }}</strong>.{% endif %}
-              Save your order number below to track it anytime.
-            </p>
-
-            <div class="order-number-pill mt-3">
-              <span class="text-muted-custom small">Order Number</span>
-              <div class="fw-semibold fs-5">{{ order.order_number }}</div>
-            </div>
+        <!-- Account sidebar -->
+        <div class="col-lg-3">
+          <div class="account-sidebar p-3">
+            <a href="{% url 'home:user-profile' %}" class="account-nav-link"><i class="bi bi-person me-2"></i>Profile</a>
+            <a href="{% url 'home:Orders' %}" class="account-nav-link active"><i class="bi bi-box-seam me-2"></i>Orders</a>
+            <a href="{% url 'home:user-wallet' %}" class="account-nav-link"><i class="bi bi-wallet2 me-2"></i>Wallet</a>
+            <a href="{% url 'home:user-address' %}" class="account-nav-link"><i class="bi bi-geo-alt me-2"></i>Addresses</a>
+            <a href="{% url 'home:Wishlist' %}" class="account-nav-link"><i class="bi bi-heart me-2"></i>Wishlist</a>
+            <a href="{% url 'home:Contact' %}" class="account-nav-link"><i class="bi bi-life-preserver me-2"></i>Support</a>
           </div>
+        </div>
 
-          <div class="row g-4 mt-2">
+        <div class="col-lg-9">
 
-            <!-- Order items -->
-            <div class="col-lg-7">
-              <div class="checkout-panel p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h5 class="font-display mb-0"><i class="bi bi-bag-check me-2"></i>Items Ordered</h5>
+          <!-- Guidance: confirmation -->
+          <aside class="sz-guide compact" data-guide="order-confirmation" aria-label="Your order is confirmed">
+            <div class="sz-guide-head">
+              <span class="sz-guide-ico"><i class="bi bi-bag-check-fill"></i></span>
+              <h2 class="sz-guide-title">Thank you, {{ order.user.full_name }}<small>Your order has been placed successfully</small></h2>
+            </div>
+            <div class="sz-guide-body"><div>
+              <ul class="sz-tips">
+                {% if order.user.email %}
+                <li><i class="bi bi-envelope-fill"></i><span>A confirmation email has been sent to <b>{{ order.user.email }}</b>.</span></li>
+                {% endif %}
+                <li><i class="bi bi-hash"></i><span>Save your order number <b>{{ order.order_number }}</b> to track it anytime.</span></li>
+                <li><i class="bi bi-telephone-fill"></i><span>Keep your phone nearby — the courier may call on delivery day.</span></li>
+              </ul>
+            </div></div>
+          </aside>
+
+          <div class="row g-3">
+
+            <!-- Order number + status -->
+            <div class="col-md-6">
+              <div class="p-3 border rounded h-100" style="border-color:var(--border) !important;">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <span class="badge border bg-info-subtle text-dark"><i class="bi bi-hash me-1"></i>Order Number</span>
                   {% include "Web/partials/order_status_badge.html" with status=order.status %}
+                </div>
+                <div class="fw-semibold fs-5">{{ order.order_number }}</div>
+                <div class="small text-muted-custom mt-1">Placed successfully</div>
+              </div>
+            </div>
+
+            <!-- Payment -->
+            <div class="col-md-6">
+              <div class="p-3 border rounded h-100" style="border-color:var(--border) !important;">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <span class="badge border bg-secondary-subtle text-dark"><i class="bi bi-credit-card me-1"></i>Payment</span>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">{{ order.get_payment_status_display }}</span>
+                </div>
+                <div class="fw-semibold">{{ order.get_payment_method_display }}</div>
+                {% if order.transaction_id %}
+                  <div class="small text-muted-custom">Transaction ID: {{ order.transaction_id }}</div>
+                {% endif %}
+                <div class="small mt-2">Total: <span class="fw-semibold">RS {{ order.total_amount|floatformat:2 }}</span></div>
+              </div>
+            </div>
+
+            <!-- Shipping -->
+            <div class="col-md-6">
+              <div class="p-3 border rounded h-100" style="border-color:var(--border) !important;">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <span class="badge border bg-info-subtle text-dark"><i class="bi bi-truck me-1"></i>Shipping To</span>
+                </div>
+                {% if order.shipping_address %}
+                  <div class="fw-semibold">{{ order.shipping_address.full_name }}</div>
+                  {% if order.shipping_address.phone %}<div class="small text-muted-custom">{{ order.shipping_address.phone }}</div>{% endif %}
+                  <div class="small mt-2">
+                    {{ order.shipping_address.street_address }}<br>
+                    {{ order.shipping_address.city }}{% if order.shipping_address.state %}, {{ order.shipping_address.state }}{% endif %}<br>
+                    {{ order.shipping_address.country }} &mdash; {{ order.shipping_address.postal_code }}
+                  </div>
+                {% else %}
+                  <p class="small text-muted-custom mb-0">No shipping address on file for this order.</p>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="col-md-6">
+              <div class="p-3 border rounded h-100" style="border-color:var(--border) !important;">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <span class="badge border bg-secondary-subtle text-dark"><i class="bi bi-receipt me-1"></i>Order Summary</span>
+                </div>
+                <div class="d-flex justify-content-between small">
+                  <span>Subtotal</span><span>RS {{ order.subtotal|floatformat:2 }}</span>
+                </div>
+                <div class="d-flex justify-content-between small mt-1">
+                  <span>Shipping</span>
+                  <span>{% if order.shipping_charges == 0 %}Free{% else %}RS {{ order.shipping_charges|floatformat:2 }}{% endif %}</span>
+                </div>
+                <div class="d-flex justify-content-between fw-semibold mt-2 pt-2 border-top" style="border-color:var(--border) !important;">
+                  <span>Total</span><span>RS {{ order.total_amount|floatformat:2 }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Items -->
+            <div class="col-12">
+              <div class="p-3 border rounded" style="border-color:var(--border) !important;">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                  <span class="badge border bg-info-subtle text-dark"><i class="bi bi-bag-check me-1"></i>Items Ordered</span>
                 </div>
 
                 <div class="d-flex flex-column gap-3">
                   {% for item in order_items %}
-                  <div class="d-flex gap-3 align-items-center">
-                    <img
-                      src="{% if item.product and item.product.images.first %}{{ item.product.images.first.image.url }}{% endif %}"
-                      class="checkout-thumb" width="100px"
-                      alt="{{ item.product.name|default:'Product' }}">
+                  <div class="d-flex gap-3 align-items-center {% if not forloop.last %}pb-3 border-bottom{% endif %}" style="border-color:var(--border) !important;">
+                    {% if item.product and item.product.images.first %}
+                      <img src="{{ item.product.images.first.image.url }}"
+                           class="checkout-thumb rounded" width="80"
+                           alt="{{ item.product.name|default:'Product' }}">
+                    {% else %}
+                      <div class="checkout-thumb rounded d-flex align-items-center justify-content-center" style="width:80px;height:80px;background:var(--border);">
+                        <i class="bi bi-image text-muted-custom"></i>
+                      </div>
+                    {% endif %}
                     <div class="flex-grow-1">
-                      <div class="fw-semibold small">{{ item.product.name|default:"Product no longer available" }}</div>
+                      <div class="fw-semibold">{{ item.product.name|default:"Product no longer available" }}</div>
                       {% if item.variant %}
                         <div class="small text-muted-custom">SKU: {{ item.variant.sku }}</div>
                       {% endif %}
                       <div class="small text-muted-custom">Qty {{ item.quantity }}</div>
                     </div>
-                    <div class="small fw-semibold">RS {{ item.total|floatformat:2 }}</div>
+                    <div class="fw-semibold">RS {{ item.total|floatformat:2 }}</div>
                   </div>
                   {% empty %}
                   <p class="text-muted-custom mb-0">No items found on this order.</p>
@@ -74,75 +157,41 @@
               </div>
             </div>
 
-            <!-- Summary + shipping -->
-            <div class="col-lg-5">
-              <div class="checkout-panel p-4 mb-4">
-                <h5 class="font-display mb-3"><i class="bi bi-receipt me-2"></i>Order Summary</h5>
-                <div class="summary-row d-flex justify-content-between">
-                  <span>Subtotal</span><span>RS {{ order.subtotal|floatformat:2 }}</span>
-                </div>
-                <div class="summary-row d-flex justify-content-between">
-                  <span>Shipping</span>
-                  <span>{% if order.shipping_charges == 0 %}Free{% else %}RS {{ order.shipping_charges|floatformat:2 }}{% endif %}</span>
-                </div>
-                <hr>
-                <div class="summary-row d-flex justify-content-between fw-semibold fs-5">
-                  <span>Total</span><span>RS {{ order.total_amount|floatformat:2 }}</span>
-                </div>
-                <div class="summary-row d-flex justify-content-between mt-2 small text-muted-custom">
-                  <span>Payment Method</span><span>{{ order.get_payment_method_display }}</span>
-                </div>
-                <div class="summary-row d-flex justify-content-between small text-muted-custom">
-                  <span>Payment Status</span><span>{{ order.get_payment_status_display }}</span>
-                </div>
-                {% if order.transaction_id %}
-                <div class="summary-row d-flex justify-content-between small text-muted-custom">
-                  <span>Transaction ID</span><span>{{ order.transaction_id }}</span>
-                </div>
-                {% endif %}
+            {% if order.notes %}
+            <div class="col-md-6">
+              <div class="p-3 border rounded h-100" style="border-color:var(--border) !important;">
+                <span class="badge border bg-secondary-subtle text-dark mb-2"><i class="bi bi-sticky me-1"></i>Order Notes</span>
+                <p class="small text-muted-custom mb-0">{{ order.notes }}</p>
               </div>
+            </div>
+            {% endif %}
 
-              <div class="checkout-panel p-4 mb-4">
-                <h5 class="font-display mb-3"><i class="bi bi-truck me-2"></i>Shipping To</h5>
-                {% if order.shipping_address %}
-                <div class="small">
-                  {{ order.shipping_address.full_name }}<br>
-                  {{ order.shipping_address.street_address }}<br>
-                  {{ order.shipping_address.city }}{% if order.shipping_address.state %}, {{ order.shipping_address.state }}{% endif %} {{ order.shipping_address.postal_code }}<br>
-                  {{ order.shipping_address.country }}
-                  {% if order.shipping_address.phone %}<br><span class="text-muted-custom">{{ order.shipping_address.phone }}</span>{% endif %}
-                </div>
-                {% else %}
-                <p class="small text-muted-custom mb-0">No shipping address on file for this order.</p>
-                {% endif %}
-              </div>
-
-              {% if order.qr_code %}
-              <div class="checkout-panel p-4 text-center">
-                <h6 class="font-display mb-2"><i class="bi bi-qr-code me-2"></i>Order QR</h6>
-                <img src="{{ order.qr_code.url }}" alt="Order QR code" class="img-fluid" style="max-width:160px;">
+            {% if order.qr_code %}
+            <div class="col-md-6">
+              <div class="p-3 border rounded h-100 text-center" style="border-color:var(--border) !important;">
+                <span class="badge border bg-secondary-subtle text-dark mb-2"><i class="bi bi-qr-code me-1"></i>Order QR</span>
+                <div><img src="{{ order.qr_code.url }}" alt="Order QR code" class="img-fluid" style="max-width:140px;"></div>
                 <div class="small text-muted-custom mt-2">Show this at pickup counters or for quick lookups.</div>
               </div>
-              {% endif %}
             </div>
+            {% endif %}
 
           </div>
 
-          {% if order.notes %}
-          <div class="checkout-panel p-4 mt-4">
-            <h6 class="font-display mb-2"><i class="bi bi-sticky me-2"></i>Order Notes</h6>
-            <p class="small text-muted-custom mb-0">{{ order.notes }}</p>
-          </div>
-          {% endif %}
-
-          <div class="d-flex flex-wrap gap-3 justify-content-center mt-5">
-            <a href="{% url 'home:order-detail' order.order_number %}  " class="btn btn-brass px-4">Track This Order</a>
-            <a href="{% url 'home:home' %}" class="btn btn-outline-ink px-4">Continue Shopping</a>
+          <div class="d-flex flex-wrap gap-2 mt-4">
+            <a href="{% url 'home:order-detail' order.order_number %}" class="btn btn-brass"><i class="bi bi-truck me-1"></i>Track This Order</a>
+            <a href="{% url 'home:home' %}" class="btn btn-outline-ink"><i class="bi bi-bag me-1"></i>Continue Shopping</a>
           </div>
 
         </div>
       </div>
     </div>
   </section>
+<!-- 
+  <div class="floating-stack">
+    <button class="fab fab-top" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+    <a href="https://wa.me/10000000000" target="_blank" class="fab fab-whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+  </div> -->
 
+  <script src="{% static 'assets/js/app.js' %}"></script>
 {% endblock %}

@@ -22,7 +22,7 @@
     </div>
 
     <div class="form-check mb-2">
-        <input class="form-check-input" type="checkbox" id="IsCustomUI">
+        <input class="form-check-input" type="checkbox" checked id="IsCustomUI">
         <label class="form-check-label" for="IsCustomUI">Custom UI For Option</label>
     </div>
 
@@ -34,11 +34,19 @@
         </div>
         <div id="colorList" class="mt-2 d-flex flex-wrap gap-2"></div>
     </div>
-
-    <div class="form-check mb-3">
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="form-check mb-0">
+            <input class="form-check-input" type="checkbox" id="autoFillToggle" checked>
+            <label class="form-check-label" for="autoFillToggle">Auto-fill Price &amp; Stock for all variants</label>
+        </div>
+        <button type="button" class="btn btn-outline-primary btn-sm" id="refreshVariantsBtn">
+            &#8635; Refresh Variants
+        </button>
+    </div>
+    <!-- <div class="form-check mb-3">
         <input class="form-check-input" type="checkbox" id="autoFillToggle" checked>
         <label class="form-check-label" for="autoFillToggle">Auto-fill Price &amp; Stock for all variants</label>
-    </div>
+    </div> -->
 
     <div class="table-responsive">
         <table class="table table-sm" id="variantsTable">
@@ -67,117 +75,85 @@
         <button type="submit" class="btn btn-dark" id="saveAllVariantsBtn">Save All Variants</button>
     </div>
 </form>
-
 <script>
-
-    let variants = [];
-    const form = document.getElementById('variantBulkForm');
-form.addEventListener("submit", async function (e) {
-    e.preventDefault();
-
-    const variantsData = [];
-
-    document.querySelectorAll("#variantsTable tbody tr").forEach(function (row) {
-        variantsData.push({
-            name: row.querySelector(".variantName").value,
-            sku: row.querySelector(".variantSku").value,
-            price: row.querySelector(".variantPrice").value,
-            stock_quantity: row.querySelector(".variantStockQTY").value
-        });
-    });
-
-    const optionsData = variants.map(function (v) {
-        return {
-            option_name: v.name,
-            option: v.options,
-            value: v.colors || []
-        };
-    });
-
-    const formData = new FormData();
-
-    // CSRF
-    formData.append(
-        "csrfmiddlewaretoken",
-        document.querySelector("[name=csrfmiddlewaretoken]").value
-    );
-
-    // JSON data
-    formData.append("variants", JSON.stringify(variantsData));
-    formData.append("options", JSON.stringify(optionsData));
-
-    // Variant images
-    document.querySelectorAll(".variant-images").forEach(function (input, index) {
-        if (input.files.length > 0) {
-            formData.append(`variants[${index}][image]`, input.files[0]);
-        }
-    });
-
-    try {
-        const response = await fetch(form.action, {
-            method: "POST",
-            body: formData
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            alert(data.message);
-        } else {
-            alert(data.message);
-        }
-    } catch (err) {
-        console.error(err);
-        alert("Something went wrong.");
-    }
-});
-
 (function () {
-    form.addEventListener('click', function (e) {
-        if (!e.target.classList.contains('add-variant-btn')) return;
+    const form = document.getElementById('variantBulkForm');
+    const tableBody = document.querySelector('#variantsTable tbody');
+    let variants = [];
+    let autoFillEnabled = true;
 
+    /* ---------- helpers ---------- */
+    function showBulkVariantAlert(message, type) {
+        document.getElementById('variantBuilderAlert').innerHTML =
+            `<div class="alert alert-${type} alert-dismissible fade show" role="alert">${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+    }
+    function clearBulkVariantAlert() {
+        document.getElementById('variantBuilderAlert').innerHTML = '';
+    }
+    function cartesian(arr) {
+        return arr.reduce((a, b) => a.flatMap(d => b.map(e => [...d, e])), [[]]);
+    }
+    function getPickedColors() {
+        return Array.from(form.querySelectorAll('#colorList .color-box')).map(el => el.dataset.value);
+    }
+
+    /* ---------- read + validate the option rows ---------- */
+    function collectVariants() {
         const rows = form.querySelectorAll('#variantsInputs .variant-row');
-        variants = [];
-        let flag = true;
+        const colorValues = getPickedColors();                       // color picker array
+        const isCustom = document.getElementById('IsCustomUI').checked;
+        const collected = [];
+        let valid = true;
 
-        rows.forEach((row) => {
+        rows.forEach(row => {
             const name = row.querySelector('.variant-name').value.trim();
             const optionInput = row.querySelector('.variant-options');
-            const options = optionInput.value.split(',').map(o => o.trim()).filter(o => o);
-            const colorValues = Array.from(form.querySelectorAll('#colorList .color-box')).map(el => el.dataset.value);
-            const isCustom = document.getElementById('IsCustomUI').checked;
+            const options = optionInput.value.split(',').map(o => o.trim()).filter(Boolean);
+
+            // skip the untouched blank row that "Add Variant" appends
+            if (!name && options.length === 0) return;
+
+            optionInput.classList.remove('is-invalid');
 
             if (!name || options.length === 0) {
                 showBulkVariantAlert('Enter a variant name and its options.', 'danger');
-                flag = false;
+                valid = false;
                 return;
             }
-            if (isCustom && name.toLowerCase().includes('color')) {
+
+            const isColorVariant = name.toLowerCase().includes('color');
+
+            // compare comma-separated options with the color picker array
+            if (isColorVariant && (isCustom || colorValues.length > 0)) {
                 if (options.length !== colorValues.length) {
                     optionInput.classList.add('is-invalid');
-                    showBulkVariantAlert('Color names and selected colors must match in count!', 'danger');
-                    flag = false;
+                    showBulkVariantAlert(
+                        `"${name}": ${options.length} option(s) entered (${options.join(', ')}) but ` +
+                        `${colorValues.length} color(s) picked. The counts must match.`,
+                        'danger'
+                    );
+                    valid = false;
                     return;
                 }
-                optionInput.classList.remove('is-invalid');
             }
-            variants.push({ name, options, colors: colorValues });
+
+            // only color variants carry the picker values
+            collected.push({ name, options, colors: isColorVariant ? colorValues : [] });
         });
 
-        if (flag) {
-            clearBulkVariantAlert();
-            if (variants.length < 4) addVariantInputRow();
-            generateCombinations();
-            attachAutoFillVariants();
+        if (valid && collected.length === 0) {
+            showBulkVariantAlert('Enter a variant name and its options.', 'danger');
+            valid = false;
         }
-    });
+        if (valid) variants = collected;
+        return valid;
+    }
 
     function addVariantInputRow() {
-        const index = variants.length + 1;
         const container = document.getElementById('variantsInputs');
         const row = document.createElement('div');
         row.className = 'row g-2 mb-2 variant-row';
-        row.setAttribute('data-index', index);
+        row.setAttribute('data-index', container.children.length + 1);
         row.innerHTML = `
             <div class="col-md-3"><input type="text" class="form-control form-control-sm variant-name" placeholder="Variant Name"></div>
             <div class="col-md-5"><input type="text" class="form-control form-control-sm variant-options" placeholder="Options (comma separated)"></div>
@@ -186,123 +162,141 @@ form.addEventListener("submit", async function (e) {
         container.appendChild(row);
     }
 
-    function generateCombinations() {
-        const tableBody = document.querySelector('#variantsTable tbody');
-        tableBody.innerHTML = '';
-
-        const allOptions = variants.map(v => v.options);
-        if (allOptions.length === 0) return;
-
-        const combinations = cartesian(allOptions);
-
-        combinations.forEach((combo, rowIndex) => {
-            const variantName = combo.join(' / ');
-            const prodName = ((document.getElementById('id_name') || {}).value || '').replace(/\s+/g, '');
-            const sku = 'SKU-' + prodName.substring(0, 5).toUpperCase() + '-' + combo.join('-').toUpperCase();
-
-            let colorBoxHtml = '';
-            variants.forEach((v, i) => {
-                if (v.name.toLowerCase().includes('color') && v.colors && v.colors.length > 0) {
-                    const selectedOption = combo[i];
-                    const optionIndex = v.options.indexOf(selectedOption);
-                    if (optionIndex !== -1 && v.colors[optionIndex]) {
-                        colorBoxHtml += `<span title="${selectedOption}" style="display:inline-block;width:18px;height:18px;background:${v.colors[optionIndex]};border:1px solid #ccc;border-radius:3px;margin-right:4px;"></span>`;
-                    }
+    /* ---------- build / refresh the table ---------- */
+    function buildColorBoxes(combo) {
+        let html = '';
+        variants.forEach((v, i) => {
+            if (v.name.toLowerCase().includes('color') && v.colors && v.colors.length) {
+                const optionIndex = v.options.indexOf(combo[i]);
+                if (optionIndex !== -1 && v.colors[optionIndex]) {
+                    html += `<span title="${combo[i]}" style="display:inline-block;width:18px;height:18px;background:${v.colors[optionIndex]};border:1px solid #ccc;border-radius:3px;margin-right:4px;"></span>`;
                 }
-            });
+            }
+        });
+        return html;
+    }
 
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>
-                    ${colorBoxHtml}
-                    <input type="hidden" class="variantName" value="${variantName}">
-                    ${variantName}
-                </td>
-                <td><input type="text" class="form-control form-control-sm variantSku" value="${sku}"></td>
-                <td><input type="number" step="0.01" class="form-control form-control-sm variantPrice" placeholder="Price"></td>
-                <td><input type="number" class="form-control form-control-sm variantStockQTY" placeholder="Stock"></td>
-                <td>
-                    <input type="file" class="variant-images" name="variants[${rowIndex}][image]" accept="image/*">
-                    <div class="image-preview d-flex flex-wrap gap-1 mt-1"></div>
-                </td>
-            `;
-            tableBody.appendChild(tr);
+    function generateCombinations() {
+        // remember existing rows so edits / images survive a refresh
+        const existing = {};
+        tableBody.querySelectorAll('tr').forEach(tr => {
+            existing[tr.querySelector('.variantName').value] = tr;
         });
 
-        stocktotalsumevent();
-        attachImagePreview();
+        const combos = cartesian(variants.map(v => v.options));
+        const prodName = ((document.getElementById('id_name') || {}).value || '').replace(/\s+/g, '');
+        const fragment = document.createDocumentFragment();
+
+        combos.forEach((combo, rowIndex) => {
+            const variantName = combo.join(' / ');
+            let tr = existing[variantName];
+
+            if (tr) {
+                tr.querySelector('.color-boxes').innerHTML = buildColorBoxes(combo);
+            } else {
+                const sku = 'SKU-' + prodName.substring(0, 5).toUpperCase() + '-' + combo.join('-').toUpperCase();
+                tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <span class="color-boxes">${buildColorBoxes(combo)}</span>
+                        <input type="hidden" class="variantName" value="${variantName}">
+                        ${variantName}
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm variantSku" value="${sku}"></td>
+                    <td><input type="number" step="0.01" class="form-control form-control-sm variantPrice" placeholder="Price"></td>
+                    <td><input type="number" class="form-control form-control-sm variantStockQTY" placeholder="Stock"></td>
+                    <td>
+                        <input type="file" class="variant-images" accept="image/*">
+                        <div class="image-preview d-flex flex-wrap gap-1 mt-1"></div>
+                    </td>
+                `;
+                bindImagePreview(tr.querySelector('.variant-images'));
+            }
+            fragment.appendChild(tr);
+        });
+
+        tableBody.innerHTML = '';
+        tableBody.appendChild(fragment);
+        updateStockTotal();
     }
 
-    function stocktotalsumevent() {
-        const inputs = document.querySelectorAll('.variantStockQTY');
-        const totalDisplay = document.getElementById('stockQuantity');
-        const updateSum = () => {
-            totalDisplay.value = Array.from(inputs).reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
-        };
-        inputs.forEach(input => input.addEventListener('blur', updateSum));
-        updateSum();
+    function updateStockTotal() {
+        const total = Array.from(document.querySelectorAll('.variantStockQTY'))
+            .reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
+        document.getElementById('stockQuantity').value = total;
     }
 
-    function cartesian(arr) {
-        return arr.reduce((a, b) => a.flatMap(d => b.map(e => [...d, e])), [[]]);
-    }
-
-    function attachImagePreview() {
-        document.querySelectorAll('.variant-images').forEach(input => {
-            input.addEventListener('change', function () {
-                const previewDiv = this.nextElementSibling;
-                previewDiv.innerHTML = '';
-                Array.from(this.files).forEach((file) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const container = document.createElement('div');
-                        container.style.cssText = 'position:relative;display:inline-block;';
-                        const img = document.createElement('img');
-                        img.src = e.target.result;
-                        img.style.cssText = 'width:50px;height:50px;object-fit:cover;border:1px solid #ddd;border-radius:4px;';
-                        container.appendChild(img);
-                        const btn = document.createElement('button');
-                        btn.type = 'button';
-                        btn.innerHTML = '&times;';
-                        btn.className = 'btn btn-sm btn-danger';
-                        btn.style.cssText = 'position:absolute;top:-5px;right:-5px;padding:0px 5px;line-height:1;font-size:12px;border-radius:50%;';
-                        btn.addEventListener('click', function () {
-                            input.value = '';
-                            container.remove();
-                        });
-                        container.appendChild(btn);
-                        previewDiv.appendChild(container);
-                    };
-                    reader.readAsDataURL(file);
-                });
+    function bindImagePreview(input) {
+        input.addEventListener('change', function () {
+            const previewDiv = this.nextElementSibling;
+            previewDiv.innerHTML = '';
+            Array.from(this.files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const container = document.createElement('div');
+                    container.style.cssText = 'position:relative;display:inline-block;';
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.cssText = 'width:50px;height:50px;object-fit:cover;border:1px solid #ddd;border-radius:4px;';
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.innerHTML = '&times;';
+                    btn.className = 'btn btn-sm btn-danger';
+                    btn.style.cssText = 'position:absolute;top:-5px;right:-5px;padding:0px 5px;line-height:1;font-size:12px;border-radius:50%;';
+                    btn.addEventListener('click', () => { input.value = ''; container.remove(); });
+                    container.append(img, btn);
+                    previewDiv.appendChild(container);
+                };
+                reader.readAsDataURL(file);
             });
         });
     }
 
-    let autoFillEnabled = true;
+    /* ---------- events (attached once) ---------- */
+    // Add Variant
+    form.addEventListener('click', function (e) {
+        if (!e.target.classList.contains('add-variant-btn')) return;
+        if (!collectVariants()) return;
+        clearBulkVariantAlert();
+
+        const rows = form.querySelectorAll('#variantsInputs .variant-row');
+        const lastRow = rows[rows.length - 1];
+        const lastFilled = lastRow.querySelector('.variant-name').value.trim() ||
+                           lastRow.querySelector('.variant-options').value.trim();
+        if (lastFilled && rows.length < 4) addVariantInputRow();
+
+        generateCombinations();
+    });
+
+    // Refresh Variants
+    document.getElementById('refreshVariantsBtn').addEventListener('click', function () {
+        if (!collectVariants()) return;
+        clearBulkVariantAlert();
+        generateCombinations();
+    });
+
+    // auto-fill price/stock + stock total (single delegated listener)
+    tableBody.addEventListener('input', function (e) {
+        const input = e.target;
+        if (input.tagName !== 'INPUT') return;
+        const isPrice = input.classList.contains('variantPrice');
+        const isStock = input.classList.contains('variantStockQTY');
+        if (autoFillEnabled && (isPrice || isStock)) {
+            const selector = isPrice ? '.variantPrice' : '.variantStockQTY';
+            tableBody.querySelectorAll(selector).forEach(other => {
+                if (other !== input) other.value = input.value;
+            });
+        }
+        if (isStock) updateStockTotal();
+    });
+
     document.getElementById('autoFillToggle').addEventListener('change', function () {
         autoFillEnabled = this.checked;
     });
 
-    function attachAutoFillVariants() {
-        const tableBody = document.querySelector('#variantsTable tbody');
-        tableBody.addEventListener('input', function (e) {
-            if (!autoFillEnabled || e.target.tagName !== 'INPUT') return;
-            const input = e.target;
-            const colIndex = input.closest('td').cellIndex;
-            if (colIndex === 2 || colIndex === 3) {
-                const value = input.value;
-                Array.from(tableBody.rows).forEach(row => {
-                    const cellInput = row.cells[colIndex].querySelector('input');
-                    if (cellInput !== input) cellInput.value = value;
-                });
-            }
-        });
-    }
-
+    // color picker
     document.getElementById('addColorBtn').addEventListener('click', function () {
         const colorValue = document.getElementById('colorPicker').value;
-        const colorList = document.getElementById('colorList');
         const box = document.createElement('span');
         box.className = 'color-box';
         box.dataset.value = colorValue;
@@ -310,38 +304,60 @@ form.addEventListener("submit", async function (e) {
         box.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid #ccc;border-radius:4px;background:#fff;';
         box.innerHTML = `<span style="display:inline-block;width:16px;height:16px;background:${colorValue};border-radius:3px;border:1px solid #999;"></span><button type="button" class="btn-close" style="font-size:9px;" aria-label="Remove"></button>`;
         box.querySelector('button').addEventListener('click', () => box.remove());
-        colorList.appendChild(box);
+        document.getElementById('colorList').appendChild(box);
     });
 
-    function showBulkVariantAlert(message, type) {
-        document.getElementById('variantBuilderAlert').innerHTML =
-            `<div class="alert alert-${type} alert-dismissible fade show" role="alert">${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
-    }
-    function clearBulkVariantAlert() {
-        document.getElementById('variantBuilderAlert').innerHTML = '';
-    }
+    /* ---------- submit (validate, then post) ---------- */
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
 
-    // Runs before the modal's document-level delegated submit handler (attached
-    // directly to this form, so it fires first as the event bubbles up).
-    form.addEventListener('submit', function (e) {
-        const rows = document.querySelectorAll('#variantsTable tbody tr');
+        const rows = tableBody.querySelectorAll('tr');
         if (rows.length === 0) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
             showBulkVariantAlert('Define at least one variant option and click "Add Variant" to generate combinations first.', 'danger');
             return;
         }
         let hasError = false;
-        rows.forEach((row) => {
-            if (!row.querySelector('.variantSku').value.trim() || !row.querySelector('.variantPrice').value) {
-                hasError = true;
-            }
+        rows.forEach(row => {
+            if (!row.querySelector('.variantSku').value.trim() || !row.querySelector('.variantPrice').value) hasError = true;
         });
         if (hasError) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
             showBulkVariantAlert('Every variant row needs a SKU and a Price before saving.', 'danger');
+            return;
         }
+
+        const variantsData = Array.from(rows).map(row => ({
+            name: row.querySelector('.variantName').value,
+            sku: row.querySelector('.variantSku').value,
+            price: row.querySelector('.variantPrice').value,
+            stock_quantity: row.querySelector('.variantStockQTY').value
+        }));
+        const optionsData = variants.map(v => ({
+            option_name: v.name,
+            option: v.options,
+            value: v.colors || []
+        }));
+
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', form.querySelector('[name=csrfmiddlewaretoken]').value);
+        formData.append('variants', JSON.stringify(variantsData));
+        formData.append('options', JSON.stringify(optionsData));
+        rows.forEach((row, index) => {
+            const file = row.querySelector('.variant-images').files[0];
+            if (file) formData.append(`variants[${index}][image]`, file);
+        });
+
+        const saveBtn = document.getElementById('saveAllVariantsBtn');
+        saveBtn.disabled = true;
+        try {
+            const response = await fetch(form.action, { method: 'POST', body: formData });
+            const data = await response.json();
+            alert(data.message);
+            if (data.success) window.location.reload();   // remove if you don't want a reload
+        } catch (err) {
+            console.error(err);
+            alert('Something went wrong.');
+        }
+        saveBtn.disabled = false;
     });
 })();
 </script>
