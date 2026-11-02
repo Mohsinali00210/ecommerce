@@ -157,6 +157,26 @@
     const money = (n) => `RS ${Number(n).toFixed(2)}`;
     const normalize = (arr) => arr.map(s => String(s).trim().toLowerCase()).sort().join('|');
 
+    // Option groups in the same order as the variant name ("Color / Size")
+    const GROUP_ORDER = Array.from(root.querySelectorAll('[data-option-group]'))
+      .map(g => g.dataset.optionGroup);
+
+    const variantParts = (v) => v.name.split(' / ').map(p => normalize([p]));
+
+    // Is there a variant with stock >= qty if `value` is chosen for `groupName`,
+    // keeping the options currently selected in the OTHER groups?
+    function isOptionAvailable(groupName, value, qty) {
+      const wanted = GROUP_ORDER.map(g =>
+        g === groupName ? normalize([value])
+                        : (selected[g] !== undefined ? normalize([selected[g]]) : null)
+      );
+      return VARIANTS.some(v => {
+        const parts = variantParts(v);
+        return Number(v.stock) >= qty &&
+               wanted.every((w, i) => w === null || w === parts[i]);
+      });
+    }
+
     // ---------- Gallery thumbnails ----------
     root.querySelectorAll('.pdp-thumb[data-full]').forEach(thumb => {
       thumb.addEventListener('click', () => {
@@ -217,13 +237,14 @@
 
     function showStock(stock) {
       stock = Number(stock || 0);
+      const qty = parseInt(qtyInput.value) || 1;
       const label = $('.qv-stock-label');
 
       if (stock > 0) {
         label.innerHTML = `<i class="bi bi-check-circle-fill"></i> In stock (${stock} left)`;
         label.className = 'small qv-stock-label text-success';
-        setMaxQty(PREORDER_ONLY ? Infinity : stock);   // pre-orders aren't capped by stock
-        setPurchaseButtons(true);
+        setMaxQty(PREORDER_ONLY ? Infinity : stock);
+        setPurchaseButtons(PREORDER_ONLY || qty <= stock);
       } else if (PREORDER_ONLY) {
         label.innerHTML = `<i class="bi bi-check-circle-fill"></i> Available for pre-order`;
         label.className = 'small qv-stock-label text-success';
@@ -257,21 +278,21 @@
       showStock(v.stock);
     }
 
-    // ---------- Mark options that have no stock ----------
+    // ---------- Strike through options that can't be bought with the current selection + qty ----------
     function markSoldOutOptions() {
-      if (!VARIANTS.length || PREORDER_ONLY) return;
-      root.querySelectorAll('[data-option-group] .size-pill, [data-option-group] .variant-swatch').forEach(el => {
-        const val = normalize([el.dataset.value]);
-        const available = VARIANTS.some(v =>
-          Number(v.stock) > 0 &&
-          v.name.split(' / ').some(part => normalize([part]) === val)
-        );
-        el.classList.toggle('sold-out', !available);
+      if (!VARIANTS.length || PREORDER_ONLY) return;   // pre-order: never strike out
+      const qty = parseInt(qtyInput.value) || 1;
+
+      root.querySelectorAll('[data-option-group]').forEach(groupEl => {
+        const groupName = groupEl.dataset.optionGroup;
+        groupEl.querySelectorAll('.size-pill, .variant-swatch').forEach(el => {
+          el.classList.toggle('sold-out', !isOptionAvailable(groupName, el.dataset.value, qty));
+        });
       });
     }
 
     // ---------- Option selection ----------
-    function selectOption(groupEl, target) {
+    function setActive(groupEl, target) {
       groupEl.querySelectorAll('.variant-swatch, .size-pill').forEach(e => e.classList.remove('active'));
       target.classList.add('active');
 
@@ -280,7 +301,37 @@
 
       const labelEl = root.querySelector(`[data-variant-label="${groupName}"]`);
       if (labelEl) labelEl.textContent = target.dataset.value;
+    }
 
+    function selectOption(groupEl, target, autoFix = true) {
+      setActive(groupEl, target);
+
+      // If the resulting combination has too little stock, switch the other
+      // groups to the first combination that does have enough.
+      if (autoFix && !PREORDER_ONLY && VARIANTS.length) {
+        const qty = parseInt(qtyInput.value) || 1;
+        const current = matchingVariant();
+
+        if (!current || Number(current.stock) < qty) {
+          const idx = GROUP_ORDER.indexOf(groupEl.dataset.optionGroup);
+          const chosen = normalize([target.dataset.value]);
+          const fallback = VARIANTS.find(v =>
+            variantParts(v)[idx] === chosen && Number(v.stock) >= qty
+          );
+
+          if (fallback) {
+            const parts = variantParts(fallback);
+            root.querySelectorAll('[data-option-group]').forEach((g, i) => {
+              if (i === idx) return;
+              const el = Array.from(g.querySelectorAll('[data-value]'))
+                .find(e => normalize([e.dataset.value]) === parts[i]);
+              if (el) setActive(g, el);
+            });
+          }
+        }
+      }
+
+      markSoldOutOptions();
       updateVariant();
     }
 
@@ -306,6 +357,8 @@
         const current = parseInt(qtyInput.value) || 1;
         const next = current + parseInt(btn.dataset.qtyStep);
         qtyInput.value = Math.min(Math.max(1, next), maxQty);
+        markSoldOutOptions();
+        updateVariant();
       });
     });
 
@@ -313,10 +366,10 @@
     window.QuickView = window.QuickView || {};
     window.QuickView.addToCart = function () {
       const v = matchingVariant();
-      if (VARIANTS.length && !v) return;                          // invalid combination
-      if (!PREORDER_ONLY && v && Number(v.stock) <= 0) return;    // out of stock (pre-order is exempt)
       const qty = parseInt(qtyInput.value) || 1;
-      Cart.add(PRODUCT_ID, v ? v.id : null, qty);  // reuses the existing Cart.add()
+      if (VARIANTS.length && !v) return;                                   // invalid combination
+      if (!PREORDER_ONLY && v && Number(v.stock) < qty) return;            // not enough stock (pre-order exempt)
+      Cart.add(PRODUCT_ID, v ? v.id : null, qty);                          // reuses the existing Cart.add()
     };
 
     // If the default (first) options have no stock but another variant does,
@@ -327,18 +380,18 @@
       if (current && Number(current.stock) > 0) return;
       const target = VARIANTS.find(v => Number(v.stock) > 0);
       if (!target) return;
-      target.name.split(' / ').forEach(part => {
-        root.querySelectorAll('[data-option-group]').forEach(groupEl => {
-          const el = Array.from(groupEl.querySelectorAll('[data-value]'))
-            .find(e => normalize([e.dataset.value]) === normalize([part]));
-          if (el) selectOption(groupEl, el);
-        });
+      const parts = variantParts(target);
+      root.querySelectorAll('[data-option-group]').forEach((groupEl, i) => {
+        const el = Array.from(groupEl.querySelectorAll('[data-value]'))
+          .find(e => normalize([e.dataset.value]) === parts[i]);
+        if (el) selectOption(groupEl, el, false);   // false: no auto-correct while preselecting
       });
     }
 
     // ---------- Initial state ----------
     markSoldOutOptions();
     preselectInStockVariant();
+    markSoldOutOptions();
     updateVariant();
   })();
 </script>

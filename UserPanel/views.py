@@ -797,7 +797,7 @@ def ProductDetails(request, slug, sku=None):
     # ---- Related products (no per-item promotion queries) ----
     related_products = list(
         Product.objects
-        .filter(category__in=product.category.all(), brand=product.brand,is_active=True)
+        .filter(category__in=product.category.all(), brand=product.brand,is_active=True,status="active")
         .exclude(id=product.id)
         .distinct()
         .prefetch_related(

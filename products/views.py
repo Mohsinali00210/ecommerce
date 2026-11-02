@@ -1295,7 +1295,7 @@ def variant_edit_modal(request, product_id, variant_id):
             instance.save()
             form.save_m2m()                                   # saves the `images` M2M
             form.save_color_codes(user=request.user)
-
+            product.sync_stock_from_variants()
             return JsonResponse({'success': True, 'message': 'Variant saved successfully.'})
         html = render_to_string(
             'products/partials/variant_form.html',
@@ -1406,6 +1406,7 @@ def variant_bulk_create(request, product_id):
                 variant.image = product_image
                 variant.save()
             created_variants.append(variant)
+            product.sync_stock_from_variants()
  
         for item in options_data:
             option_name = item.get('option_name')

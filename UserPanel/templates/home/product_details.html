@@ -770,6 +770,13 @@ body{
     transition: none;
   }
 }
+
+.sold-out { opacity: .4; cursor: not-allowed; position: relative; }
+.size-pill.sold-out { text-decoration: line-through; }
+.variant-swatch.sold-out::after {
+  content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px;
+  background: var(--text); transform: rotate(45deg);
+}
 </style>
 <section class="pb-5">
   <div class="container-xl">
@@ -951,8 +958,8 @@ body{
                   onclick="Cart.add(getSelectedVariantId('{{ product.id }}'), parseInt(document.getElementById('pdpQty').value))">
             <i class="bi bi-bag-plus me-1"></i> Add to Cart
           </button>
-          <button class="btn btn-outline-ink btn-lg" style="min-width:140px"
-                  onclick="Cart.add(getSelectedVariantId('{{ product.id }}'), parseInt(document.getElementById('pdpQty').value),true)">
+          <button class="btn btn-outline-ink btn-lg" style="min-width:140px" id="buyNowBtn"
+                  onclick="Cart.add(getSelectedVariantId('{{ product.id }}'), parseInt(document.getElementById('pdpQty').value), true)">
             Buy Now
           </button>
           <button class="btn-icon" data-wishlist-btn="{{ product.id }}" onclick="Wishlist.toggle('{{ product.id }}')">
@@ -962,7 +969,7 @@ body{
 
         {% if product.available_for_preorder %}
           <div class="alert alert-warning small py-2 mb-2">
-            <i class="bi bi-hourglass-split me-1"></i> Available for pre-order. Adding to cart is not open yet.
+            <i class="bi bi-hourglass-split me-1"></i> Available for pre-order. It will be dispatched once stock arrives.          
           </div>
         {% endif %}
 
@@ -1245,6 +1252,11 @@ body{
         add(id, qty = 1, buyNow = false) {
             
             if (!requireLogin()) return;
+            const v = getMatchingVariant();
+            if (!PREORDER_ONLY && (!v || Number(v.stock) < qty)) {
+                window.showToast && window.showToast("Selected quantity is not available.", "danger");
+                return;
+            }
             // Require login only for Buy Now
             //if (buyNow && !IS_AUTHENTICATED) {
             //    window.location.href = LOGIN_URL + "?next=" + encodeURIComponent(window.location.pathname);
@@ -1444,31 +1456,45 @@ body{
     // SELECT VARIANT OPTION
     // =========================================================
 
-    function selectOption(groupEl, target) {
+    function setActive(groupEl, target) {
+      groupEl.querySelectorAll(".variant-swatch, .size-pill").forEach(el => el.classList.remove("active"));
+      target.classList.add("active");
+      const groupName = groupEl.dataset.optionGroup;
+      selectedOptions[groupName] = target.dataset.value;
+      const label = document.querySelector(`[data-variant-label="${groupName}"]`);
+      if (label) label.textContent = target.dataset.value;
+    }
 
-        // Remove active from this group
-        groupEl
-            .querySelectorAll(".variant-swatch, .size-pill")
-            .forEach(el => el.classList.remove("active"));
+    function selectOption(groupEl, target, autoFix = true) {
+      setActive(groupEl, target);
 
-        // Select clicked option
-        target.classList.add("active");
+      if (autoFix && !PREORDER_ONLY && PRODUCT_VARIANTS.length) {
+        const qty = parseInt(qtyInput.value) || 1;
+        const current = getMatchingVariant();
 
-        const groupName = groupEl.dataset.optionGroup;
+        if (!current || Number(current.stock) < qty) {
+          const idx = GROUP_ORDER.indexOf(groupEl.dataset.optionGroup);
+          const chosen = normalize([target.dataset.value]);
 
-        selectedOptions[groupName] = target.dataset.value;
+          // first variant that has the clicked option AND enough stock
+          const fallback = PRODUCT_VARIANTS.find(v =>
+            variantParts(v)[idx] === chosen && Number(v.stock) >= qty
+          );
 
-        // Update label
-        const label = document.querySelector(
-            `[data-variant-label="${groupName}"]`
-        );
-
-        if (label) {
-            label.textContent = target.dataset.value;
+          if (fallback) {
+            const parts = variantParts(fallback);
+            document.querySelectorAll("[data-option-group]").forEach((g, i) => {
+              if (i === idx) return;
+              const el = Array.from(g.querySelectorAll("[data-value]"))
+                .find(e => normalize([e.dataset.value]) === parts[i]);
+              if (el) setActive(g, el);
+            });
+          }
         }
+      }
 
-        // Update price / stock / buttons
-        updateSelectedVariant();
+      markSoldOutOptions();      // re-strike based on the new selection
+      updateSelectedVariant();
     }
 
 
@@ -1477,37 +1503,18 @@ body{
     // =========================================================
 
     document.querySelectorAll("[data-option-group]").forEach(groupEl => {
-
-        const groupName = groupEl.dataset.optionGroup;
-
-        groupEl
-            .querySelectorAll(".variant-swatch, .size-pill")
-            .forEach(el => {
-
-                el.addEventListener("click", () => {
-
-                    // Don't allow unavailable option
-                    if (el.classList.contains("sold-out")) {
-                        return;
-                    }
-
-                    selectOption(groupEl, el);
-                });
-
-                // Existing active option
-                if (el.classList.contains("active")) {
-
-                    selectedOptions[groupName] = el.dataset.value;
-
-                    const label = document.querySelector(
-                        `[data-variant-label="${groupName}"]`
-                    );
-
-                    if (label) {
-                        label.textContent = el.dataset.value;
-                    }
-                }
-            });
+      const groupName = groupEl.dataset.optionGroup;
+      groupEl.querySelectorAll(".variant-swatch, .size-pill").forEach(el => {
+        el.addEventListener("click", () => {
+          if (el.classList.contains("sold-out")) return;
+          selectOption(groupEl, el);
+        });
+        if (el.classList.contains("active")) {
+          selectedOptions[groupName] = el.dataset.value;
+          const label = document.querySelector(`[data-variant-label="${groupName}"]`);
+          if (label) label.textContent = el.dataset.value;
+        }
+      });
     });
 
 
@@ -1519,7 +1526,25 @@ body{
             .map(s => String(s).trim().toLowerCase())
             .sort()
             .join("|");
+    // Option groups in the same order as the variant name ("Color / Size")
+    const GROUP_ORDER = Array.from(document.querySelectorAll("[data-option-group]"))
+      .map(g => g.dataset.optionGroup);
 
+    const variantParts = (v) => v.name.split(" / ").map(p => normalize([p]));
+
+    // Is there an in-stock variant (stock >= qty) if `value` is chosen for `groupName`,
+    // while keeping the options currently selected in the OTHER groups?
+    function isOptionAvailable(groupName, value, qty) {
+      const wanted = GROUP_ORDER.map(g =>
+        g === groupName ? normalize([value])
+                        : (selectedOptions[g] !== undefined ? normalize([selectedOptions[g]]) : null)
+      );
+      return PRODUCT_VARIANTS.some(v => {
+        const parts = variantParts(v);
+        return Number(v.stock) >= qty &&
+              wanted.every((w, i) => w === null || w === parts[i]);
+      });
+    }
     function getMatchingVariant() {
 
         const values = Object.values(selectedOptions);
@@ -1645,36 +1670,28 @@ body{
     // SHOW STOCK
     // =========================================================
 
-    function showStock(stock) {
+    
+  function showStock(stock) {
+      stock = Number(stock || 0);
+      const qty = parseInt(qtyInput.value) || 1;
+      const stockLabel = document.getElementById("stockLabel");
 
-        stock = Number(stock || 0);
-
-        const stockLabel = document.getElementById("stockLabel");
-
-        if (stock > 0) {
-
-            stockLabel.innerHTML =
-                `<i class="bi bi-check-circle-fill"></i> In stock (${stock} left)`;
-
-            stockLabel.className = "small text-success";
-
-            setMaxQty(stock);
-
-            // ENABLE BOTH BUTTONS
-            setPurchaseButtons(true);
-
-        } else {
-
-            stockLabel.innerHTML =
-                `<i class="bi bi-x-circle-fill"></i> Out of stock`;
-
-            stockLabel.className = "small text-danger";
-
-            setMaxQty(1);
-
-            // DISABLE BOTH BUTTONS
-            setPurchaseButtons(false);
-        }
+      if (stock > 0) {
+        stockLabel.innerHTML = `<i class="bi bi-check-circle-fill"></i> In stock (${stock} left)`;
+        stockLabel.className = "small text-success";
+        setMaxQty(PREORDER_ONLY ? Infinity : stock);
+        setPurchaseButtons(PREORDER_ONLY || qty <= stock);
+      } else if (PREORDER_ONLY) {
+        stockLabel.innerHTML = `<i class="bi bi-check-circle-fill"></i> Available for pre-order`;
+        stockLabel.className = "small text-success";
+        setMaxQty(Infinity);
+        setPurchaseButtons(true);
+      } else {
+        stockLabel.innerHTML = `<i class="bi bi-x-circle-fill"></i> Out of stock`;
+        stockLabel.className = "small text-danger";
+        setMaxQty(1);
+        setPurchaseButtons(false);
+      }
     }
 
 
@@ -1713,37 +1730,16 @@ body{
     // =========================================================
     // MARK SOLD-OUT OPTIONS
     // =========================================================
-
     function markSoldOutOptions() {
+      if (!PRODUCT_VARIANTS.length || PREORDER_ONLY) return;   // pre-order: never strike out
+      const qty = parseInt(qtyInput.value) || 1;
 
-        if (!PRODUCT_VARIANTS.length) {
-            return;
-        }
-
-        document
-            .querySelectorAll(
-                "[data-option-group] .size-pill, " +
-                "[data-option-group] .variant-swatch"
-            )
-            .forEach(el => {
-
-                const val = normalize([el.dataset.value]);
-
-                const available = PRODUCT_VARIANTS.some(v => {
-
-                    if (Number(v.stock) <= 0) {
-                        return false;
-                    }
-
-                    return v.name
-                        .split(" / ")
-                        .some(part =>
-                            normalize([part]) === val
-                        );
-                });
-
-                el.classList.toggle("sold-out", !available);
-            });
+      document.querySelectorAll("[data-option-group]").forEach(groupEl => {
+        const groupName = groupEl.dataset.optionGroup;
+        groupEl.querySelectorAll(".size-pill, .variant-swatch").forEach(el => {
+          el.classList.toggle("sold-out", !isOptionAvailable(groupName, el.dataset.value, qty));
+        });
+      });
     }
 
 
@@ -1752,32 +1748,35 @@ body{
     // =========================================================
 
     document.querySelectorAll("[data-qty-step]").forEach(btn => {
-
-        btn.addEventListener("click", () => {
-
-            const current = parseInt(qtyInput.value) || 1;
-
-            const next =
-                current + parseInt(btn.dataset.qtyStep);
-
-            qtyInput.value = Math.min(
-                Math.max(1, next),
-                maxQty
-            );
-        });
+      btn.addEventListener("click", () => {
+        const current = parseInt(qtyInput.value) || 1;
+        qtyInput.value = Math.min(Math.max(1, current + parseInt(btn.dataset.qtyStep)), maxQty);
+        markSoldOutOptions();
+        updateSelectedVariant();
+      });
     });
-
+    function preselectInStockVariant() {
+      if (PREORDER_ONLY || !PRODUCT_VARIANTS.length) return;
+      const current = getMatchingVariant();
+      if (current && Number(current.stock) > 0) return;
+      const target = PRODUCT_VARIANTS.find(v => Number(v.stock) > 0);
+      if (!target) return;
+      target.name.split(" / ").forEach(part => {
+        document.querySelectorAll("[data-option-group]").forEach(groupEl => {
+          const el = Array.from(groupEl.querySelectorAll("[data-value]"))
+            .find(e => normalize([e.dataset.value]) === normalize([part]));
+          if (el) selectOption(groupEl, el);
+        });
+      });
+    }
 
     // =========================================================
     // INITIAL STATE
     // =========================================================
 
-    // Mark options that have no stock
     markSoldOutOptions();
-
-    // IMPORTANT:
-    // Run this when page loads so buttons immediately reflect
-    // the currently selected variant.
+    preselectInStockVariant();
+    markSoldOutOptions();
     updateSelectedVariant();
        {% if selected_variant %}
   (function preselectFromUrl() {

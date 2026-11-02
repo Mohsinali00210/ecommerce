@@ -296,6 +296,7 @@ def active_promos_prefetch(now=None, lookup="product__promotions"):
 # ---------------------------------------------------------------------------
 # 2) Serializer
 # ---------------------------------------------------------------------------
+
 class PlaceOrderSerializer(serializers.Serializer):
     address_id = serializers.IntegerField()
  

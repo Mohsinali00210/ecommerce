@@ -431,6 +431,7 @@ class InventorySettings(models.Model):
     def __str__(self):
         return f"Inventory for {self.product_id} - {self.inventory_method}"
 
+from django.db.models import Sum
 
 class Product(BaseAuditModel):
     def validate_video_size(value):
@@ -593,6 +594,15 @@ class Product(BaseAuditModel):
             or {'price', 'stock_quantity', 'sku', 'product_type'} & set(update_fields)
         ):
             self.sync_default_variant()
+    def sync_stock_from_variants(self):
+        """Variable products: product stock = sum of active variants' stock."""
+        if self.is_simple:
+            return  # simple products are handled by ProductVariant.save() below
+        total = self.variants.filter(is_active=True).aggregate(t=Sum('stock_quantity'))['t'] or 0
+        if self.stock_quantity != total:
+            # .update() avoids triggering Product.save() side effects
+            Product.objects.filter(pk=self.pk).update(stock_quantity=total)
+            self.stock_quantity = total
 
 class ProductVariant(BaseAuditModel):
     product = models.ForeignKey(Product, related_name='variants', on_delete=models.CASCADE)
@@ -610,15 +620,26 @@ class ProductVariant(BaseAuditModel):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # A simple product's price / stock live on the product too: when its default
-        # variant changes (inventory log, order stock deduction...) push it back up.
-        if self.is_active:
-            Product.objects.filter(
-                pk=self.product_id, product_type__in=Product._SIMPLE_VALUES
-            ).exclude(
-                price=self.price, stock_quantity=self.stock_quantity
-            ).update(price=self.price, stock_quantity=self.stock_quantity)
-
+        product = self.product
+        if product.is_simple:
+            # existing behaviour: push default variant price/stock up to the product
+            if self.is_active:
+                Product.objects.filter(
+                    pk=self.product_id, product_type__in=Product._SIMPLE_VALUES
+                ).exclude(
+                    price=self.price, stock_quantity=self.stock_quantity
+                ).update(price=self.price, stock_quantity=self.stock_quantity)
+        else:
+            # variable product: total = sum of variants (also runs when a variant is deactivated)
+            product.sync_stock_from_variants()
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+@receiver(post_delete, sender=ProductVariant)
+def sync_product_stock_on_variant_delete(sender, instance, **kwargs):
+    try:
+        instance.product.sync_stock_from_variants()
+    except Product.DoesNotExist:
+        pass  # product itself is being deleted (cascade)
 
 class ProductVariantOption(BaseAuditModel):
     product = models.ForeignKey( Product, on_delete=models.CASCADE, related_name="variant_options")
