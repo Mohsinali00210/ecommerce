@@ -1,5 +1,5 @@
 from django import forms
-from .models import Product, ProductVariant, ProductImage, Promotion
+from .models import Product, ProductVariant, ProductImage, Promotion, SizeChart
 
 
 class BootstrapFormMixin:
@@ -43,6 +43,7 @@ class ProductForm(BootstrapFormMixin, forms.ModelForm):
 
             # SEO
             'meta_title', 'meta_description', 'focus_keywords',
+            'size_chart',
         ]
         widgets = {
             'slug': forms.TextInput(
@@ -68,10 +69,13 @@ class ProductForm(BootstrapFormMixin, forms.ModelForm):
             'meta_description': forms.Textarea(attrs={'rows': 2}),
             'available_start_date': forms.DateInput(attrs={'type': 'date'}),
             'available_end_date': forms.DateInput(attrs={'type': 'date'}),
+            'size_chart': forms.Select(attrs={'id': 'id_size_chart'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['size_chart'].queryset = SizeChart.objects.filter(is_deleted=False)
+        self.fields['size_chart'].empty_label = "— No size chart —"
         self._apply_bootstrap_classes()
         # Product type is fixed once the product exists (simple <-> grouped would break its variants).
         # Legacy rows may hold 'simple' / 'grouped', so show the normalised '1' / '2'.
@@ -190,7 +194,63 @@ class ProductImageForm(BootstrapFormMixin, forms.ModelForm):
         self._apply_bootstrap_classes()
         self.fields['image'].required = True
 
+import json
+from django import forms
 
+class SizeChartForm(BootstrapFormMixin, forms.ModelForm):
+    chart_data = forms.CharField(widget=forms.HiddenInput(attrs={'id': 'id_chart_data'}))
+
+    class Meta:
+        model = SizeChart
+        fields = ['name', 'description']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_bootstrap_classes()
+        if self.instance and self.instance.pk:
+            self.initial['chart_data'] = json.dumps(
+                {'columns': self.instance.columns, 'rows': self.instance.rows}
+            )
+        else:
+            self.initial['chart_data'] = json.dumps(
+                {'columns': ['Size', 'Chest', 'Waist'], 'rows': [['', '', '']]}
+            )
+    def clean(self):
+        cleaned = super().clean()
+        data = cleaned.get('chart_data')
+        if data:
+            self.instance.columns = data['columns']
+            self.instance.rows = data['rows']
+        return cleaned
+
+    def clean_chart_data(self):
+        try:
+            data = json.loads(self.cleaned_data['chart_data'])
+            columns = [str(c).strip() for c in data['columns']]
+            rows = [[str(v).strip() for v in r] for r in data['rows']]
+        except (ValueError, KeyError, TypeError):
+            raise forms.ValidationError("Invalid size chart data.")
+        # drop completely empty rows
+        rows = [r for r in rows if any(r)]
+        if not columns:
+            raise forms.ValidationError("Add at least one column.")
+        if any(not c for c in columns):
+            raise forms.ValidationError("Column names cannot be empty.")
+        if len({c.lower() for c in columns}) != len(columns):
+            raise forms.ValidationError("Column names must be unique.")
+        if not rows:
+            raise forms.ValidationError("Add at least one row.")
+        if any(len(r) != len(columns) for r in rows):
+            raise forms.ValidationError("Row length does not match columns.")
+        return {'columns': columns, 'rows': rows}
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.columns = self.cleaned_data['chart_data']['columns']
+        obj.rows = self.cleaned_data['chart_data']['rows']
+        if commit:
+            obj.save()
+        return obj
 class PromotionForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Promotion

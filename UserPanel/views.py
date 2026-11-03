@@ -231,153 +231,444 @@ def product_quick_view(request, product_id):
         "estimated_date": now + timedelta(days=product.handling_time),
     })
 from products.models import Picture
-def home(request):
+# def home(request):
 
-    current_date = timezone.now()
+#     current_date = timezone.now()
 
-    # =========================================================
-    # WISHLIST CHECK
-    # =========================================================
+#     # =========================================================
+#     # WISHLIST CHECK
+#     # =========================================================
 
-    if request.user.is_authenticated:
+#     if request.user.is_authenticated:
 
-        wishlist_exists = WishlistModel.objects.filter(
-            user=request.user,
-            product=OuterRef("pk")
-        )
+#         wishlist_exists = WishlistModel.objects.filter(
+#             user=request.user,
+#             product=OuterRef("pk")
+#         )
 
-    else:
+#     else:
 
-        # Empty queryset for guest users
-        wishlist_exists = WishlistModel.objects.none()
+#         # Empty queryset for guest users
+#         wishlist_exists = WishlistModel.objects.none()
 
 
-    # =========================================================
-    # FEATURED PRODUCTS
-    # =========================================================
+#     # =========================================================
+#     # FEATURED PRODUCTS
+#     # =========================================================
 
-    featured_products = (
-        Product.objects
-        .filter(status="active")
-        .annotate(
-            is_wishlisted=Exists(wishlist_exists)
-        )
-        .prefetch_related(
-            "images",
-            "variants",
-            "category",
-            "promotions"
-        )
+#     featured_products = (
+#         Product.objects
+#         .filter(status="active")
+#         .annotate(
+#             is_wishlisted=Exists(wishlist_exists)
+#         )
+#         .prefetch_related(
+#             "images",
+#             "variants",
+#             "category",
+#             "promotions"
+#         )
+#     )
+
+
+#     # =========================================================
+#     # ACTIVE PROMOTIONS
+#     # =========================================================
+
+#     promotions = (
+#         Promotion.objects
+#         .filter(
+#             start_date__lte=current_date,
+#             end_date__gte=current_date,
+#             is_active=True
+#         )
+#         .prefetch_related("products")
+#     )
+
+
+#     # =========================================================
+#     # APPLY PROMOTION INFORMATION
+#     # =========================================================
+
+#     for product in featured_products:
+
+#         product.final_price = product.price
+#         product.has_discount = False
+#         product.discount_percent = 0
+#         product.promotion = None
+
+#         promo = (
+#             product.promotions
+#             .filter(
+#                 start_date__lte=current_date,
+#                 end_date__gte=current_date,
+#                 is_active=True
+#             )
+#             .first()
+#         )
+
+#         if promo:
+
+#             product.promotion = promo
+
+#             product.final_price = promo.get_discounted_price(
+#                 product.price
+#             )
+
+#             product.has_discount = (
+#                 product.final_price != product.price
+#             )
+
+#             if promo.discount_type == "percentage":
+
+#                 product.discount_percent = int(
+#                     promo.discount_value
+#                 )
+
+
+#     # =========================================================
+#     # ACTIVE PRODUCTS
+#     # =========================================================
+
+#     active_products = (
+#         Product.objects
+#         .filter(is_active=True)
+#         .annotate(
+#             is_wishlisted=Exists(wishlist_exists)
+#         )
+#     )
+
+
+#     # =========================================================
+#     # BEST SELLERS
+#     # =========================================================
+
+#     best_sellers = (
+#         active_products
+#         .order_by("-sold")
+#         [:PRODUCTS_PER_ROW_SECTION]
+#     )
+
+
+#     # =========================================================
+#     # NEW ARRIVALS
+#     # =========================================================
+
+#     new_arrivals = (
+#         active_products
+#         .order_by("-created_at")
+#         [:PRODUCTS_PER_ROW_SECTION]
+#     )
+
+
+#     # =========================================================
+#     # CATEGORIES
+#     # =========================================================
+
+#     categories = Category.objects.filter(
+#         parent__isnull=True
+#     )
+
+
+#     # =========================================================
+#     # CONTEXT
+#     # =========================================================
+#     hero_slides = list(
+#         Picture.objects
+#         .filter(picture_type="slider", is_active=True)
+#         .order_by("sort_order", "-created_at")[:8]
+#     )
+#     context = {
+#         "hero_slides": hero_slides,
+#         "featured_products": featured_products,
+#         "best_sellers": best_sellers,
+#         "new_arrivals": new_arrivals,
+#         "categories": categories,
+#         "cart_count": _cart_count(request),
+#         "wishlist_count": _wishlist_count(request),
+#         "notification_count": _unread_notification_count(request),
+#         "recent_notifications": (
+#             NotificationRecipient.objects
+#             .filter(user=request.user)
+#             .select_related("notification")
+#             .order_by("-notification__created_at")[:3]
+#             if request.user.is_authenticated
+#             else []
+#         ),
+#         "sale_ends_at": (
+#             timezone.now() +
+#             timezone.timedelta(hours=6)
+#         ),
+#     }
+
+
+#     # =========================================================
+#     # RETURN RESPONSE
+#     # =========================================================
+
+#     return render(
+#         request,
+#         "home/index.html",
+#         context
+#     )
+from datetime import timedelta
+
+from django.core.paginator import Paginator
+from django.db.models import (
+    BooleanField, Count, Exists, Max, Min, OuterRef, Prefetch, Q, Value,
+)
+from django.shortcuts import render
+from django.utils import timezone
+
+# Keep your existing imports for: Product, Category, Brand, Tag, Promotion,
+# WishlistModel, Picture, NotificationRecipient, ProductVariantOption,
+# SORT_OPTIONS, SORT_FIELD_MAP, PAGE_SIZE, PRODUCTS_PER_ROW_SECTION,
+# _to_decimal, _build_option_facets, _cart_count, _wishlist_count,
+# _unread_notification_count
+
+
+# =========================================================
+# SHARED PRICING / PROMOTION HELPERS
+# (move to utils/pricing.py if you prefer)
+# =========================================================
+
+def active_promo_prefetch(now=None):
+    """Prefetch only currently-active promotions into product.active_promos."""
+    now = now or timezone.now()
+    return Prefetch(
+        "promotions",
+        queryset=Promotion.objects.filter(
+            is_active=True,
+            start_date__lte=now,
+            end_date__gte=now,
+        ).order_by("pk"),
+        to_attr="active_promos",
     )
 
 
-    # =========================================================
-    # ACTIVE PROMOTIONS
-    # =========================================================
+def apply_promotion_info(products):
+    """Attach promotion / final_price / has_discount / discount_percent
+    to every product. Requires active_promo_prefetch() on the queryset."""
+    for product in products:
+        promo = product.active_promos[0] if product.active_promos else None
 
-    promotions = (
-        Promotion.objects
-        .filter(
-            start_date__lte=current_date,
-            end_date__gte=current_date,
-            is_active=True
-        )
-        .prefetch_related("products")
-    )
-
-
-    # =========================================================
-    # APPLY PROMOTION INFORMATION
-    # =========================================================
-
-    for product in featured_products:
-
+        product.promotion = promo
         product.final_price = product.price
         product.has_discount = False
         product.discount_percent = 0
-        product.promotion = None
-
-        promo = (
-            product.promotions
-            .filter(
-                start_date__lte=current_date,
-                end_date__gte=current_date,
-                is_active=True
-            )
-            .first()
-        )
 
         if promo:
-
-            product.promotion = promo
-
-            product.final_price = promo.get_discounted_price(
-                product.price
-            )
-
-            product.has_discount = (
-                product.final_price != product.price
-            )
-
+            product.final_price = promo.get_discounted_price(product.price)
+            product.has_discount = product.final_price != product.price
             if promo.discount_type == "percentage":
-
-                product.discount_percent = int(
-                    promo.discount_value
-                )
+                product.discount_percent = int(promo.discount_value)
+    return products
 
 
-    # =========================================================
-    # ACTIVE PRODUCTS
-    # =========================================================
+def wishlist_subquery(user):
+    if user.is_authenticated:
+        return WishlistModel.objects.filter(user=user, product=OuterRef("pk"))
+    return WishlistModel.objects.none()
 
+
+# =========================================================
+# SEARCH
+# =========================================================
+
+def search_products(request):
+    now = timezone.now()
+
+    q = request.GET.get("q", "").strip()
+    min_price_raw = request.GET.get("min_price", "").strip()
+    max_price_raw = request.GET.get("max_price", "").strip()
+    category_ids = [c for c in request.GET.getlist("category") if c]
+    brand_ids = [b for b in request.GET.getlist("brand") if b]
+    tag_slugs = [t for t in request.GET.getlist("tag") if t]
+    sort = request.GET.get("sort", "relevance")
+    if sort not in SORT_OPTIONS:
+        sort = "relevance"
+
+    min_price = _to_decimal(min_price_raw)
+    max_price = _to_decimal(max_price_raw)
+
+    # Dynamic variant-option filters, e.g. ?opt_Color=Red&opt_Color=Blue&opt_Size=XL
+    selected_options = {}
+    for key in request.GET:
+        if key.startswith("opt_"):
+            option_name = key[4:]
+            values = [v for v in request.GET.getlist(key) if v]
+            if values:
+                selected_options[option_name] = values
+
+    def apply_common_filters(base_qs):
+        """Keyword + price + category + brand + tag filters (everything except
+        the dynamic option filters, used both for the final result set and
+        as the base for facet counts)."""
+        qs = base_qs
+        if q:
+            qs = qs.filter(
+                Q(name__icontains=q)
+                | Q(description__icontains=q)
+                | Q(brief_description__icontains=q)
+                | Q(sku__icontains=q)
+                | Q(meta_title__icontains=q)
+                | Q(focus_keywords__icontains=q)
+                | Q(tags__name__icontains=q)
+                | Q(variants__name__icontains=q)
+                | Q(variants__sku__icontains=q)
+                | Q(variant_options__option__icontains=q)
+                | Q(variant_options__option_name__icontains=q)
+            )
+        if category_ids:
+            qs = qs.filter(category__id__in=category_ids)
+        if brand_ids:
+            qs = qs.filter(brand__id__in=brand_ids)
+        if tag_slugs:
+            qs = qs.filter(tags__slug__in=tag_slugs)
+        if min_price is not None:
+            qs = qs.filter(price__gte=min_price)
+        if max_price is not None:
+            qs = qs.filter(price__lte=max_price)
+        return qs.distinct()
+
+    base_qs = Product.objects.filter(status__in=["active", "featured"])
+    facet_base_qs = apply_common_filters(base_qs)
+
+    # ----- Facets are computed from facet_base_qs (pre option-filter), so
+    # ----- checking one option value doesn't make the others disappear.
+    category_facets = (
+        Category.objects.filter(products__in=facet_base_qs)
+        .annotate(count=Count("products", filter=Q(products__in=facet_base_qs), distinct=True))
+        .filter(count__gt=0)
+        .order_by("name")
+    )
+    brand_facets = (
+        Brand.objects.filter(product__in=facet_base_qs)
+        .annotate(count=Count("product", filter=Q(product__in=facet_base_qs), distinct=True))
+        .filter(count__gt=0)
+        .order_by("name")
+    )
+    tag_facets = (
+        Tag.objects.filter(product__in=facet_base_qs)
+        .annotate(count=Count("product", filter=Q(product__in=facet_base_qs), distinct=True))
+        .filter(count__gt=0)
+        .order_by("name")
+    )
+    option_facets = _build_option_facets(facet_base_qs)
+    for option_name, entries in option_facets.items():
+        selected_values = set(selected_options.get(option_name, []))
+        for entry in entries:
+            entry["selected"] = entry["value"] in selected_values
+
+    # ----- Apply the dynamic option filters on top to get the actual result set -----
+    qs = facet_base_qs
+    for option_name, values in selected_options.items():
+        value_q = Q()
+        for v in values:
+            value_q |= Q(option__icontains=v)
+        matching_product_ids = list(
+            ProductVariantOption.objects
+            .filter(product__in=qs, option_name=option_name)
+            .filter(value_q)
+            .values_list("product_id", flat=True)
+        )
+        qs = qs.filter(id__in=matching_product_ids)
+
+    # Wishlist flag (same as home)
+    if request.user.is_authenticated:
+        qs = qs.annotate(is_wishlisted=Exists(wishlist_subquery(request.user)))
+    else:
+        qs = qs.annotate(is_wishlisted=Value(False, output_field=BooleanField()))
+
+    qs = (
+        qs.select_related("brand")
+          .prefetch_related("images", "tags", "category", active_promo_prefetch(now))
+    )
+
+    if sort in SORT_FIELD_MAP:
+        qs = qs.order_by(SORT_FIELD_MAP[sort])
+    else:
+        qs = qs.order_by("-mark_as_new", "-sold", "name")
+
+    price_bounds = Product.objects.filter(status__in=["active", "featured"]).aggregate(
+        min_price=Min("price"), max_price=Max("price")
+    )
+
+    paginator = Paginator(qs, PAGE_SIZE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    # Same promo pricing as home, applied to the current page only
+    apply_promotion_info(page_obj.object_list)
+
+    # Preserve every current filter except "page" for pagination links
+    querydict = request.GET.copy()
+    querydict.pop("page", None)
+
+    return render(request, "home/SearchResults.html", {
+        "products": page_obj,
+        "query": q,
+        "sort": sort,
+        "sort_options": SORT_OPTIONS,
+        "min_price": min_price_raw,
+        "max_price": max_price_raw,
+        "price_bounds": price_bounds,
+        "category_facets": category_facets,
+        "brand_facets": brand_facets,
+        "tag_facets": tag_facets,
+        "option_facets": option_facets,
+        "selected_category_ids": category_ids,
+        "selected_brand_ids": brand_ids,
+        "selected_tag_slugs": tag_slugs,
+        "selected_options": selected_options,
+        "base_querystring": querydict.urlencode(),
+        "result_count": paginator.count,
+        "cart_count": _cart_count(request),
+        "wishlist_count": _wishlist_count(request),
+    })
+
+
+# =========================================================
+# HOME
+# =========================================================
+
+def home(request):
+    current_date = timezone.now()
+    wishlist_exists = wishlist_subquery(request.user)
+    promo_prefetch = active_promo_prefetch(current_date)
+
+    # ----- Featured products (promo pricing applied) -----
+    featured_products = (
+        Product.objects
+        .filter(status="active")
+        .annotate(is_wishlisted=Exists(wishlist_exists))
+        .prefetch_related("images", "variants", "category", promo_prefetch)
+    )
+    apply_promotion_info(featured_products)
+
+    # ----- Best sellers / new arrivals (now also with promo pricing) -----
     active_products = (
         Product.objects
         .filter(is_active=True)
-        .annotate(
-            is_wishlisted=Exists(wishlist_exists)
-        )
+        .annotate(is_wishlisted=Exists(wishlist_exists))
+        .prefetch_related("images", active_promo_prefetch(current_date))
     )
 
-
-    # =========================================================
-    # BEST SELLERS
-    # =========================================================
-
-    best_sellers = (
-        active_products
-        .order_by("-sold")
-        [:PRODUCTS_PER_ROW_SECTION]
+    best_sellers = apply_promotion_info(
+        active_products.order_by("-sold")[:PRODUCTS_PER_ROW_SECTION]
+    )
+    new_arrivals = apply_promotion_info(
+        active_products.order_by("-created_at")[:PRODUCTS_PER_ROW_SECTION]
     )
 
+    # ----- Categories / hero slides -----
+    categories = Category.objects.filter(parent__isnull=True)
 
-    # =========================================================
-    # NEW ARRIVALS
-    # =========================================================
-
-    new_arrivals = (
-        active_products
-        .order_by("-created_at")
-        [:PRODUCTS_PER_ROW_SECTION]
-    )
-
-
-    # =========================================================
-    # CATEGORIES
-    # =========================================================
-
-    categories = Category.objects.filter(
-        parent__isnull=True
-    )
-
-
-    # =========================================================
-    # CONTEXT
-    # =========================================================
     hero_slides = list(
         Picture.objects
         .filter(picture_type="slider", is_active=True)
         .order_by("sort_order", "-created_at")[:8]
     )
+
     context = {
         "hero_slides": hero_slides,
         "featured_products": featured_products,
@@ -395,22 +686,10 @@ def home(request):
             if request.user.is_authenticated
             else []
         ),
-        "sale_ends_at": (
-            timezone.now() +
-            timezone.timedelta(hours=6)
-        ),
+        "sale_ends_at": current_date + timedelta(hours=6),
     }
 
-
-    # =========================================================
-    # RETURN RESPONSE
-    # =========================================================
-
-    return render(
-        request,
-        "home/index.html",
-        context
-    )
+    return render(request, "home/index.html", context)
 # views.py
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -763,6 +1042,129 @@ def summarize_lines(lines):
         "shipping_capped": shipping_raw > MAX_SHIPPING_CHARGE,
         "final_total": subtotal - discount + shipping_total,
     }
+# def ProductDetails(request, slug, sku=None):
+#     """
+#     URLs:
+#       /product/<slug>/           -> plain product page, no variant preselected
+#       /product/<slug>/<sku>/     -> product page with that variant preselected
+#     """
+#     now = timezone.now()
+
+#     # Active promotions, prefetched once for the related-products loop below
+#     active_promos_qs = (
+#         Promotion.objects
+#         .filter(start_date__lte=now, end_date__gte=now)
+#         .order_by("-start_date")
+#     )
+
+#     product = get_object_or_404(
+#         Product.objects.prefetch_related("images",   Prefetch(
+#             "variants",
+#             queryset=ProductVariant.objects.filter(is_active=True),
+#         ), "variant_options",'size_chart'),
+#         slug=slug,
+#     )
+
+#     estimated_date = now + timedelta(days=product.handling_time)
+
+#     ensure_default_variant(product)    # simple product: its default variant always exists
+
+#     # ---- Product-level pricing ----
+#     promo = get_active_promotion(product, now)
+#     pricing = build_pricing(product.price, promo)
+
+#     # ---- Related products (no per-item promotion queries) ----
+#     related_products = list(
+#         Product.objects
+#         .filter(category__in=product.category.all(), brand=product.brand,is_active=True,status="active")
+#         .exclude(id=product.id)
+#         .distinct()
+#         .prefetch_related(
+#             "images",
+#             Prefetch("promotions", queryset=active_promos_qs, to_attr="active_promos"),
+#         )[:5]
+#     )
+#     for prd in related_products:
+#         prd_promo = prd.active_promos[0] if prd.active_promos else None
+#         prd.pricing = build_pricing(prd.price, prd_promo)
+
+#     # ---- Q&A ----
+#     questions_qs = product.questions.filter(is_deleted=False).select_related("user", "answered_by")
+#     if request.user.is_authenticated:
+#         Questions = questions_qs.filter(
+#             Q(answer__isnull=False) | Q(user=request.user)
+#         ).order_by("-created_at")
+#     else:
+#         Questions = questions_qs.filter(answer__isnull=False).order_by("-created_at")
+
+#     Reviews = product.reviews.filter(
+#         is_active=True,
+#         is_deleted=False,
+#     ).select_related("user").order_by("-created_at")
+
+#     # ---- Variants: real price + discounted price per variant ----
+#     variants = product.variants.filter(is_active=True).select_related("image")
+#     variant_data = []
+#     selected_variant = None
+
+#     for v in variants:
+#         vp = build_pricing(v.price, promo)  # same promo, computed once above
+#         entry = {
+#             "id": v.id,
+#             "sku": v.sku,
+#             "name": v.name,
+#             "price": float(vp["price"]),
+#             "final_price": float(vp["final"]),
+#             "was_price": float(vp["was"]) if vp["was"] else None,
+#             "percent_off": float(vp["percent_off"]),
+#             "stock": v.stock_quantity,
+#         }
+#         variant_data.append(entry)
+
+#         if sku and v.sku == sku:
+#             selected_variant = entry
+
+#     variants_json = json.dumps(variant_data, cls=DjangoJSONEncoder)
+
+#     can_review = False
+#     if request.user.is_authenticated:
+#         can_review = OrderItem.objects.filter(
+#             order__user=request.user,
+#             order__status="delivered",
+#             product=product,
+#         ).exists()
+
+#     wishlist_ids = []
+#     if request.user.is_authenticated:
+#         wishlist_ids = WishToBuy.objects.filter(
+#             user=request.user,
+#         ).values_list("product_id", flat=True)
+    
+#     context = {
+#         "product": product,
+#         "promo": promo,
+#         "pricing": pricing,  # template uses pricing.final / .was / .percent_off
+#         "images": product.images.all(),
+#         "variants": variants,
+        
+#         "variants_json": variants_json,
+#         # "options": product.variant_options.all(),
+#         "options": product.variant_options.order_by("option_name", "id") if show_variant_picker(product) else product.variant_options.none(),
+#         "show_variant_picker": show_variant_picker(product),
+#         "related_products": related_products,
+#         "Reviews": Reviews,
+#         "Questions": Questions,
+#         "can_review": can_review,
+#         "estimated_date": estimated_date,
+#         "user_wishlist_ids": wishlist_ids,
+#         "show_message_box": True,
+#         "selected_variant": selected_variant,
+#     }
+
+#     return render(request, "home/product_details.html", context)
+# Uses active_promo_prefetch() and apply_promotion_info() from views_updated.py
+# (or wherever you moved them, e.g. utils/pricing.py). Keep your other imports.
+
 def ProductDetails(request, slug, sku=None):
     """
     URLs:
@@ -771,18 +1173,16 @@ def ProductDetails(request, slug, sku=None):
     """
     now = timezone.now()
 
-    # Active promotions, prefetched once for the related-products loop below
-    active_promos_qs = (
-        Promotion.objects
-        .filter(start_date__lte=now, end_date__gte=now)
-        .order_by("-start_date")
-    )
-
     product = get_object_or_404(
-        Product.objects.prefetch_related("images",   Prefetch(
-            "variants",
-            queryset=ProductVariant.objects.filter(is_active=True),
-        ), "variant_options"),
+        Product.objects.prefetch_related(
+            "images",
+            Prefetch(
+                "variants",
+                queryset=ProductVariant.objects.filter(is_active=True),
+            ),
+            "variant_options",
+            "size_chart",
+        ),
         slug=slug,
     )
 
@@ -794,20 +1194,34 @@ def ProductDetails(request, slug, sku=None):
     promo = get_active_promotion(product, now)
     pricing = build_pricing(product.price, promo)
 
-    # ---- Related products (no per-item promotion queries) ----
+    # ---- Wishlist ids (evaluated once, reused for related products) ----
+    wishlist_ids = []
+    if request.user.is_authenticated:
+        wishlist_ids = list(
+            WishToBuy.objects
+            .filter(user=request.user)
+            .values_list("product_id", flat=True)
+        )
+    wishlist_id_set = set(wishlist_ids)
+
+    # ---- Related products: same promo logic as home / search ----
     related_products = list(
         Product.objects
-        .filter(category__in=product.category.all(), brand=product.brand,is_active=True,status="active")
+        .filter(
+            category__in=product.category.all(),
+            brand=product.brand,
+            is_active=True,
+            status="active",
+        )
         .exclude(id=product.id)
         .distinct()
-        .prefetch_related(
-            "images",
-            Prefetch("promotions", queryset=active_promos_qs, to_attr="active_promos"),
-        )[:5]
+        .order_by("-sold")
+        .prefetch_related("images", active_promo_prefetch(now))[:5]
     )
+    apply_promotion_info(related_products)   # sets promotion / final_price / has_discount / discount_percent
     for prd in related_products:
-        prd_promo = prd.active_promos[0] if prd.active_promos else None
-        prd.pricing = build_pricing(prd.price, prd_promo)
+        prd.pricing = build_pricing(prd.price, prd.promotion)   # keeps existing templates working
+        prd.is_wishlisted = prd.id in wishlist_id_set
 
     # ---- Q&A ----
     questions_qs = product.questions.filter(is_deleted=False).select_related("user", "answered_by")
@@ -855,23 +1269,17 @@ def ProductDetails(request, slug, sku=None):
             product=product,
         ).exists()
 
-    wishlist_ids = []
-    if request.user.is_authenticated:
-        wishlist_ids = WishToBuy.objects.filter(
-            user=request.user,
-        ).values_list("product_id", flat=True)
-    
+    picker = show_variant_picker(product)
+
     context = {
         "product": product,
         "promo": promo,
         "pricing": pricing,  # template uses pricing.final / .was / .percent_off
         "images": product.images.all(),
         "variants": variants,
-        
         "variants_json": variants_json,
-        # "options": product.variant_options.all(),
-        "options": product.variant_options.order_by("option_name", "id") if show_variant_picker(product) else product.variant_options.none(),
-        "show_variant_picker": show_variant_picker(product),
+        "options": product.variant_options.order_by("option_name", "id") if picker else product.variant_options.none(),
+        "show_variant_picker": picker,
         "related_products": related_products,
         "Reviews": Reviews,
         "Questions": Questions,
@@ -883,7 +1291,6 @@ def ProductDetails(request, slug, sku=None):
     }
 
     return render(request, "home/product_details.html", context)
-
 from accounts.models import Address
 from decimal import Decimal
 
@@ -1242,140 +1649,140 @@ SORT_FIELD_MAP = {
 }
 
 
-def search_products(request):
-    q = request.GET.get("q", "").strip()
-    min_price_raw = request.GET.get("min_price", "").strip()
-    max_price_raw = request.GET.get("max_price", "").strip()
-    category_ids = [c for c in request.GET.getlist("category") if c]
-    brand_ids = [b for b in request.GET.getlist("brand") if b]
-    tag_slugs = [t for t in request.GET.getlist("tag") if t]
-    sort = request.GET.get("sort", "relevance")
-    if sort not in SORT_OPTIONS:
-        sort = "relevance"
+# def search_products(request):
+#     q = request.GET.get("q", "").strip()
+#     min_price_raw = request.GET.get("min_price", "").strip()
+#     max_price_raw = request.GET.get("max_price", "").strip()
+#     category_ids = [c for c in request.GET.getlist("category") if c]
+#     brand_ids = [b for b in request.GET.getlist("brand") if b]
+#     tag_slugs = [t for t in request.GET.getlist("tag") if t]
+#     sort = request.GET.get("sort", "relevance")
+#     if sort not in SORT_OPTIONS:
+#         sort = "relevance"
 
-    min_price = _to_decimal(min_price_raw)
-    max_price = _to_decimal(max_price_raw)
+#     min_price = _to_decimal(min_price_raw)
+#     max_price = _to_decimal(max_price_raw)
 
-    # Dynamic variant-option filters, e.g. ?opt_Color=Red&opt_Color=Blue&opt_Size=XL
-    selected_options = {}
-    for key in request.GET:
-        if key.startswith("opt_"):
-            option_name = key[4:]
-            values = [v for v in request.GET.getlist(key) if v]
-            if values:
-                selected_options[option_name] = values
+#     # Dynamic variant-option filters, e.g. ?opt_Color=Red&opt_Color=Blue&opt_Size=XL
+#     selected_options = {}
+#     for key in request.GET:
+#         if key.startswith("opt_"):
+#             option_name = key[4:]
+#             values = [v for v in request.GET.getlist(key) if v]
+#             if values:
+#                 selected_options[option_name] = values
 
-    def apply_common_filters(base_qs):
-        """Keyword + price + category + brand + tag filters (everything except
-        the dynamic option filters — used both for the final result set and
-        as the base for facet counts)."""
-        qs = base_qs
-        if q:
-            qs = qs.filter(
-                Q(name__icontains=q)
-                | Q(description__icontains=q)
-                | Q(brief_description__icontains=q)
-                | Q(sku__icontains=q)
-                | Q(meta_title__icontains=q)
-                | Q(focus_keywords__icontains=q)
-                | Q(tags__name__icontains=q)
-                | Q(variants__name__icontains=q)
-                | Q(variants__sku__icontains=q)
-                | Q(variant_options__option__icontains=q)
-                | Q(variant_options__option_name__icontains=q)
-            )
-        if category_ids:
-            qs = qs.filter(category__id__in=category_ids)
-        if brand_ids:
-            qs = qs.filter(brand__id__in=brand_ids)
-        if tag_slugs:
-            qs = qs.filter(tags__slug__in=tag_slugs)
-        if min_price is not None:
-            qs = qs.filter(price__gte=min_price)
-        if max_price is not None:
-            qs = qs.filter(price__lte=max_price)
-        return qs.distinct()
+#     def apply_common_filters(base_qs):
+#         """Keyword + price + category + brand + tag filters (everything except
+#         the dynamic option filters — used both for the final result set and
+#         as the base for facet counts)."""
+#         qs = base_qs
+#         if q:
+#             qs = qs.filter(
+#                 Q(name__icontains=q)
+#                 | Q(description__icontains=q)
+#                 | Q(brief_description__icontains=q)
+#                 | Q(sku__icontains=q)
+#                 | Q(meta_title__icontains=q)
+#                 | Q(focus_keywords__icontains=q)
+#                 | Q(tags__name__icontains=q)
+#                 | Q(variants__name__icontains=q)
+#                 | Q(variants__sku__icontains=q)
+#                 | Q(variant_options__option__icontains=q)
+#                 | Q(variant_options__option_name__icontains=q)
+#             )
+#         if category_ids:
+#             qs = qs.filter(category__id__in=category_ids)
+#         if brand_ids:
+#             qs = qs.filter(brand__id__in=brand_ids)
+#         if tag_slugs:
+#             qs = qs.filter(tags__slug__in=tag_slugs)
+#         if min_price is not None:
+#             qs = qs.filter(price__gte=min_price)
+#         if max_price is not None:
+#             qs = qs.filter(price__lte=max_price)
+#         return qs.distinct()
 
-    base_qs = Product.objects.filter(status__in=["active", "featured"])
-    facet_base_qs = apply_common_filters(base_qs)
+#     base_qs = Product.objects.filter(status__in=["active", "featured"])
+#     facet_base_qs = apply_common_filters(base_qs)
 
-    # ----- Facets are computed from facet_base_qs (pre option-filter), so
-    # ----- checking one option value doesn't make the others disappear.
-    category_facets = (
-        Category.objects.filter(products__in=facet_base_qs)
-        .annotate(count=Count("products", filter=Q(products__in=facet_base_qs), distinct=True))
-        .filter(count__gt=0)
-        .order_by("name")
-    )
-    brand_facets = (
-        Brand.objects.filter(product__in=facet_base_qs)
-        .annotate(count=Count("product", filter=Q(product__in=facet_base_qs), distinct=True))
-        .filter(count__gt=0)
-        .order_by("name")
-    )
-    tag_facets = (
-        Tag.objects.filter(product__in=facet_base_qs)
-        .annotate(count=Count("product", filter=Q(product__in=facet_base_qs), distinct=True))
-        .filter(count__gt=0)
-        .order_by("name")
-    )
-    option_facets = _build_option_facets(facet_base_qs)
-    for option_name, entries in option_facets.items():
-        selected_values = set(selected_options.get(option_name, []))
-        for entry in entries:
-            entry["selected"] = entry["value"] in selected_values
+#     # ----- Facets are computed from facet_base_qs (pre option-filter), so
+#     # ----- checking one option value doesn't make the others disappear.
+#     category_facets = (
+#         Category.objects.filter(products__in=facet_base_qs)
+#         .annotate(count=Count("products", filter=Q(products__in=facet_base_qs), distinct=True))
+#         .filter(count__gt=0)
+#         .order_by("name")
+#     )
+#     brand_facets = (
+#         Brand.objects.filter(product__in=facet_base_qs)
+#         .annotate(count=Count("product", filter=Q(product__in=facet_base_qs), distinct=True))
+#         .filter(count__gt=0)
+#         .order_by("name")
+#     )
+#     tag_facets = (
+#         Tag.objects.filter(product__in=facet_base_qs)
+#         .annotate(count=Count("product", filter=Q(product__in=facet_base_qs), distinct=True))
+#         .filter(count__gt=0)
+#         .order_by("name")
+#     )
+#     option_facets = _build_option_facets(facet_base_qs)
+#     for option_name, entries in option_facets.items():
+#         selected_values = set(selected_options.get(option_name, []))
+#         for entry in entries:
+#             entry["selected"] = entry["value"] in selected_values
 
-    # ----- Apply the dynamic option filters on top to get the actual result set -----
-    qs = facet_base_qs
-    for option_name, values in selected_options.items():
-        value_q = Q()
-        for v in values:
-            value_q |= Q(option__icontains=v)
-        matching_product_ids = list(
-            ProductVariantOption.objects
-            .filter(product__in=qs, option_name=option_name)
-            .filter(value_q)
-            .values_list("product_id", flat=True)
-        )
-        qs = qs.filter(id__in=matching_product_ids)
+#     # ----- Apply the dynamic option filters on top to get the actual result set -----
+#     qs = facet_base_qs
+#     for option_name, values in selected_options.items():
+#         value_q = Q()
+#         for v in values:
+#             value_q |= Q(option__icontains=v)
+#         matching_product_ids = list(
+#             ProductVariantOption.objects
+#             .filter(product__in=qs, option_name=option_name)
+#             .filter(value_q)
+#             .values_list("product_id", flat=True)
+#         )
+#         qs = qs.filter(id__in=matching_product_ids)
 
-    qs = qs.select_related("brand").prefetch_related("images", "tags", "category")
+#     qs = qs.select_related("brand").prefetch_related("images", "tags", "category")
 
-    if sort in SORT_FIELD_MAP:
-        qs = qs.order_by(SORT_FIELD_MAP[sort])
-    else:
-        qs = qs.order_by("-mark_as_new", "-sold", "name")
+#     if sort in SORT_FIELD_MAP:
+#         qs = qs.order_by(SORT_FIELD_MAP[sort])
+#     else:
+#         qs = qs.order_by("-mark_as_new", "-sold", "name")
 
-    price_bounds = Product.objects.filter(status__in=["active", "featured"]).aggregate(
-        min_price=Min("price"), max_price=Max("price")
-    )
+#     price_bounds = Product.objects.filter(status__in=["active", "featured"]).aggregate(
+#         min_price=Min("price"), max_price=Max("price")
+#     )
 
-    paginator = Paginator(qs, PAGE_SIZE)
-    page_obj = paginator.get_page(request.GET.get("page"))
+#     paginator = Paginator(qs, PAGE_SIZE)
+#     page_obj = paginator.get_page(request.GET.get("page"))
 
-    # Preserve every current filter except "page" for pagination links
-    querydict = request.GET.copy()
-    querydict.pop("page", None)
+#     # Preserve every current filter except "page" for pagination links
+#     querydict = request.GET.copy()
+#     querydict.pop("page", None)
 
-    return render(request, "home/SearchResults.html", {
-        "products": page_obj,
-        "query": q,
-        "sort": sort,
-        "sort_options": SORT_OPTIONS,
-        "min_price": min_price_raw,
-        "max_price": max_price_raw,
-        "price_bounds": price_bounds,
-        "category_facets": category_facets,
-        "brand_facets": brand_facets,
-        "tag_facets": tag_facets,
-        "option_facets": option_facets,
-        "selected_category_ids": category_ids,
-        "selected_brand_ids": brand_ids,
-        "selected_tag_slugs": tag_slugs,
-        "selected_options": selected_options,
-        "base_querystring": querydict.urlencode(),
-        "result_count": paginator.count,
-    })
+#     return render(request, "home/SearchResults.html", {
+#         "products": page_obj,
+#         "query": q,
+#         "sort": sort,
+#         "sort_options": SORT_OPTIONS,
+#         "min_price": min_price_raw,
+#         "max_price": max_price_raw,
+#         "price_bounds": price_bounds,
+#         "category_facets": category_facets,
+#         "brand_facets": brand_facets,
+#         "tag_facets": tag_facets,
+#         "option_facets": option_facets,
+#         "selected_category_ids": category_ids,
+#         "selected_brand_ids": brand_ids,
+#         "selected_tag_slugs": tag_slugs,
+#         "selected_options": selected_options,
+#         "base_querystring": querydict.urlencode(),
+#         "result_count": paginator.count,
+#     })
 
 
 def _to_decimal(raw_value):

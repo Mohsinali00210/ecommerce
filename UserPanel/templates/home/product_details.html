@@ -777,6 +777,17 @@ body{
   content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px;
   background: var(--text); transform: rotate(45deg);
 }
+.size-chart-table { color: var(--text); border-color: var(--border); }
+.size-chart-table thead th {
+  background: var(--bg-soft);
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+}
+.size-chart-table tbody th { background: var(--bg-soft); font-weight: 700; }
+.size-chart-table td, .size-chart-table th { border-color: var(--border); padding: .6rem .8rem; }
+.size-chart-table tbody tr:hover td { background: var(--bg-soft); }
 </style>
 <section class="pb-5">
   <div class="container-xl">
@@ -909,7 +920,9 @@ body{
                 {{ group.grouper|title }}:
                 <span data-variant-label="{{ group.grouper }}" class="fw-normal text-muted-custom"></span>
               </label>
-              {% if group.grouper == "size" %}<a href="#" class="small">Size Guide</a>{% endif %}
+              {% if group.grouper == "size" and product.size_chart %}
+                <a href="#" class="small" data-bs-toggle="modal" data-bs-target="#sizeChartModal">Size Guide</a>
+              {% endif %}            
             </div>
             <div class="d-flex gap-2 flex-wrap {% if group.grouper == 'color' %}variant-group{% else %}size-group{% endif %}"
                  data-option-group="{{ group.grouper }}">
@@ -927,7 +940,13 @@ body{
           </div>
         {% endfor %}
 
-
+          {% if product.size_chart and not product.size_chart.is_deleted %}
+            <div class="mb-3">
+              <button type="button" class="btn btn-outline-ink btn-sm" data-bs-toggle="modal" data-bs-target="#sizeChartModal">
+                <i class="bi bi-rulers me-1"></i> View Size Chart
+              </button>
+            </div>
+          {% endif %}
           {% if show_variant_picker %}
           <!-- Guidance: product -->
           <aside class="sz-guide compact" data-guide="product" aria-label="Before you add to cart">
@@ -1166,6 +1185,48 @@ body{
     </div>
   </div>
 </div>
+{% if product.size_chart and not product.size_chart.is_deleted %}
+<!-- ============ SIZE CHART MODAL ============ -->
+<div class="modal fade" id="sizeChartModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title font-display">
+          <i class="bi bi-rulers me-1"></i> {{ product.size_chart.name }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% if product.size_chart.description %}
+          <p class="text-muted-custom small mb-3">{{ product.size_chart.description }}</p>
+        {% endif %}
+
+        <div class="table-responsive">
+          <table class="table table-bordered text-center align-middle mb-0 size-chart-table">
+            <thead>
+              <tr>
+                {% for col in product.size_chart.columns %}<th>{{ col }}</th>{% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in product.size_chart.rows %}
+                <tr>
+                  {% for cell in row %}
+                    {% if forloop.first %}<th scope="row">{{ cell }}</th>{% else %}<td>{{ cell }}</td>{% endif %}
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-ink" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 <!-- ============ ASK A QUESTION MODAL ============ -->
 <div class="modal fade" id="messageModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">

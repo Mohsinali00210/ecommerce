@@ -1,0 +1,133 @@
+<form method="post" action="{% if chart %}{% url 'size_chart_edit' chart.pk %}{% else %}{% url 'size_chart_add' %}{% endif %}">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    {% if form.chart_data.errors %}<div class="alert alert-danger">{{ form.chart_data.errors }}</div>{% endif %}
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-5">
+            <label class="form-label">Chart Name</label>
+            {{ form.name }}{{ form.name.errors }}
+        </div>
+        <div class="col-md-7">
+            <label class="form-label">Note</label>
+            {{ form.description }}
+        </div>
+    </div>
+
+    {{ form.chart_data }}
+
+    <div class="d-flex gap-2 mb-2">
+        <button type="button" class="btn btn-sm btn-outline-dark" id="scAddCol"><i class="bi bi-layout-three-columns"></i> Add Column</button>
+        <button type="button" class="btn btn-sm btn-outline-dark" id="scAddRow"><i class="bi bi-plus-lg"></i> Add Row</button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle" id="scTable"></table>
+    </div>
+
+    <div class="text-end">
+        <button type="submit" class="btn btn-dark"><i class="bi bi-save"></i> Save Size Chart</button>
+    </div>
+</form>
+
+<script>
+(function () {
+    const hidden = document.getElementById('id_chart_data');
+    const table = document.getElementById('scTable');
+    const form = hidden.closest('form');
+    let state = JSON.parse(hidden.value);
+
+    function render() {
+        let html = '<thead class="table-light"><tr>';
+        state.columns.forEach((c, ci) => {
+            html += `<th style="min-width:110px">
+                <div class="input-group input-group-sm">
+                    <input class="form-control fw-bold" data-col="${ci}" value="${escapeAttr(c)}" placeholder="Column">
+                    ${state.columns.length > 1 ? `<button type="button" class="btn btn-outline-danger" data-delcol="${ci}">&times;</button>` : ''}
+                </div></th>`;
+        });
+        html += '<th></th></tr></thead><tbody>';
+        state.rows.forEach((r, ri) => {
+            html += '<tr>';
+            r.forEach((v, ci) => {
+                html += `<td><input class="form-control form-control-sm" data-r="${ri}" data-c="${ci}" value="${escapeAttr(v)}"></td>`;
+            });
+            html += `<td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" data-delrow="${ri}"><i class="bi bi-trash"></i></button></td></tr>`;
+        });
+        table.innerHTML = html + '</tbody>';
+    }
+
+    function escapeAttr(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
+    table.addEventListener('input', e => {
+        const t = e.target;
+        if (t.dataset.col !== undefined) state.columns[+t.dataset.col] = t.value;
+        else if (t.dataset.r !== undefined) state.rows[+t.dataset.r][+t.dataset.c] = t.value;
+    });
+
+    table.addEventListener('click', e => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        if (b.dataset.delcol !== undefined) {
+            const i = +b.dataset.delcol;
+            state.columns.splice(i, 1);
+            state.rows.forEach(r => r.splice(i, 1));
+        } else if (b.dataset.delrow !== undefined) {
+            state.rows.splice(+b.dataset.delrow, 1);
+        }
+        render();
+    });
+
+    document.getElementById('scAddCol').onclick = () => {
+        state.columns.push('');
+        state.rows.forEach(r => r.push(''));
+        render();
+    };
+    document.getElementById('scAddRow').onclick = () => {
+        state.rows.push(state.columns.map(() => ''));
+        render();
+    };
+
+    // runs before the page-level delegated submit handler builds its FormData
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        e.stopPropagation();   // stop the page-level delegated handler from also submitting
+
+        hidden.value = JSON.stringify(state);
+        const btn = form.querySelector('button[type="submit"]');
+        btn.disabled = true;
+
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('genericModal')).hide();
+
+                const sel = document.getElementById('id_size_chart');
+                if (sel && data.size_chart) {
+                    let opt = sel.querySelector(`option[value="${data.size_chart.id}"]`);
+                    if (!opt) { opt = new Option(data.size_chart.name, data.size_chart.id); sel.add(opt); }
+                    opt.text = data.size_chart.name;
+                    sel.value = data.size_chart.id;
+                } else {
+                    location.reload();
+                }
+            } else {
+                // validation errors: re-render the form with messages
+                const body = document.getElementById('genericModalBody');
+                body.innerHTML = data.html;
+                runScripts(body);
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            alert('Something went wrong. Please try again.');
+        });
+    });
+    render();
+})();
+</script>

@@ -516,6 +516,7 @@ class Product(BaseAuditModel):
 
     qoute = models.CharField( max_length=200, null=True, blank=True)
 
+    size_chart = models.ForeignKey('SizeChart', on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
     def get_price_for_promotion(self, promotion):
         return promotion.get_discounted_price(self.price)
 
@@ -632,6 +633,7 @@ class ProductVariant(BaseAuditModel):
         else:
             # variable product: total = sum of variants (also runs when a variant is deactivated)
             product.sync_stock_from_variants()
+            
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 @receiver(post_delete, sender=ProductVariant)
@@ -697,7 +699,31 @@ class ProductImage(BaseAuditModel):
     image = models.ImageField(upload_to='products/%Y/%m/')
     is_primary = models.BooleanField(default=False)
     alt_text = models.CharField(max_length=255, blank=True)
+class SizeChart(BaseAuditModel):
+    name = models.CharField(max_length=150, unique=True)
+    description = models.CharField(max_length=255, blank=True, help_text="e.g. All measurements in inches")
+    # ["Size", "Chest", "Waist", "Length"]
+    columns = models.JSONField(default=list)
+    # [["S", "36", "30", "27"], ["M", "38", "32", "28"]]
+    rows = models.JSONField(default=list)
 
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if not self.columns:
+            raise ValidationError("Add at least one column.")
+        if any(not str(c).strip() for c in self.columns):
+            raise ValidationError("Column names cannot be empty.")
+        if len({str(c).strip().lower() for c in self.columns}) != len(self.columns):
+            raise ValidationError("Column names must be unique.")
+        for r in self.rows:
+            if len(r) != len(self.columns):
+                raise ValidationError("Every row must have a value for every column.")
 class ProductReview(BaseAuditModel):
     product = models.ForeignKey(Product, related_name='reviews', on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

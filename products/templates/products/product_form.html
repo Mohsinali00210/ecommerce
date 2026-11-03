@@ -98,6 +98,19 @@
                         {{ form.brand }}
                         {{ form.brand.errors }}
                     </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="id_size_chart">Size Chart</label>
+                        <div class="input-group">
+                            {{ form.size_chart }}
+                            <button type="button" class="btn btn-outline-dark" onclick="openModal('{% url 'size_chart_add' %}')" title="Create new size chart">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" id="editSizeChartBtn" title="Edit selected chart">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </div>
+                        {{ form.size_chart.errors }}
+                    </div>
                     <div class="col-md-3">
                         <label class="form-label">Status</label>
                         {{ form.status }}
@@ -393,7 +406,18 @@ document.addEventListener('submit', function (e) {
         .then(data => {
             if (data.success) {
                 genericModal.hide();
-                location.reload();
+                if (data.size_chart) {
+                    const sel = document.getElementById('id_size_chart');
+                    let opt = sel.querySelector(`option[value="${data.size_chart.id}"]`);
+                    if (!opt) {
+                        opt = new Option(data.size_chart.name, data.size_chart.id);
+                        sel.add(opt);
+                    }
+                    opt.text = data.size_chart.name;
+                    sel.value = data.size_chart.id;
+                } else {
+                    location.reload();
+                }
             } else {
                 const body = document.getElementById('genericModalBody');
                 body.innerHTML = data.html;
@@ -404,7 +428,11 @@ document.addEventListener('submit', function (e) {
             document.getElementById('genericModalBody').innerHTML = '<div class="alert alert-danger">Something went wrong. Please try again.</div>';
         });
 });
-
+document.getElementById('editSizeChartBtn').addEventListener('click', function () {
+    const id = document.getElementById('id_size_chart').value;
+    if (!id) { alert('Select a size chart first.'); return; }
+    openModal(`/size-charts/${id}/edit/`);   // adjust the prefix to match your urls.py
+});
 </script>
 <script>
 $(document).ready(function () {

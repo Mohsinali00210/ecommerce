@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import APIException, ValidationError
 import traceback
 import json
-from .models import Category, ProductAttribute, Attribute_Types, Brand, Product, Promotion,TaxCategory,ProductReview,Wishlist
+from .models import Category, ProductAttribute, Attribute_Types, Brand, Product, Promotion, SizeChart,TaxCategory,ProductReview,Wishlist
 from accounts.models import ErrorLog
 
 from .serializers import OrderSerializer,AdminOrderRequestUpdateSerializer,CategorySerializer, ProductAttributeSerializer,AttributeTypesSerializer,BrandSerializer, ProductSerializer, PromotionSerializer
@@ -1188,7 +1188,7 @@ from django.db.models import Q
  
 from .models import Product, Category, ProductVariant, ProductVariantOption, ProductImage, Promotion, Tag
 from .forms import (
-    ProductForm, ProductVariantForm, ProductImageForm, PromotionForm, TagAddForm,
+    ProductForm, ProductVariantForm, ProductImageForm, PromotionForm, SizeChartForm, TagAddForm,
 )
  
  
@@ -1253,7 +1253,26 @@ def product_form_view(request, pk=None):
     }
     return render(request, 'products/product_form.html', context)
  
- 
+from django.http import JsonResponse
+from django.template.loader import render_to_string
+
+@login_required
+def size_chart_form_view(request, pk=None):
+    chart = get_object_or_404(SizeChart, pk=pk, is_deleted=False) if pk else None
+    form = SizeChartForm(request.POST or None, instance=chart)
+
+    if request.method == 'POST' and form.is_valid():
+        obj = form.save(commit=False)
+        if chart is None:
+            obj.created_by = request.user
+        else:
+            obj.modified_by = request.user
+        obj.save()
+        return JsonResponse({'success': True, 'size_chart': {'id': obj.pk, 'name': obj.name}})
+
+    html = render_to_string('products/partials/size_chart_form.html',
+                            {'form': form, 'chart': chart}, request=request)
+    return JsonResponse({'success': False, 'html': html})
 # ---------------------------------------------------------------------------
 # Shared helper: modal add/edit views all follow the same GET/POST shape:
 #   GET  -> return {"html": "<form partial>"}                (to fill the modal)
