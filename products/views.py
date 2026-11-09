@@ -1,10 +1,13 @@
+from itertools import product
+from xml.parsers.expat import errors
+
 from django.shortcuts import render
 from rest_framework import viewsets, status, permissions, parsers, filters
 from rest_framework.response import Response
 from rest_framework.exceptions import APIException, ValidationError
 import traceback
 import json
-from .models import Category, ProductAttribute, Attribute_Types, Brand, Product, Promotion, SizeChart,TaxCategory,ProductReview,Wishlist
+from .models import Category, ProductAttribute, Attribute_Types, Brand, Product, Promotion, SizeChart,TaxCategory,ProductReview,Wishlist, refresh_option_links, soft_delete_options, soft_delete_variants
 from accounts.models import ErrorLog
 
 from .serializers import OrderSerializer,AdminOrderRequestUpdateSerializer,CategorySerializer, ProductAttributeSerializer,AttributeTypesSerializer,BrandSerializer, ProductSerializer, PromotionSerializer
@@ -1250,6 +1253,10 @@ def product_form_view(request, pk=None):
     context = {
         'form': form,
         'product': product,
+        'variants': (product.variants.filter(is_deleted=False, is_active=True).order_by('id')
+                     if product else []),
+        'variant_options': (product.variant_options.filter(is_deleted=False).order_by('id')
+                            if product else []),
     }
     return render(request, 'products/product_form.html', context)
  
@@ -1300,7 +1307,7 @@ def variant_add_modal(request, product_id):
 @login_required
 def variant_edit_modal(request, product_id, variant_id):
     product = get_object_or_404(Product, pk=product_id)
-    variant = get_object_or_404(ProductVariant, pk=variant_id, product=product)
+    variant = get_object_or_404(ProductVariant, pk=variant_id, product=product, is_deleted=False)
  
     if request.method == 'POST':
         form = ProductVariantForm(request.POST, instance=variant, product=product)
@@ -1328,18 +1335,222 @@ def variant_edit_modal(request, product_id, variant_id):
         {'form': form, 'product': product, 'variant': variant, 'mode': 'edit'}, request=request,
     )
     return JsonResponse({'html': html})
- 
- 
+
 @login_required
 def variant_delete(request, product_id, variant_id):
-    variant = get_object_or_404(ProductVariant, pk=variant_id, product_id=product_id)
+    variant = get_object_or_404(ProductVariant, pk=variant_id, product_id=product_id, is_deleted=False)
     if variant.product.is_simple:
         messages.error(request, "A simple product's default variant cannot be deleted.")
         return redirect('product_edit', pk=product_id)
-    variant.delete()
+    ProductVariant.objects.filter(product_id=product_id, pk=variant_id).update(
+                        is_deleted=True,is_active=False, modified_at=timezone.now(), modified_by=request.user)
     messages.success(request, "Variant deleted.")
     return redirect('product_edit', pk=product_id)
- 
+
+import json
+from collections import OrderedDict
+from decimal import Decimal, InvalidOperation
+
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.db.models import ProtectedError
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, render
+
+# from .models import Product, ProductVariant, ProductImage, ProductVariantOption
+# If VARIANT_NAME_SEP already exists in your models, import it instead of redefining.
+# It MUST match the separator the add builder uses (combo.join(' / ')).
+VARIANT_NAME_SEP = ' / '
+
+BULK_EDIT_TEMPLATE = 'products/partials/variant_bulk_edit_form.html'   # adjust to your templates path
+
+
+def _option_groups(product):
+    """Rebuild the option groups ("Color": Red,Blue ...) from the ProductVariantOption rows.
+    The add view stores ONE row per value (option=value, value=color code), so rows are
+    grouped by option_name, in creation order. Comma-separated rows are handled too."""
+    groups = OrderedDict()
+    for opt in ProductVariantOption.objects.filter(product=product, is_deleted=False).order_by('id'):
+        group = groups.setdefault(opt.option_name, {'name': opt.option_name, 'options': [], 'colors': []})
+        labels = opt.get_options_list()
+        colors = opt.get_values_list()
+        for i, label in enumerate(labels):
+            group['options'].append(label)
+            group['colors'].append(colors[i] if i < len(colors) else '')
+    result = []
+    for g in groups.values():
+        # only colour groups carry colour codes
+        if 'color' not in g['name'].lower() or not any(g['colors']):
+            g['colors'] = []
+        result.append(g)
+    return result
+
+
+def _variant_rows(product):
+    rows = []
+    qs = (ProductVariant.objects
+            .filter(product=product, is_deleted=False, is_active=True)
+            .select_related('image').order_by('id'))    
+    for v in qs:
+        image_url = ''
+        if v.image_id and v.image and v.image.image:
+            image_url = v.image.image.url
+        rows.append({
+            'id': v.pk,
+            'name': v.name,
+            'sku': v.sku,
+            'price': str(v.price),
+            'stock': v.stock_quantity,
+            'image_url': image_url,
+        })
+    return rows
+
+from django.template.loader import render_to_string
+
+@login_required
+def variant_bulk_edit_modal(request, product_id):
+    """GET  -> renders the bulk-edit form (option inputs + variants table) for the modal.
+    POST -> saves everything (updates, creates, deletes, option definitions) atomically."""
+    product = get_object_or_404(Product, pk=product_id)
+
+    if product.is_simple:
+        msg = 'A simple product has one default variant. Variants cannot be bulk edited.'
+        if request.method == 'POST':
+            return JsonResponse({'success': False, 'message': msg})
+        return HttpResponse(f'<div class="alert alert-warning mb-0">{msg}</div>')
+
+    if request.method != 'POST':
+        html = render_to_string(BULK_EDIT_TEMPLATE, {
+            'product': product,
+            'initial_options_json': json.dumps(_option_groups(product)),
+            'initial_variants_json': json.dumps(_variant_rows(product)),
+        }, request=request)
+        return JsonResponse({'success': True, 'html': html})
+
+    # ------------------------------ POST ------------------------------
+    try:
+        variants_data = json.loads(request.POST.get('variants') or '[]')
+        raw_options = request.POST.get('options')
+        options_data = json.loads(raw_options) if raw_options else None
+        deleted_ids = [int(i) for i in json.loads(request.POST.get('deleted_ids') or '[]')]
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return JsonResponse({'success': False, 'message': 'Variant data was malformed. Please try again.'})
+
+    if not variants_data:
+        return JsonResponse({'success': False, 'message': 'There are no variants to save.'})
+
+    # ---- Validate every row up front: save everything or nothing ----
+    errors = []
+    seen_skus = set()
+    row_ids = []
+    for index, variant_data in enumerate(variants_data, start=1):
+        try:
+            vid = int(variant_data['id']) if variant_data.get('id') not in (None, '') else None
+        except (TypeError, ValueError):
+            vid = None
+            errors.append(f"Row {index}: invalid variant id.")
+        row_ids.append(vid)
+
+        sku = (variant_data.get('sku') or '').strip()
+        if not sku:
+            errors.append(f"Row {index}: SKU is required.")
+        elif sku in seen_skus:
+            errors.append(f"Row {index}: SKU '{sku}' is duplicated in this batch.")
+        elif ProductVariant.objects.filter(sku=sku).exclude(pk=vid).exists():
+            errors.append(f"Row {index}: SKU '{sku}' already exists.")
+        seen_skus.add(sku)
+
+        price = variant_data.get('price')
+        if price in (None, ''):
+            errors.append(f"Row {index}: Price is required.")
+        else:
+            try:
+                Decimal(str(price))
+            except InvalidOperation:
+                errors.append(f"Row {index}: Price is not a valid number.")
+
+    submitted_ids = {i for i in row_ids if i is not None}
+    existing = {v.pk: v for v in ProductVariant.objects.filter(
+        product=product, pk__in=submitted_ids, is_deleted=False)}
+    for index, vid in enumerate(row_ids, start=1):
+        if vid is not None and vid not in existing:
+            errors.append(f"Row {index}: variant no longer exists for this product. Reload and try again.")
+
+    if errors:
+        return JsonResponse({'success': False, 'message': ' '.join(errors)})
+
+    deleted_ids = [i for i in deleted_ids if i not in submitted_ids]
+    created = updated = 0
+
+    try:
+        with transaction.atomic():
+            # 1) variants whose option values were removed
+            if deleted_ids:
+                soft_delete_variants(product, deleted_ids, request.user)
+
+            # 2) update existing + create new
+            for index, variant_data in enumerate(variants_data):
+                vid = row_ids[index]
+                if vid is not None:
+                    variant = existing[vid]
+                    variant.name = variant_data.get('name', '')
+                    variant.sku = variant_data.get('sku').strip()
+                    variant.price = variant_data.get('price') or 0
+                    variant.stock_quantity = variant_data.get('stock_quantity') or 0
+                    if hasattr(variant, 'updated_by'):
+                        variant.updated_by = request.user
+                    updated += 1
+                else:
+                    variant = ProductVariant(
+                        product=product,
+                        name=variant_data.get('name', ''),
+                        sku=variant_data.get('sku').strip(),
+                        price=variant_data.get('price') or 0,
+                        stock_quantity=variant_data.get('stock_quantity') or 0,
+                        created_by=request.user,
+                    )
+                    created += 1
+
+                image_file = request.FILES.get(f'variants[{index}][image]')
+                if image_file:
+                    variant.image = ProductImage.objects.create(
+                        product=product, image=image_file, created_by=request.user,
+                    )
+                variant.save()
+                
+
+            # 3) replace the option definitions (only when the client sent them)
+            if options_data is not None:
+                soft_delete_options(product, request.user)      # was .delete()
+                for item in options_data:
+                    option_name = item.get('option_name')
+                    option_values = item.get('option', [])
+                    color_values = item.get('value', [])
+                    if not option_name or not option_values:
+                        continue
+                    for i, value in enumerate(option_values):
+                        color_code = (color_values[i] if option_name.lower() == 'color'
+                                      and i < len(color_values) else None)
+                        ProductVariantOption.objects.create(
+                            product=product,
+                            option_name=option_name,
+                            option=value,
+                            value=color_code,
+                            created_by=request.user,
+                        )
+
+            product.sync_stock_from_variants()
+            refresh_option_links(product)
+    except ProtectedError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Some removed variants are referenced by other records (e.g. orders) and cannot be deleted.',
+        })
+
+    return JsonResponse({
+        'success': True,
+        'message': f'{updated} updated, {created} created, {len(deleted_ids)} deleted.',
+    })
  
 @login_required
 def variant_bulk_create(request, product_id):
@@ -1396,7 +1607,7 @@ def variant_bulk_create(request, product_id):
             errors.append(f"Row {index}: SKU is required.")
         elif sku in seen_skus:
             errors.append(f"Row {index}: SKU '{sku}' is duplicated in this batch.")
-        elif ProductVariant.objects.filter(sku=sku).exists():
+        elif ProductVariant.objects.filter(sku=sku, is_deleted=False).exclude(pk=vid).exists():
             errors.append(f"Row {index}: SKU '{sku}' already exists.")
         seen_skus.add(sku)
  

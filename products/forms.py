@@ -105,6 +105,15 @@ class ProductForm(BootstrapFormMixin, forms.ModelForm):
 class ColorInput(forms.TextInput):
     input_type = "color"
 
+
+class VariantBulkRowForm(forms.ModelForm):
+    """Lightweight per-row validation for bulk edit. Only the columns shown in
+    the bulk table; images / color codes stay in the single-variant editor."""
+ 
+    class Meta:
+        model = ProductVariant
+        fields = ['name', 'sku', 'price', 'stock_quantity']
+ 
 import re
 from django.core.validators import RegexValidator
 from django.db import transaction
@@ -215,13 +224,6 @@ class SizeChartForm(BootstrapFormMixin, forms.ModelForm):
             self.initial['chart_data'] = json.dumps(
                 {'columns': ['Size', 'Chest', 'Waist'], 'rows': [['', '', '']]}
             )
-    def clean(self):
-        cleaned = super().clean()
-        data = cleaned.get('chart_data')
-        if data:
-            self.instance.columns = data['columns']
-            self.instance.rows = data['rows']
-        return cleaned
 
     def clean_chart_data(self):
         try:

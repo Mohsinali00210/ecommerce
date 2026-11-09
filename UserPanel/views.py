@@ -3,7 +3,7 @@ from django.shortcuts import render,get_object_or_404
 from django.utils import timezone
 from django.db.models import Sum
 from django.core.exceptions import ValidationError
-from products.models import Product, Category,Promotion,ProductQuestion,ProductReview  # adjust import path/names if different
+from products.models import Product, Category, ProductImage,Promotion,ProductQuestion,ProductReview  # adjust import path/names if different
 
 # All of Cart, CartItem, WishToBuy, Notification, NotificationRecipient came from the
 # single models.py you sent — I'm assuming that app is called "orders". Change this
@@ -137,7 +137,11 @@ from django.utils import timezone
 # in-stock variant is then used automatically.
 # ---------------------------------------------------------------------------
 HIDE_VARIANT_PICKER_FOR_GROUPED = False
+def active_variants(product):
+    return product.variants.filter(is_active=True, is_deleted=False)
 
+def active_options(product):
+    return product.variant_options.filter(is_active=True, is_deleted=False)
 
 def show_variant_picker(product):
     return product.is_grouped and not HIDE_VARIANT_PICKER_FOR_GROUPED
@@ -145,20 +149,16 @@ def show_variant_picker(product):
 
 def ensure_default_variant(product):
     """A simple product always owns its default variant (created on first view if missing)."""
-    if product.is_simple and not product.variants.filter(is_active=True).exists():
+    if product.is_simple and not active_variants(product).exists():
         product.sync_default_variant()
 
 
 def ensure_item_variant(item):
-    """
-    Cart line without a variant -> attach the default / only variant, so the order
-    always records one even though the customer never picked it.
-    """
     if item.variant_id or not item.product_id:
         return
     product = item.product
     ensure_default_variant(product)
-    variants = list(product.variants.filter(is_active=True).order_by("id")[:50])
+    variants = list(active_variants(product).order_by("id")[:50])
     if len(variants) == 1:
         chosen = variants[0]
     elif variants and not show_variant_picker(product):
@@ -170,15 +170,18 @@ def ensure_item_variant(item):
 
 
 def build_variant_data(product, promo, sku=None):
-    """
-    Same payload as ProductDetails: real price, discounted price, was price,
-    percent off and stock per variant. Promotion is resolved ONCE by the caller.
-    You can reuse this in ProductDetails too, so both views stay identical.
-    Returns (variant_data, selected_variant).
-    """
+    variants = (
+        active_variants(product)
+        .select_related("image")
+        .prefetch_related("images")
+        .order_by("id")
+    )
     data = []
     selected = None
-    for v in product.variants.filter(is_active=True).select_related("image"):
+    for v in variants:
+        img_obj = v.image or next(iter(v.images.all()), None)
+        img_url = img_obj.image.url if img_obj and img_obj.image else None
+
         vp = build_pricing(v.price, promo)
         entry = {
             "id": v.id,
@@ -189,6 +192,7 @@ def build_variant_data(product, promo, sku=None):
             "was_price": float(vp["was"]) if vp["was"] else None,
             "percent_off": float(vp["percent_off"]),
             "stock": v.stock_quantity,
+            "image": img_url,
         }
         data.append(entry)
         if sku and v.sku == sku:
@@ -196,25 +200,34 @@ def build_variant_data(product, promo, sku=None):
     return data, selected
 
 
+from django.db.models import Prefetch
+
 def product_quick_view(request, product_id):
     now = timezone.now()
 
     product = get_object_or_404(
-        Product.objects.prefetch_related("images", "variants", "variant_options"),
+        Product.objects
+        .select_related("size_chart")
+        .prefetch_related(
+            "images",
+            Prefetch(
+                "variant_options",
+                queryset=ProductVariantOption.objects.filter(is_deleted=False)
+                                                     .order_by("option_name", "id"),
+                to_attr="active_option_list",
+            ),
+        ),
         id=product_id,
+        is_deleted=False,
     )
 
     ensure_default_variant(product)
-
-    # One promotion query for the product + all its variants (was 1 + N before)
     promo = get_active_promotion(product, now)
     pricing = build_pricing(product.price, promo)
 
     variant_data, _ = build_variant_data(product, promo)
     picker = show_variant_picker(product)
 
-    # In stock if the product itself OR any variant has stock
-    # Stock shown before the JS picks a variant: product stock, else total across variants
     available_stock = (product.stock_quantity or 0) or sum(max(v["stock"] or 0, 0) for v in variant_data)
     in_stock = available_stock > 0
 
@@ -222,10 +235,9 @@ def product_quick_view(request, product_id):
         "product": product,
         "in_stock": in_stock,
         "available_stock": available_stock,
-        "pricing": pricing,  # pricing.final / .was / .percent_off
+        "pricing": pricing,
         "images": product.images.all(),
-        # no option groups -> no variant picker; the JS then uses the default variant
-        "options": product.variant_options.order_by("option_name", "id") if picker else product.variant_options.none(),
+        "options": product.active_option_list if picker else [],
         "show_variant_picker": picker,
         "variants_json": json.dumps(variant_data, cls=DjangoJSONEncoder),
         "estimated_date": now + timedelta(days=product.handling_time),
@@ -584,12 +596,12 @@ def search_products(request):
         qs.select_related("brand")
           .prefetch_related("images", "tags", "category", active_promo_prefetch(now))
     )
+    qs = with_review_stats(qs)      # <-- new
 
     if sort in SORT_FIELD_MAP:
         qs = qs.order_by(SORT_FIELD_MAP[sort])
     else:
         qs = qs.order_by("-mark_as_new", "-sold", "name")
-
     price_bounds = Product.objects.filter(status__in=["active", "featured"]).aggregate(
         min_price=Min("price"), max_price=Max("price")
     )
@@ -637,7 +649,7 @@ def home(request):
     promo_prefetch = active_promo_prefetch(current_date)
 
     # ----- Featured products (promo pricing applied) -----
-    featured_products = (
+    featured_products = with_review_stats(
         Product.objects
         .filter(status="active")
         .annotate(is_wishlisted=Exists(wishlist_exists))
@@ -645,8 +657,7 @@ def home(request):
     )
     apply_promotion_info(featured_products)
 
-    # ----- Best sellers / new arrivals (now also with promo pricing) -----
-    active_products = (
+    active_products = with_review_stats(
         Product.objects
         .filter(is_active=True)
         .annotate(is_wishlisted=Exists(wishlist_exists))
@@ -690,6 +701,15 @@ def home(request):
     }
 
     return render(request, "home/index.html", context)
+from django.db.models import Avg, Count, Q
+
+def with_review_stats(qs):
+    """Annotate products with the number of reviews and their average rating."""
+    valid = Q(reviews__is_active=True, reviews__is_deleted=False)
+    return qs.annotate(
+        review_count=Count("reviews", filter=valid, distinct=True),
+        review_avg=Avg("reviews__rating", filter=valid),
+    )
 # views.py
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -1175,15 +1195,24 @@ def ProductDetails(request, slug, sku=None):
 
     product = get_object_or_404(
         Product.objects.prefetch_related(
-            "images",
+            Prefetch(
+                "images",
+                queryset=ProductImage.objects.filter(is_deleted=False),   # drop if ProductImage has no is_deleted
+            ),
             Prefetch(
                 "variants",
-                queryset=ProductVariant.objects.filter(is_active=True),
+                queryset=ProductVariant.objects.filter(is_active=True, is_deleted=False)
+                                            .select_related("image")
+                                            .order_by("id"),
             ),
-            "variant_options",
+            Prefetch(
+                "variant_options",
+                queryset=ProductVariantOption.objects.filter(is_active=True, is_deleted=False).order_by("id"),
+            ),
             "size_chart",
         ),
         slug=slug,
+        is_deleted=False,   # also skip soft-deleted products
     )
 
     estimated_date = now + timedelta(days=product.handling_time)
@@ -1205,7 +1234,7 @@ def ProductDetails(request, slug, sku=None):
     wishlist_id_set = set(wishlist_ids)
 
     # ---- Related products: same promo logic as home / search ----
-    related_products = list(
+    related_products = list(with_review_stats(
         Product.objects
         .filter(
             category__in=product.category.all(),
@@ -1217,7 +1246,7 @@ def ProductDetails(request, slug, sku=None):
         .distinct()
         .order_by("-sold")
         .prefetch_related("images", active_promo_prefetch(now))[:5]
-    )
+    ))
     apply_promotion_info(related_products)   # sets promotion / final_price / has_discount / discount_percent
     for prd in related_products:
         prd.pricing = build_pricing(prd.price, prd.promotion)   # keeps existing templates working
@@ -1238,12 +1267,21 @@ def ProductDetails(request, slug, sku=None):
     ).select_related("user").order_by("-created_at")
 
     # ---- Variants: real price + discounted price per variant ----
-    variants = product.variants.filter(is_active=True).select_related("image")
+    variants = (
+        product.variants.filter(is_active=True, is_deleted=False)
+        .select_related("image")
+        .prefetch_related("images")
+    )
     variant_data = []
     selected_variant = None
 
     for v in variants:
-        vp = build_pricing(v.price, promo)  # same promo, computed once above
+        vp = build_pricing(v.price, promo)
+
+        # Variant image: the dedicated FK first, then the first image in its gallery
+        img_obj = v.image or next(iter(v.images.all()), None)
+        img_url = img_obj.image.url if img_obj and img_obj.image else None
+
         entry = {
             "id": v.id,
             "sku": v.sku,
@@ -1253,6 +1291,7 @@ def ProductDetails(request, slug, sku=None):
             "was_price": float(vp["was"]) if vp["was"] else None,
             "percent_off": float(vp["percent_off"]),
             "stock": v.stock_quantity,
+            "image": img_url,          # <-- new
         }
         variant_data.append(entry)
 

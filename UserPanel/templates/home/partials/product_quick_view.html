@@ -7,6 +7,21 @@
     content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px;
     background: var(--text); transform: rotate(45deg);
   }
+
+  
+.size-chart-table { color: var(--text); border-color: var(--border); }
+.size-chart-table thead th {
+  background: var(--bg-soft);
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+}
+.size-chart-table tbody th { background: var(--bg-soft); font-weight: 700; }
+.size-chart-table td, .size-chart-table th { border-color: var(--border); padding: .6rem .8rem; }
+.size-chart-table tbody tr:hover td { background: var(--bg-soft); }
+
+#sizeChartModal { z-index: 1065; }
 </style>
 
 <div class="row g-4" data-product-quick-view data-product-id="{{ product.id }}">
@@ -99,7 +114,13 @@
         </div>
       </div>
     {% endfor %}
-
+    {% if product.size_chart and not product.size_chart.is_deleted %}
+      <div class="mb-3">
+        <button type="button" class="btn btn-outline-ink btn-sm" id="qvSizeChartBtn">
+          <i class="bi bi-rulers me-1"></i> View Size Chart
+        </button>
+      </div>
+    {% endif %}
     <div class="mb-3">
       <label class="form-label d-block">Quantity</label>
       <div class="qty-stepper">
@@ -137,12 +158,102 @@
     </div>
   </div>
 </div>
+{% if product.size_chart and not product.size_chart.is_deleted %}
+<!-- ============ SIZE CHART MODAL ============ -->
+<div class="modal fade" id="sizeChartModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title font-display">
+          <i class="bi bi-rulers me-1"></i> {{ product.size_chart.name }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% if product.size_chart.description %}
+          <p class="text-muted-custom small mb-3">{{ product.size_chart.description }}</p>
+        {% endif %}
 
+        <div class="table-responsive">
+          <table class="table table-bordered text-center align-middle mb-0 size-chart-table">
+            <thead>
+              <tr>
+                {% for col in product.size_chart.columns %}<th>{{ col }}</th>{% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in product.size_chart.rows %}
+                <tr>
+                  {% for cell in row %}
+                    {% if forloop.first %}<th scope="row">{{ cell }}</th>{% else %}<td>{{ cell }}</td>{% endif %}
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-ink" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 <script>
   // Scoped to this fetch response — re-run each time the modal loads new content.
   (function () {
     const root = document.querySelector('[data-product-quick-view]');
     if (!root) return;
+
+
+  
+  // Remove any stale size-chart modal left in <body> from a previous quick view
+  document.querySelectorAll('body > #sizeChartModal').forEach(el => {
+    bootstrap.Modal.getInstance(el)?.dispose();
+    el.remove();
+  });
+
+  // Move this product's size-chart modal out of the quick-view modal
+  const sizeModalEl = document.getElementById('sizeChartModal');
+  const sizeBtn = document.getElementById('qvSizeChartBtn');
+
+  if (sizeModalEl) {
+    document.body.appendChild(sizeModalEl);
+
+    // Stack it above the quick view modal and its backdrop
+    sizeModalEl.addEventListener('show.bs.modal', () => {
+      sizeModalEl.style.zIndex = 1065;
+      setTimeout(() => {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        const last = backdrops[backdrops.length - 1];
+        if (last) last.style.zIndex = 1060;
+      }, 0);
+    });
+
+    // Keep the quick view scroll-locked after the size chart closes
+    sizeModalEl.addEventListener('hidden.bs.modal', () => {
+      if (document.querySelector('.modal.show')) {
+        document.body.classList.add('modal-open');
+      }
+    });
+
+    // Open it explicitly
+    if (sizeBtn) {
+      sizeBtn.addEventListener('click', () => {
+        bootstrap.Modal.getOrCreateInstance(sizeModalEl).show();
+      });
+    }
+
+    // Clean up when the quick view modal closes (no hardcoded id needed)
+    const quickViewModalEl = root.closest('.modal');
+    if (quickViewModalEl) {
+      quickViewModalEl.addEventListener('hidden.bs.modal', () => {
+        bootstrap.Modal.getInstance(sizeModalEl)?.dispose();
+        sizeModalEl.remove();
+      }, { once: true });
+    }
+  }
 
     const PRODUCT_ID    = {{ product.id }};
     const VARIANTS      = {{ variants_json|safe }};
@@ -257,7 +368,21 @@
         setPurchaseButtons(false);
       }
     }
+    // ---------- Show the selected variant's picture in the main viewer ----------
+    function showVariantImage(v) {
+      if (!v || !v.image) return;                 // no image set -> keep current one
 
+      const img = $('.qv-main-img');
+      if (!img) return;
+      if (img.getAttribute('src') === v.image) return;   // already showing
+
+      img.src = v.image;
+
+      // keep the thumbnail strip in sync
+      root.querySelectorAll('.pdp-thumb[data-full]').forEach(t => {
+        t.classList.toggle('active', t.dataset.full === v.image);
+      });
+    }
     function updateVariant() {
       // Product without variants: use product-level stock (price already rendered by the server)
       if (!VARIANTS.length) {
@@ -275,6 +400,7 @@
       }
 
       renderPrice(v);
+      showVariantImage(v);   // <-- new
       showStock(v.stock);
     }
 
@@ -387,6 +513,7 @@
         if (el) selectOption(groupEl, el, false);   // false: no auto-correct while preselecting
       });
     }
+
 
     // ---------- Initial state ----------
     markSoldOutOptions();

@@ -105,7 +105,9 @@
                             <button type="button" class="btn btn-outline-dark" onclick="openModal('{% url 'size_chart_add' %}')" title="Create new size chart">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
-                            <button type="button" class="btn btn-outline-primary" id="editSizeChartBtn" title="Edit selected chart">
+                            <button type="button" class="btn btn-outline-primary" id="editSizeChartBtn"
+                                    data-url-template="{% url 'size_chart_edit' 0 %}"
+                                    title="Edit selected chart" disabled>
                                 <i class="bi bi-pencil"></i>
                             </button>
                         </div>
@@ -216,15 +218,23 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-diagram-3"></i> Variants</span>
-                {% if product.is_simple %}
-                <button type="button" class="btn btn-sm btn-dark" disabled title="A simple product has one default variant">
-                    <i class="bi bi-plus-lg"></i> Add Variants
-                </button>
-                {% else %}
-                <button type="button" class="btn btn-sm btn-dark" onclick="openModal('{% url 'variant_add' product.id %}')">
-                    <i class="bi bi-plus-lg"></i> Add Variants
-                </button>
-                {% endif %}
+                <div class="d-flex gap-2">
+                    {% if product.is_simple %}
+                    <button type="button" class="btn btn-sm btn-dark" disabled title="A simple product has one default variant">
+                        <i class="bi bi-plus-lg"></i> Add Variants
+                    </button>
+                    {% else %}
+                    {% if variants %}
+                    <button type="button" class="btn btn-sm btn-outline-dark" onclick="openModal('{% url 'variant_bulk_edit' product.id %}')">
+                        <i class="bi bi-pencil-square"></i> Bulk Edit
+                    </button>
+                  
+                    {% endif %}
+                    <button type="button" class="btn btn-sm btn-dark" onclick="openModal('{% url 'variant_add' product.id %}')">
+                        <i class="bi bi-plus-lg"></i> Add Variants
+                    </button>
+                    {% endif %}
+                </div>
             </div>
             {% if product.is_simple %}
             <div class="px-3 py-2 small text-muted border-bottom">
@@ -235,7 +245,7 @@
                 <table class="table table-sm mb-0">
                     <thead class="table-light"><tr><th>Name</th><th>SKU</th><th>Price</th><th>Stock</th><th></th></tr></thead>
                     <tbody>
-                        {% for variant in product.variants.all %}
+                        {% for variant in variants %}
                         <tr>
                             <td>{{ variant.name }}</td>
                             <td>{{ variant.sku }}</td>
@@ -355,7 +365,7 @@
         </div>
     </div>
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(document).ready(function () {
@@ -408,6 +418,7 @@ document.addEventListener('submit', function (e) {
                 genericModal.hide();
                 if (data.size_chart) {
                     const sel = document.getElementById('id_size_chart');
+                    sel.dispatchEvent(new Event('change'));
                     let opt = sel.querySelector(`option[value="${data.size_chart.id}"]`);
                     if (!opt) {
                         opt = new Option(data.size_chart.name, data.size_chart.id);
@@ -428,11 +439,22 @@ document.addEventListener('submit', function (e) {
             document.getElementById('genericModalBody').innerHTML = '<div class="alert alert-danger">Something went wrong. Please try again.</div>';
         });
 });
-document.getElementById('editSizeChartBtn').addEventListener('click', function () {
-    const id = document.getElementById('id_size_chart').value;
-    if (!id) { alert('Select a size chart first.'); return; }
-    openModal(`/size-charts/${id}/edit/`);   // adjust the prefix to match your urls.py
+const editSizeBtn = document.getElementById('editSizeChartBtn');
+const sizeChartSelect = document.getElementById('id_size_chart');
+
+function syncEditSizeBtn() {
+    editSizeBtn.disabled = !sizeChartSelect.value;
+}
+sizeChartSelect.addEventListener('change', syncEditSizeBtn);
+syncEditSizeBtn();
+
+editSizeBtn.addEventListener('click', function () {
+    const id = sizeChartSelect.value;
+    if (!id) return;
+    // "/size-charts/0/edit/" -> "/size-charts/<id>/edit/"
+    openModal(this.dataset.urlTemplate.replace('/0/', `/${id}/`));
 });
+
 </script>
 <script>
 $(document).ready(function () {

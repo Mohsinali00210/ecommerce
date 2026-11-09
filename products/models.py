@@ -1,3 +1,5 @@
+from itertools import product
+
 from django.db import models
 from django.conf import settings
 from django.utils.text import slugify
@@ -542,12 +544,12 @@ class Product(BaseAuditModel):
     @property
     def default_variant(self):
         """The one variant a simple product owns (None if not created yet)."""
-        return self.variants.filter(is_active=True).order_by('id').first()
+        return self.variants.filter(is_active=True, is_deleted=False).order_by('id').first()
 
     def _default_variant_sku(self, exclude_pk=None):
         base = (self.sku or f'P{self.pk}')[:100]
         sku, n = base, 1
-        taken = ProductVariant.objects.all()
+        taken = ProductVariant.objects.filter(is_deleted=False)
         if exclude_pk:
             taken = taken.exclude(pk=exclude_pk)
         while taken.filter(sku=sku).exists():
@@ -582,7 +584,7 @@ class Product(BaseAuditModel):
         variant.stock_quantity = self.stock_quantity
         variant.save()
 
-        self.variants.exclude(pk=variant.pk).filter(is_active=True).update(is_active=False)
+        self.variants.exclude(pk=variant.pk).filter(is_active=True, is_deleted=False).update(is_active=False)
         return variant
 
     def save(self, *args, **kwargs):
@@ -599,11 +601,14 @@ class Product(BaseAuditModel):
         """Variable products: product stock = sum of active variants' stock."""
         if self.is_simple:
             return  # simple products are handled by ProductVariant.save() below
-        total = self.variants.filter(is_active=True).aggregate(t=Sum('stock_quantity'))['t'] or 0
+        total = self.variants.filter(is_active=True, is_deleted=False).aggregate(t=Sum('stock_quantity'))['t'] or 0
         if self.stock_quantity != total:
             # .update() avoids triggering Product.save() side effects
             Product.objects.filter(pk=self.pk).update(stock_quantity=total)
             self.stock_quantity = total
+VARIANT_NAME_SEP = ' / '   # variant name = option values joined by this (must match the view)
+from django.dispatch import receiver
+from django.db.models.signals import post_delete
 
 class ProductVariant(BaseAuditModel):
     product = models.ForeignKey(Product, related_name='variants', on_delete=models.CASCADE)
@@ -618,6 +623,14 @@ class ProductVariant(BaseAuditModel):
         on_delete=models.SET_NULL, null=True, blank=True,   # was CASCADE, see note below
     )
     images = models.ManyToManyField('ProductImage', related_name='variant_gallery', blank=True)
+    option_ids = models.TextField(
+        blank=True, default='',
+        help_text="Comma separated ProductVariantOption ids this variant combines, e.g. 1,2",
+    )
+    # REMOVE variant_ids and get_variant_ids from this class
+
+    def get_option_ids(self):
+        return [int(i) for i in self.option_ids.split(',') if i.strip().isdigit()]
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -633,7 +646,56 @@ class ProductVariant(BaseAuditModel):
         else:
             # variable product: total = sum of variants (also runs when a variant is deactivated)
             product.sync_stock_from_variants()
-            
+
+def refresh_option_links(product):
+    """Recompute ProductVariant.option_ids and ProductVariantOption.variant_ids for a product.
+    A variant is linked only when its name really is a combination of the product's current
+    options (one part per option, each part one of that option's values); other variants get ''.
+    Uses queryset.update(), so no save() overrides / audit fields are touched."""
+    options = list(ProductVariantOption.objects.filter(product=product, is_deleted=False).order_by('id'))
+    variants = list(ProductVariant.objects.filter(product=product, is_deleted=False, is_active=True).order_by('id'))
+
+    label_lists = [o.get_options_list() for o in options]
+    all_option_ids = ','.join(str(o.pk) for o in options)
+ 
+    linked = []
+    for v in variants:
+        parts = v.name.split(VARIANT_NAME_SEP)
+        ok = (bool(options) and len(parts) == len(options)
+              and all(p in labels for p, labels in zip(parts, label_lists)))
+        wanted = all_option_ids if ok else ''
+        if v.option_ids != wanted:
+            ProductVariant.objects.filter(pk=v.pk).update(option_ids=wanted)
+        if ok:
+            linked.append(str(v.pk))
+ 
+    wanted_variants = ','.join(linked)
+    for o in options:
+        if o.variant_ids != wanted_variants:
+            ProductVariantOption.objects.filter(pk=o.pk).update(variant_ids=wanted_variants)
+ 
+ 
+# keep the links correct when a variant is deleted anywhere (replace your existing receiver)
+@receiver(post_delete, sender=ProductVariant)
+def sync_product_stock_on_variant_delete(sender, instance, **kwargs):
+    try:
+        product = instance.product
+        product.sync_stock_from_variants()
+        refresh_option_links(product)
+    except Product.DoesNotExist:
+        pass  # product itself is being deleted (cascade)
+ 
+from django.utils import timezone
+
+def soft_delete_variants(product, variant_ids, user):
+    ProductVariant.objects.filter(product=product, pk__in=variant_ids).update(
+        is_deleted=True,is_active=False, modified_at=timezone.now(), modified_by=user)
+    product.sync_stock_from_variants()
+    refresh_option_links(product)
+
+def soft_delete_options(product, user):
+    ProductVariantOption.objects.filter(product=product).update(
+        is_deleted=True, is_active=False, modified_at=timezone.now(), modified_by=user)
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 @receiver(post_delete, sender=ProductVariant)
@@ -650,6 +712,13 @@ class ProductVariantOption(BaseAuditModel):
     is_custom_ui = models.BooleanField(default=False)
 
     value = models.CharField(max_length=255, null=True, blank=True)
+    variant_ids = models.TextField(
+        blank=True, default='',
+        help_text="Comma separated ProductVariant ids that use this option, e.g. 5,6,7,8",
+    )
+
+    def get_variant_ids(self):
+        return [int(i) for i in self.variant_ids.split(',') if i.strip().isdigit()]
     def get_options_list(self):
         return [opt.strip() for opt in self.option.split(",") if opt.strip()]
     def get_values_list(self):

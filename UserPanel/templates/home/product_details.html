@@ -1757,9 +1757,30 @@ body{
 
 
     // =========================================================
+    // SHOW VARIANT IMAGE IN MAIN VIEWER
+    // =========================================================
+    function showVariantImage(variant) {
+      if (!variant || !variant.image) return;   // no image set -> keep current one
+
+      const mainImg = document.getElementById("mainImg");
+      if (!mainImg) return;
+
+      // Skip if it's already showing (avoids flicker on every qty change)
+      if (mainImg.getAttribute("src") === variant.image) return;
+
+      mainImg.src = variant.image;
+
+      // Keep the thumbnail strip in sync
+      document.querySelectorAll(".pdp-thumb[data-full]").forEach(t => {
+        t.classList.toggle("active", t.dataset.full === variant.image);
+      });
+    }
+
+
+    // =========================================================
     // UPDATE VARIANT
     // =========================================================
-
+    
     function updateSelectedVariant() {
 
         const variant = getMatchingVariant();
@@ -1780,11 +1801,15 @@ body{
             return;
         }
 
-        // Update price
-        renderPrice(variant);
+        
+      // Update price
+      renderPrice(variant);
 
-        // Update stock + buttons
-        showStock(variant.stock);
+      // Show this variant's picture
+      showVariantImage(variant);
+
+      // Update stock + buttons
+      showStock(variant.stock);
     }
 
 

@@ -1,9 +1,9 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (BlogCategoryViewSet, size_chart_form_view,toggle_promotion_status,Blog_post,BlogPostViewSet,
-                    variant_bulk_create,product_list,product_form_view,variant_add_modal,
+                    variant_bulk_create,product_list,product_form_view,variant_add_modal, variant_bulk_edit_modal,
                     variant_edit_modal,variant_delete,image_modal,image_delete,promotion_modal,
-                    promotion_modal,promotion_delete,tag_modal,tag_remove,wish_to_buy_admin,
+                    promotion_modal,promotion_delete,tag_modal,tag_remove, wish_to_buy_admin,
                     wish_to_buy_list,picture_page,PictureViewSet,OrdersByStatus,inventory_page,
                     VariantInventoryViewSet,ProductVariantViewSet,promotions_page,PromotionsViewSet,
                     wishlist_page,admin_reviews_page,AdminReviewListAPIView,AdminReviewUpdateAPIView,
@@ -70,13 +70,14 @@ urlpatterns = [
     path('products/<int:product_id>/variants/bulk-add/', variant_bulk_create, name='variant_bulk_add'),
     path('products/<int:product_id>/variants/<int:variant_id>/edit/', variant_edit_modal, name='variant_edit'),
     path('products/<int:product_id>/variants/<int:variant_id>/delete/', variant_delete, name='variant_delete'),
- 
+    path('products/<int:product_id>/variants/bulk-edit/',variant_bulk_edit_modal, name='variant_bulk_edit'),
     # Images
     path('products/<int:product_id>/images/add/', image_modal, name='image_add'),
     path('products/<int:product_id>/images/<int:image_id>/delete/', image_delete, name='image_delete'),
 
     path('size-charts/add/', size_chart_form_view, name='size_chart_add'),
     path('size-charts/<int:pk>/edit/', size_chart_form_view, name='size_chart_edit'),
+    
     # Promotions
     path('products/<int:product_id>/promotions/add/', promotion_modal, name='promotion_add'),
     path('products/<int:product_id>/promotions/<int:promotion_id>/edit/', promotion_modal, name='promotion_edit'),

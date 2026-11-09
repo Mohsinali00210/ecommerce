@@ -32,6 +32,8 @@
 
 <script>
 (function () {
+    const t = document.querySelector('#genericModal .modal-title');
+    if (t) t.textContent = "{% if chart %}Edit Size Chart — {{ chart.name|escapejs }}{% else %}New Size Chart{% endif %}";
     const hidden = document.getElementById('id_chart_data');
     const table = document.getElementById('scTable');
     const form = hidden.closest('form');
