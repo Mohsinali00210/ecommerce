@@ -256,7 +256,7 @@
                                 {% if product.is_simple %}
                                 <button type="button" class="btn btn-sm btn-outline-danger" disabled title="The default variant cannot be deleted"><i class="bi bi-trash"></i></button>
                                 {% else %}
-                                <a href="{% url 'variant_delete' product.id variant.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this variant?')"><i class="bi bi-trash"></i></a>
+                                <a href="{% url 'variant_delete' product.id variant.id %}" class="btn btn-sm btn-outline-danger" onclick="return postLink(this, 'Delete this variant?')"><i class="bi bi-trash"></i></a>
                                 {% endif %}
                             </td>
                         </tr>
@@ -283,7 +283,7 @@
                 <div class="position-relative">
                     <img src="{{ image.image.url }}" style="width:80px;height:80px;object-fit:cover;border:1px solid #ddd;border-radius:4px;">
                     {% if image.is_primary %}<span class="badge bg-success position-absolute top-0 start-0">Primary</span>{% endif %}
-                    <a href="{% url 'image_delete' product.id image.id %}" class="btn btn-sm btn-danger position-absolute top-0 end-0 p-0 px-1" onclick="return confirm('Remove this image?')">&times;</a>
+                    <a href="{% url 'image_delete' product.id image.id %}" class="btn btn-sm btn-danger position-absolute top-0 end-0 p-0 px-1" onclick="return postLink(this, 'Remove this image?')">&times;</a>
                 </div>
                 {% empty %}
                 <span class="text-muted">No images yet.</span>
@@ -313,7 +313,7 @@
                             <td>{% if promo.is_currently_running %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
                             <td class="text-end">
                                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="openModal('{% url 'promotion_edit' product.id promo.id %}')"><i class="bi bi-pencil"></i></button>
-                                <a href="{% url 'promotion_delete' product.id promo.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this promotion from the product?')"><i class="bi bi-trash"></i></a>
+                                <a href="{% url 'promotion_delete' product.id promo.id %}" class="btn btn-sm btn-outline-danger" onclick="return postLink(this, 'Remove this promotion from the product?')"><i class="bi bi-trash"></i></a>
                             </td>
                         </tr>
                         {% empty %}
@@ -338,7 +338,7 @@
                 {% for tag in product.tags.all %}
                 <span class="badge bg-secondary d-flex align-items-center" style="gap:6px;font-size:14px;">
                     {{ tag.name }}
-                    <a href="{% url 'tag_remove' product.id tag.id %}" class="text-white" onclick="return confirm('Remove this tag?')"><i class="bi bi-x-circle"></i></a>
+                    <a href="{% url 'tag_remove' product.id tag.id %}" class="text-white" onclick="return postLink(this, 'Remove this tag?')"><i class="bi bi-x-circle"></i></a>
                 </span>
                 {% empty %}
                 <span class="text-muted">No tags yet.</span>
@@ -584,4 +584,16 @@ $(document).ready(function () {
 {% endblock %}
 
 {% block extra_js %}
+
+<form id="postLinkForm" method="post" style="display:none">{% csrf_token %}</form>
+<script>
+  // Delete/remove actions must be POST (a GET link can be triggered by any page).
+  function postLink(a, question) {
+    if (!confirm(question)) return false;
+    const f = document.getElementById("postLinkForm");
+    f.action = a.getAttribute("href");
+    f.submit();
+    return false;
+  }
+</script>
 {% endblock %}

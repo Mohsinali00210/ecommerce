@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load courier_tags %}
+{% block title %}Courier settings{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h5 class="mb-0"><i class="bi bi-gear"></i> Courier settings</h5>
+  <a href="{% url 'couriers:provider_add' %}" class="btn btn-dark btn-sm"><i class="bi bi-plus"></i> Add courier</a>
+</div>
+
+<!-- Couriers -->
+{% for row in rows %}{% with p=row.p %}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>
+      <strong>{{ p.name }}</strong> <code class="small">{{ p.code }}</code>
+      <span class="badge bg-light text-dark border">{{ row.adapter.display_name }}</span>
+      <span class="badge {% if p.environment == 'live' %}bg-success{% else %}bg-warning text-dark{% endif %}">{{ p.get_environment_display }}</span>
+      {% if p.is_default %}<span class="badge bg-dark">default</span>{% endif %}
+      {% if not p.is_active %}<span class="badge bg-secondary">disabled</span>{% endif %}
+      {% if p.auto_book_enabled %}<span class="badge bg-info text-dark">auto-book at "{{ p.auto_book_on_status }}"</span>{% endif %}
+    </span>
+    <span class="d-flex gap-1">
+      <a href="{% url 'couriers:provider_edit' p.pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
+      {% if row.adapter.supports_api_booking %}
+      <form method="post" action="{% url 'couriers:provider_test' p.pk %}">{% csrf_token %}<button class="btn btn-outline-secondary btn-sm">Test connection</button></form>
+      {% endif %}
+      {% if row.adapter.supports_cities %}
+      <form method="post" action="{% url 'couriers:provider_sync_cities' p.pk %}">{% csrf_token %}<button class="btn btn-outline-secondary btn-sm">Sync cities ({{ p.n_cities }})</button></form>
+      {% endif %}
+    </span>
+  </div>
+  <div class="card-body small">
+    {% if row.adapter.supports_api_booking %}<div class="mb-2 text-muted">API: {{ p.base_url|default:"(no base URL set)" }}</div>{% endif %}
+    <table class="table table-sm mb-2 align-middle">
+      <thead><tr><th>Credentials</th><th>Env</th><th>API key</th><th>Status</th><th>Webhook / callback URL</th><th></th></tr></thead>
+      <tbody>
+      {% for c in row.creds %}
+        <tr>
+          <td>{{ c.obj.label }}</td>
+          <td>{{ c.obj.get_environment_display }}{% if c.obj.environment == p.environment and c.obj.is_active %} <span class="badge bg-success">in use</span>{% endif %}</td>
+          <td><code>{{ c.key|default:"—" }}</code></td>
+          <td>{% if c.obj.last_error %}<span class="text-danger" title="{{ c.obj.last_error }}">error</span>{% elif c.obj.last_verified_at %}<span class="text-success">verified {{ c.obj.last_verified_at|date:"d M" }}</span>{% else %}<span class="text-muted">not tested</span>{% endif %}</td>
+          <td>
+            <div class="input-group input-group-sm">
+              <input class="form-control font-monospace" value="{{ c.webhook }}" readonly onclick="this.select()">
+              <button type="button" class="btn btn-outline-secondary" onclick="navigator.clipboard.writeText('{{ c.webhook }}')"><i class="bi bi-clipboard"></i></button>
+            </div>
+          </td>
+          <td class="text-nowrap">
+            <a href="{% url 'couriers:credential_edit' p.pk c.obj.pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
+            <form method="post" action="{% url 'couriers:credential_rotate' c.obj.pk %}" class="d-inline" onsubmit="return confirm('Generate a new webhook URL? The old one stops working.')">{% csrf_token %}
+              <button class="btn btn-outline-secondary btn-sm" title="New webhook URL"><i class="bi bi-arrow-clockwise"></i></button></form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-muted">No credentials yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <a href="{% url 'couriers:credential_add' p.pk %}" class="btn btn-outline-dark btn-sm"><i class="bi bi-key"></i> Add credentials</a>
+  </div>
+</div>
+{% endwith %}{% endfor %}
+
+<div class="row g-3">
+  <!-- Shipper -->
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Pickup &amp; return details (you)</span>
+        <a href="{% url 'couriers:shipper_add' %}" class="btn btn-outline-dark btn-sm"><i class="bi bi-plus"></i></a>
+      </div>
+      <ul class="list-group list-group-flush small">
+        {% for sh in shippers %}
+        <li class="list-group-item d-flex justify-content-between">
+          <span><strong>{{ sh.label }}</strong>{% if sh.is_default %} <span class="badge bg-dark">default</span>{% endif %}<br>
+            Pickup: {{ sh.contact_name }}, {{ sh.phone }}, {{ sh.address }}, {{ sh.city }}<br>
+            {% with r=sh.returns %}Returns: {{ r.name }}, {{ r.phone }}, {{ r.address }}, {{ r.city }}{% endwith %}</span>
+          <a href="{% url 'couriers:shipper_edit' sh.pk %}">Edit</a>
+        </li>
+        {% empty %}
+        <li class="list-group-item text-danger">Required: add your pickup / return address before booking.</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">Unmapped courier statuses</div>
+      <ul class="list-group list-group-flush small">
+        {% for u in unmapped %}
+          <li class="list-group-item d-flex justify-content-between"><span>{{ u.provider__name }}: <strong>{{ u.raw_status }}</strong> ({{ u.n }})</span>
+            <a href="{% url 'couriers:mapping_add' %}?raw={{ u.raw_status|urlencode }}&p={{ u.provider__name|urlencode }}">Map it</a></li>
+        {% empty %}<li class="list-group-item text-muted">All courier statuses are mapped.</li>{% endfor %}
+      </ul>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">Recent webhook calls</div>
+      <ul class="list-group list-group-flush small">
+        {% for wl in logs %}
+          <li class="list-group-item d-flex justify-content-between">
+            <span>{{ wl.received_at|date:"d M H:i:s" }} · {{ wl.provider.name|default:"?" }} · {{ wl.remote_ip }}</span>
+            <span>{% if not wl.authenticated %}<span class="badge bg-danger">rejected</span>{% elif wl.success %}<span class="badge bg-success">{{ wl.updates_applied }} updates</span>{% elif wl.processed %}<span class="badge bg-warning text-dark">error</span>{% else %}<span class="badge bg-secondary">queued</span>{% endif %}
+              <a href="{% url 'couriers:webhook_log' wl.pk %}" class="ms-2">view</a></span>
+          </li>
+        {% empty %}<li class="list-group-item text-muted">None yet.</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- Mappings -->
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Status mapping (courier → shipment → order)</span>
+        <a href="{% url 'couriers:mapping_add' %}" class="btn btn-outline-dark btn-sm"><i class="bi bi-plus"></i></a>
+      </div>
+      <div class="table-responsive" style="max-height:600px">
+      <table class="table table-sm mb-0 small align-middle">
+        <thead class="table-light"><tr><th>#</th><th>Courier</th><th>When status</th><th>Shipment</th><th>Order</th><th>Notify</th><th></th></tr></thead>
+        <tbody>
+        {% for m in mappings %}
+          <tr>
+            <td>{{ m.priority }}</td>
+            <td>{{ m.provider.name|default:"All" }}</td>
+            <td>{{ m.get_match_type_display|lower }} "{{ m.courier_status }}"</td>
+            <td>{% shipment_badge m.shipment_status m.get_shipment_status_display %}</td>
+            <td>{{ m.order_status|default:"—" }}</td>
+            <td>{% if m.notify_customer %}<i class="bi bi-bell"></i>{% endif %}</td>
+            <td class="text-nowrap"><a href="{% url 'couriers:mapping_edit' m.pk %}">Edit</a>
+              <form method="post" action="{% url 'couriers:mapping_delete' m.pk %}" class="d-inline" onsubmit="return confirm('Delete rule?')">{% csrf_token %}<button class="btn btn-link btn-sm text-danger p-0 ms-1">×</button></form></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      <div class="card-footer small text-muted">Rules are checked from the lowest number. "Contains" matches part of the text, case-insensitive.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

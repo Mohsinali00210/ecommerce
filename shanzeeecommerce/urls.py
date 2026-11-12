@@ -1,27 +1,27 @@
-
-from django.contrib import admin
-from django.urls import path, include
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import include, path
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+from couriers.urls import public_urls as courier_public_urls
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include('accounts.urls')),
     path('Adminpanel/Products/', include('products.urls')),
     path('Adminpanel/Reports/', include('reports.urls')),
+    path('Adminpanel/Couriers/', include('couriers.urls')),
+    path('couriers/', include(courier_public_urls)),
     path('chat/', include('chat.urls')),
     path('web', include('Web.urls')),
-           path("", include("UserPanel.urls")),
-           path("userpanel", include("UserPanel.urls")),
+    path("", include("UserPanel.urls")),
+    # The duplicate "userpanel" include was removed: it registered the "home"
+    # namespace twice (nothing linked to /userpanel...).
 
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path('accounts/', include('allauth.urls')),
-    
-
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

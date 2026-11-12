@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load courier_tags %}
+{% block title %}Shipments{% endblock %}
+{% block content %}
+{% if setup_missing %}
+<div class="alert alert-warning">
+  <i class="bi bi-exclamation-triangle"></i>
+  Courier setup isn't finished. Add your Leopards API credentials and pickup/return details in
+  <a href="{% url 'couriers:settings' %}">Courier settings</a>.
+</div>
+{% endif %}
+
+<!-- Summary -->
+<div class="row g-2 mb-3">
+  {% for code, label in statuses %}
+    {% with n=counts|get_item:code %}
+    {% if n %}
+    <div class="col-6 col-md-2">
+      <a href="?status={{ code }}" class="text-decoration-none">
+        <div class="card card-body py-2 {% if f_status == code %}border-dark{% endif %}">
+          <div class="small text-muted">{{ label }}</div>
+          <div class="fs-5 fw-bold text-dark">{{ n }}</div>
+        </div>
+      </a>
+    </div>
+    {% endif %}
+    {% endwith %}
+  {% endfor %}
+  <div class="col-6 col-md-2">
+    <a href="?status=attention" class="text-decoration-none">
+      <div class="card card-body py-2 {% if attention %}border-danger{% endif %}">
+        <div class="small text-danger">Needs attention</div>
+        <div class="fs-5 fw-bold text-danger">{{ attention }}</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<!-- Ready to book -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-box-seam"></i> Orders ready to book ({{ ready|length }})</span>
+    {% if default_provider %}<span class="small text-muted">Default courier: {{ default_provider.name }}
+      {% if default_provider.auto_book_enabled %}· auto-booking ON at "{{ default_provider.auto_book_on_status }}"{% else %}· auto-booking off{% endif %}</span>{% endif %}
+  </div>
+  {% if ready %}
+  <form method="post" action="{% url 'couriers:bulk_book' %}">
+    {% csrf_token %}
+    <div class="card-body border-bottom py-2 d-flex gap-2 align-items-center">
+      <select name="provider" class="form-select form-select-sm" style="max-width:240px">
+        {% for p in providers %}{% if p.is_active %}
+          <option value="{{ p.pk }}" {% if p == default_provider %}selected{% endif %}>{{ p.name }}</option>
+        {% endif %}{% endfor %}
+      </select>
+      <button class="btn btn-dark btn-sm" onclick="return confirm('Book the selected orders with the pre-filled details?')">
+        <i class="bi bi-truck"></i> Book selected
+      </button>
+      <span class="small text-muted">Uses each order's address, weight from products, and the default pickup address.
+        Orders whose city can't be matched are skipped - open them to book manually.</span>
+    </div>
+    <div class="table-responsive" style="max-height:340px">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead class="table-light"><tr>
+        <th style="width:30px"><input type="checkbox" class="form-check-input" onclick="document.querySelectorAll('.ord-cb').forEach(c=>c.checked=this.checked)"></th>
+        <th>Order</th><th>Customer</th><th>City</th><th>Payment</th><th>Total</th><th>Status</th><th></th>
+      </tr></thead>
+      <tbody>
+      {% for o in ready %}
+        <tr>
+          <td><input type="checkbox" name="order_ids" value="{{ o.pk }}" class="form-check-input ord-cb"></td>
+          <td>#{{ o.order_number }}<div class="small text-muted">{{ o.created_at|date:"d M, H:i" }}</div></td>
+          <td>{{ o.shipping_address.full_name|default:o.user }}</td>
+          <td>{{ o.shipping_address.city|default:"—" }}</td>
+          <td>{{ o.payment_method|upper }}</td>
+          <td>Rs {{ o.total_amount|floatformat:0 }}</td>
+          <td><span class="badge bg-secondary">{{ o.get_status_display }}</span></td>
+          <td><a href="{% url 'couriers:book' o.pk %}" class="btn btn-outline-dark btn-sm">Book…</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </form>
+  {% else %}
+  <div class="card-body text-muted small">No unbooked orders waiting.</div>
+  {% endif %}
+</div>
+
+<!-- Shipments -->
+<div class="card">
+  <div class="card-header"><i class="bi bi-truck"></i> Shipments</div>
+  <div class="card-body border-bottom">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-md-3">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-select form-select-sm">
+          <option value="">All</option>
+          <option value="attention" {% if f_status == "attention" %}selected{% endif %}>Needs attention</option>
+          {% for code, label in statuses %}<option value="{{ code }}" {% if f_status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Courier</label>
+        <select name="provider" class="form-select form-select-sm">
+          <option value="">All</option>
+          {% for p in providers %}<option value="{{ p.code }}" {% if f_provider == p.code %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">CN / order / customer</label>
+        <input name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search…">
+      </div>
+      <div class="col-md-2 d-grid"><button class="btn btn-dark btn-sm"><i class="bi bi-funnel"></i> Filter</button></div>
+    </form>
+  </div>
+  <div class="table-responsive">
+  <table class="table table-sm table-bordered mb-0 align-middle">
+    <thead class="table-light"><tr>
+      <th>CN</th><th>Order</th><th>Courier</th><th>Customer</th><th>City</th><th>COD</th>
+      <th>Status</th><th>Courier says</th><th>Booked</th><th></th>
+    </tr></thead>
+    <tbody>
+    {% for s in page %}
+      <tr>
+        <td class="fw-semibold">{{ s.tracking_number|default:"—" }}</td>
+        <td>#{{ s.order.order_number }}</td>
+        <td>{{ s.provider.name }}{% if s.auto_booked %} <span class="badge bg-light text-dark border" title="Booked automatically">auto</span>{% endif %}</td>
+        <td>{{ s.consignee_name }}<div class="small text-muted">{{ s.consignee_phone }}</div></td>
+        <td>{{ s.destination_city_name }}</td>
+        <td>{% if s.cod_amount %}Rs {{ s.cod_amount|floatformat:0 }}{% else %}Prepaid{% endif %}</td>
+        <td>{% shipment_badge s.status s.get_status_display %}
+            {% if s.unmapped_status %}<span class="badge bg-danger" title="No mapping rule for this courier status">unmapped</span>{% endif %}
+            {% if s.tracking_failures >= 3 %}<span class="badge bg-danger" title="{{ s.error_message }}">tracking errors</span>{% endif %}</td>
+        <td class="small">{{ s.raw_status|default:s.error_message|truncatechars:60 }}</td>
+        <td class="small">{{ s.booked_at|date:"d M H:i"|default:"—" }}</td>
+        <td class="text-nowrap">
+          <a href="{% url 'couriers:shipment' s.pk %}" class="btn btn-outline-secondary btn-sm" title="Open"><i class="bi bi-eye"></i></a>
+          {% if s.slip_url %}<a href="{{ s.slip_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm" title="Print slip"><i class="bi bi-printer"></i></a>{% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="10" class="text-center text-muted py-4">No shipments yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if page.paginator.num_pages > 1 %}
+  <div class="card-footer d-flex justify-content-between small">
+    <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    <span>
+      {% if page.has_previous %}<a href="?status={{ f_status }}&provider={{ f_provider }}&q={{ q|urlencode }}&page={{ page.previous_page_number }}">‹ Prev</a>{% endif %}
+      {% if page.has_next %}<a class="ms-3" href="?status={{ f_status }}&provider={{ f_provider }}&q={{ q|urlencode }}&page={{ page.next_page_number }}">Next ›</a>{% endif %}
+    </span>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

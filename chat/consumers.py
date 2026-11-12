@@ -21,10 +21,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if str(self.product_id) == "0":
             self.product_id = None
 
-        self.room_group_name = f"chat_{self.thread_id}"
+        # Only the thread's owner or staff may join (was: anyone could listen to any thread).
+        if str(self.thread_id) not in ("", "0"):
+            allowed = await self._can_access(self.thread_id)
+            if not allowed:
+                await self.close()
+                return
+            self.room_group_name = f"chat_{self.thread_id}"
+        else:
+            # New-thread placeholder: a private group until the thread is created.
+            self.room_group_name = f"chat_new_{self.user.pk}"
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
+
+    @database_sync_to_async
+    def _can_access(self, thread_id):
+        if self.user.is_staff or self.user.is_superuser:
+            return ChatThread.objects.filter(id=thread_id).exists()
+        return ChatThread.objects.filter(id=thread_id, user=self.user).exists()
 
     async def receive(self, text_data):
         data = json.loads(text_data)
@@ -57,6 +72,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "thread_id": thread.id
             }))
         else:
+            if not await self._can_access(thread_id):
+                await self.close()
+                return
             thread = await database_sync_to_async(ChatThread.objects.get)(id=thread_id)
 
         await database_sync_to_async(ChatMessage.objects.create)(

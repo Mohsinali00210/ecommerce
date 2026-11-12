@@ -357,4 +357,18 @@
         });
     }
   </script>
+
+<datalist id="courierCities"></datalist>
+<script>
+  // Suggest the courier's city names so addresses match courier city ids at booking time.
+  (function () {
+    const inputs = document.querySelectorAll('input[name="city"], input[name="shipping_city"], input[name="billing_city"]');
+    if (!inputs.length) return;
+    inputs.forEach((i) => { i.setAttribute("list", "courierCities"); i.setAttribute("autocomplete", "off"); });
+    fetch("{% url 'couriers_public:city_list' %}").then((r) => r.json()).then((d) => {
+      const dl = document.getElementById("courierCities");
+      (d.cities || []).forEach((c) => { const o = document.createElement("option"); o.value = c; dl.appendChild(o); });
+    }).catch(() => {});
+  })();
+</script>
 {% endblock %}

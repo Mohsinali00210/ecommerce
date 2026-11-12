@@ -58,6 +58,25 @@
     result.innerHTML = `<div class="alert alert-danger">${esc(msg)}</div>`;
   }
 
+  function courierBlock(c) {
+    if (!c) return "";
+    const link = c.tracking_url
+      ? ` <a href="${esc(c.tracking_url)}" target="_blank" rel="noopener">Track on courier site</a>` : "";
+    const events = (c.events || []).map((e) => `
+      <li class="list-group-item px-0 small">
+        <div class="d-flex justify-content-between"><b>${esc(e.label)}</b><span class="text-muted">${when(e.time)}</span></div>
+        ${e.note || e.location ? `<div class="text-muted">${esc(e.note || "")}${e.location ? " - " + esc(e.location) : ""}</div>` : ""}
+      </li>`).join("");
+    return `
+      <hr>
+      <div class="d-flex justify-content-between flex-wrap">
+        <div class="fw-semibold"><i class="bi bi-truck"></i> ${esc(c.name)} &middot; ${esc(c.tracking_number)}</div>
+        <span class="badge bg-dark">${esc(c.status_label)}</span>
+      </div>
+      <div class="small text-muted mb-2">${esc(c.courier_status || "")}${link}</div>
+      ${events ? `<ul class="list-group list-group-flush">${events}</ul>` : ""}`;
+  }
+
   function render(o) {
     const steps = o.timeline.map((s) => `
       <div class="track-step ${esc(s.state)}">
@@ -106,6 +125,7 @@
           </tfoot>
         </table>
         ${addr}
+        ${courierBlock(o.courier)}
       </div></div>`;
   }
 

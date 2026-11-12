@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Book order #{{ order.order_number }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h5 class="mb-0"><i class="bi bi-truck"></i> Book order #{{ order.order_number }}</h5>
+  <a href="{% url 'couriers:dashboard' %}" class="btn btn-outline-secondary btn-sm">Back</a>
+</div>
+
+{% if failed %}
+<div class="alert alert-danger small">
+  <strong>Previous booking attempts failed:</strong>
+  <ul class="mb-0">{% for f in failed %}<li>{{ f.created_at|date:"d M H:i" }} — {{ f.error_message }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <form method="post" class="card">
+      {% csrf_token %}
+      <div class="card-header d-flex justify-content-between">
+        <span>Packet details</span>
+        <span class="small">Courier:
+          {% for p in providers %}
+            <a href="?provider={{ p.pk }}" class="{% if p == provider %}fw-bold text-dark{% else %}text-muted{% endif %} ms-2">{{ p.name }}</a>
+          {% endfor %}
+        </span>
+      </div>
+      <div class="card-body">
+        {% if form.non_field_errors %}<div class="alert alert-danger small">{{ form.non_field_errors }}</div>{% endif %}
+        <input type="hidden" name="provider" value="{{ provider.pk }}">
+        {% if not adapter.credential and adapter.supports_api_booking %}
+          <div class="alert alert-warning small">No {{ provider.get_environment_display }} credentials for {{ provider.name }}.
+            <a href="{% url 'couriers:credential_add' provider.pk %}">Add them</a>.</div>
+        {% endif %}
+        {% if adapter.supports_cities and not city_count %}
+          <div class="alert alert-warning small">City list not loaded for {{ provider.name }}. Go to
+            <a href="{% url 'couriers:settings' %}">settings</a> and click "Sync cities".</div>
+        {% endif %}
+
+        <div class="row g-2">
+          <div class="col-md-4">{% include "couriers/_field.html" with field=form.weight_grams %}</div>
+          <div class="col-md-2">{% include "couriers/_field.html" with field=form.pieces %}</div>
+          <div class="col-md-3">{% include "couriers/_field.html" with field=form.cod_amount %}</div>
+          <div class="col-md-3">{% include "couriers/_field.html" with field=form.shipment_type %}</div>
+          <div class="col-12">{% include "couriers/_field.html" with field=form.description %}</div>
+        </div>
+        <hr>
+        <h6 class="text-muted">Deliver to</h6>
+        <div class="row g-2">
+          <div class="col-md-4">{% include "couriers/_field.html" with field=form.consignee_name %}</div>
+          <div class="col-md-4">{% include "couriers/_field.html" with field=form.consignee_phone %}</div>
+          <div class="col-md-4">{% include "couriers/_field.html" with field=form.consignee_email %}</div>
+          <div class="col-12">{% include "couriers/_field.html" with field=form.consignee_address %}</div>
+          {% if adapter.supports_cities %}
+          <div class="col-md-6">{% include "couriers/_field.html" with field=form.destination_city %}</div>
+          {% endif %}
+          <div class="col-md-6">{% include "couriers/_field.html" with field=form.destination_city_name %}</div>
+        </div>
+        <hr>
+        <h6 class="text-muted">Pickup &amp; returns</h6>
+        <div class="row g-2">
+          <div class="col-md-6">{% include "couriers/_field.html" with field=form.shipper %}</div>
+          <div class="col-md-6">{% include "couriers/_field.html" with field=form.special_instructions %}</div>
+          {% if not adapter.supports_api_booking %}
+          <div class="col-md-6">{% include "couriers/_field.html" with field=form.tracking_number %}</div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-footer">
+        <button class="btn btn-dark w-100"><i class="bi bi-truck"></i>
+          {% if adapter.supports_api_booking %}Book with {{ provider.name }}{% else %}Save shipment{% endif %}</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card mb-3">
+      <div class="card-header">Order</div>
+      <div class="card-body small">
+        <div><strong>Status:</strong> {{ order.get_status_display }}</div>
+        <div><strong>Payment:</strong> {{ order.payment_method|upper }}</div>
+        <div><strong>Total:</strong> Rs {{ order.total_amount|floatformat:0 }}</div>
+        <div><strong>Placed:</strong> {{ order.created_at|date:"d M Y H:i" }}</div>
+        {% if order.notes %}<div class="mt-2"><strong>Notes:</strong> {{ order.notes }}</div>{% endif %}
+        <hr>
+        <strong>Items</strong>
+        <ul class="ps-3 mb-0">
+          {% for i in order.items.all %}<li>{{ i.quantity }} × {{ i.product.name|default:"Item" }}{% if i.variant %} ({{ i.variant.name }}){% endif %}</li>{% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

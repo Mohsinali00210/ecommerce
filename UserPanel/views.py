@@ -549,7 +549,7 @@ def search_products(request):
     # ----- Facets are computed from facet_base_qs (pre option-filter), so
     # ----- checking one option value doesn't make the others disappear.
     category_facets = (
-        Category.objects.filter(products__in=facet_base_qs)
+        Category.objects.filter(products__in=facet_base_qs,is_active=True,is_deleted=False)
         .annotate(count=Count("products", filter=Q(products__in=facet_base_qs), distinct=True))
         .filter(count__gt=0)
         .order_by("name")
@@ -594,7 +594,12 @@ def search_products(request):
 
     qs = (
         qs.select_related("brand")
-          .prefetch_related("images", "tags", "category", active_promo_prefetch(now))
+        .prefetch_related(
+            "images",
+            "tags",
+            Prefetch("category", queryset=Category.objects.filter(is_active=True)),
+            active_promo_prefetch(now),
+        )
     )
     qs = with_review_stats(qs)      # <-- new
 
@@ -672,7 +677,7 @@ def home(request):
     )
 
     # ----- Categories / hero slides -----
-    categories = Category.objects.filter(parent__isnull=True)
+    categories = Category.objects.filter(parent__isnull=True, is_active=True, is_deleted=False)
 
     hero_slides = list(
         Picture.objects
@@ -2255,7 +2260,7 @@ def best_deals(request):
     deals_qs = deals_qs.distinct()
 
     category_facets = (
-        Category.objects.filter(products__in=deals_qs)
+        Category.objects.filter(products__in=deals_qs,is_active=True,is_deleted=False)
         .annotate(count=Count("products", filter=Q(products__in=deals_qs), distinct=True))
         .filter(count__gt=0)
         .order_by("name")

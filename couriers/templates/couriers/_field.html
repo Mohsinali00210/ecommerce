@@ -1,0 +1,4 @@
+<label class="form-label small mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
+{{ field }}
+{% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+{% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}

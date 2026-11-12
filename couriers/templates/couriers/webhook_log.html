@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Webhook call{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between">
+    <span>Webhook from {{ wl.provider.name|default:"?" }} · {{ wl.received_at|date:"d M Y H:i:s" }} · {{ wl.remote_ip }}</span>
+    <a href="{% url 'couriers:settings' %}" class="small">Back</a>
+  </div>
+  <div class="card-body small">
+    <p>Authenticated: <strong>{{ wl.authenticated|yesno }}</strong> · Processed: <strong>{{ wl.processed|yesno }}</strong>
+      · Success: <strong>{{ wl.success|yesno }}</strong> · Updates applied: <strong>{{ wl.updates_applied }}</strong></p>
+    {% if wl.error %}<div class="alert alert-warning">{{ wl.error }}</div>{% endif %}
+    <h6>Body</h6><pre class="bg-light p-2">{{ wl.body }}</pre>
+    <h6>Headers</h6><pre class="bg-light p-2">{{ wl.headers|pprint }}</pre>
+  </div>
+</div>
+{% endblock %}

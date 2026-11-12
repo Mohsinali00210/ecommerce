@@ -8,7 +8,9 @@ from .serializers import EmailRegisterSerializer
 from .models import User
 from django.contrib.auth.decorators import login_required
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
+from django.core.cache import cache
+from django_ratelimit.decorators import ratelimit
 from django.views.decorators.http import require_POST
 from django.utils.decorators import method_decorator
 
@@ -81,6 +83,8 @@ class VerifyEmailView(APIView):
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 
+@ratelimit(key="ip", rate="10/5m", method="POST", block=True)
+@ratelimit(key="post:username", rate="5/5m", method="POST", block=True)
 def login_view(request):
     error = None
 
@@ -124,6 +128,8 @@ def _get_safe_next(request):
     return None
 
 @require_POST
+@ratelimit(key="ip", rate="10/5m", method="POST", block=True)
+@ratelimit(key="post:username", rate="5/5m", method="POST", block=True)
 def login_api(request):
     username = request.POST.get("username")
     password = request.POST.get("password")
@@ -393,7 +399,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
     queryset = User.objects.prefetch_related("roles")
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # Staff only: this lists every account and can block/unblock users.
+    permission_classes = [permissions.IsAdminUser]
 
 
     def list(self, request):
@@ -439,7 +446,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
 @login_required
 def users_page(request):
-    
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Staff only.")
+
     return render(request, "users.html")
 
 
@@ -511,6 +520,14 @@ from .models import OTP  # adjust import path to match your app
 User = get_user_model()
 
 
+OTP_MAX_ATTEMPTS = 5
+
+
+def _otp_fail_key(email):
+    return f"otp_fail:{(email or '').lower()}"
+
+
+@ratelimit(key="ip", rate="5/15m", method="POST", block=True)
 def forgot_password(request):
     error = None
 
@@ -527,7 +544,7 @@ def forgot_password(request):
                 context={
                     "user": user,
                     "code": otp.code,
-                    "valid_minutes": 5,
+                    "valid_minutes": 10,
                 },
             )
 
@@ -539,6 +556,7 @@ def forgot_password(request):
     return render(request, "ForgotPassword.html", {"error": error})
 
 
+@ratelimit(key="ip", rate="20/15m", method="POST", block=True)
 def reset_password(request):
     email = request.session.get("reset_email")
     if not email:
@@ -557,7 +575,15 @@ def reset_password(request):
             if user else None
         )
 
-        if not user or not otp:
+        fails = cache.get(_otp_fail_key(email), 0)
+        if fails >= OTP_MAX_ATTEMPTS:
+            # Too many wrong codes: burn the current code so it can't be brute-forced.
+            if user:
+                OTP.objects.filter(user=user, purpose="RESET_PASSWORD").delete()
+            cache.delete(_otp_fail_key(email))
+            error = "Too many wrong codes. Please request a new code."
+        elif not user or not otp:
+            cache.set(_otp_fail_key(email), fails + 1, 15 * 60)
             error = "Invalid verification code."
         elif otp.expires_at < timezone.now():
             error = "This code has expired. Please request a new one."
@@ -569,6 +595,7 @@ def reset_password(request):
             user.set_password(password1)
             user.save(update_fields=["password"])
             otp.delete()
+            cache.delete(_otp_fail_key(email))
             del request.session["reset_email"]
             messages.success(request, "Password reset successfully. Please log in.")
             return redirect("login")
@@ -576,6 +603,7 @@ def reset_password(request):
     return render(request, "ResetPassword.html", {"error": error, "email": email})
 
 
+@ratelimit(key="ip", rate="3/10m", block=True)
 def resend_reset_otp(request):
     """Optional: lets the reset-password page offer a 'Resend code' link
     without sending the user back through the email-entry step."""
@@ -586,11 +614,12 @@ def resend_reset_otp(request):
     user = User.objects.filter(email__iexact=email).first()
     if user:
         otp = generate_otp(user, "RESET_PASSWORD")
+        cache.delete(_otp_fail_key(email))
         send_templated_email(
             to_email=user.email,
             subject="Your new Shan Zee verification code",
             template_name="reset_password_otp.html",
-            context={"user": user, "code": otp.code, "valid_minutes": 5},
+            context={"user": user, "code": otp.code, "valid_minutes": 10},
         )
 
     messages.success(request, "A new code has been sent to your email.")

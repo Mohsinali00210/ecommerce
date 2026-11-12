@@ -1,3 +1,10 @@
+from django.contrib.auth.decorators import user_passes_test as _upt
+from django.views.decorators.http import require_POST
+
+# Admin-panel pages: logged in AND staff. (Was login_required only, which let
+# any registered customer edit products, variants, images and promotions.)
+staff_required = _upt(lambda u: u.is_authenticated and u.is_active and u.is_staff, login_url="login")
+
 from itertools import product
 from xml.parsers.expat import errors
 
@@ -32,7 +39,7 @@ class IsSuperUser(BasePermission):
 # Create your views here.
 class IsAdminRole(permissions.BasePermission):
     def has_permission(self, request, view):
-        return request.user.is_staff
+        return bool(request.user and request.user.is_authenticated and request.user.is_staff)
 
 
 
@@ -526,24 +533,24 @@ class AttributeTypesViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         return Attribute_Types.objects.filter(is_deleted=False)
-@login_required
+@staff_required
 def categories(request):
     if not request.user.is_superuser:
         return redirect('login') 
     return render(request, "categories/categories.html")
 
-@login_required
+@staff_required
 def attributes(request):
     if not request.user.is_superuser:
         return redirect('login') 
     return render(request, "Other/attributes.html")
-@login_required
+@staff_required
 def brands(request):
     if not request.user.is_superuser:
         return redirect('login') 
     return render(request, "Other/brands.html")
 
-@login_required(login_url='login')
+@staff_required
 def addProduct(request, product_id =None):
     if not request.user.is_superuser:
         return redirect('login')   
@@ -551,12 +558,12 @@ def addProduct(request, product_id =None):
     context = { 'tax_categories': tax_categories }
     return render(request, "products/addProduct.html",context)
 
-@login_required(login_url='login')
+@staff_required
 def editProduct(request):
     if not request.user.is_superuser:
         return redirect('login') 
     return render(request, "products/addProduct.html")
-@login_required(login_url='login')
+@staff_required
 def editProduct(request, id=None):
     if not request.user.is_superuser:
         return redirect('login') 
@@ -564,7 +571,7 @@ def editProduct(request, id=None):
         "product_id": id
     })
 
-@login_required(login_url='login')
+@staff_required
 def products(request):
     if not request.user.is_superuser:
         return redirect('login')
@@ -596,19 +603,19 @@ def products(request):
     return render(request, 'products/products.html', context)
  
 
-@login_required(login_url='login')
+@staff_required
 def ProductPreview(request):
     if not request.user.is_superuser:
         return redirect('login') 
     return render(request, "products/ProductPreview.html")
 
-@login_required(login_url='login')
+@staff_required
 def orders(request):
     if not request.user.is_superuser:
         return redirect('login') 
     return render(request, "orders/Orders.html")
 
-@login_required(login_url='login')
+@staff_required
 def OrdersByStatus(request, status):
     if not request.user.is_superuser:
         return redirect('login') 
@@ -787,7 +794,7 @@ class OrderUpdateStatusAPIView(UpdateAPIView):
 # views.py
 from Web.models import SupportTicket
 
-@login_required
+@staff_required
 def support_ticket_list_view(request):
     if not request.user.is_superuser:
         return redirect('login') 
@@ -909,7 +916,7 @@ class AdminReviewUpdateAPIView(UpdateAPIView):
     queryset = ProductReview.objects.all()
     serializer_class = AdminProductReviewSerializer
     permission_classes = [IsSuperUser]
-@login_required
+@staff_required
 def admin_reviews_page(request):
     if not request.user.is_superuser:
         return redirect('login') 
@@ -917,7 +924,7 @@ def admin_reviews_page(request):
 
 from django.db.models import Count
 
-@login_required(login_url='login')
+@staff_required
 def wishlist_page(request):
     if not request.user.is_superuser:
         return redirect('login') 
@@ -950,7 +957,7 @@ class PromotionsViewSet(viewsets.ModelViewSet):
 
 
 
-@login_required(login_url='login')
+@staff_required
 def promotions_page(request):
     if not request.user.is_superuser:
         return redirect('login') 
@@ -960,7 +967,7 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
 
-@login_required
+@staff_required
 def toggle_promotion_status(request, promo_id):
     if not request.user.is_staff:
         return HttpResponseForbidden("Staff only.")
@@ -973,7 +980,7 @@ def toggle_promotion_status(request, promo_id):
         "success": True,
         "is_active": promo.is_active,
     })
-@login_required
+@staff_required
 def inventory_page(request):
     if not request.user.is_superuser:
         return redirect('login') 
@@ -1084,7 +1091,7 @@ class PictureViewSet(viewsets.ModelViewSet):
             qs = qs.filter(is_active=True)
         return qs
 
-@login_required
+@staff_required
 def picture_page(request):
     if not request.user.is_superuser:
         return redirect('login') 
@@ -1093,7 +1100,7 @@ def picture_page(request):
 
 
 # views.py
-@login_required(login_url='login')
+@staff_required
 def wish_to_buy_admin(request):
     if not request.user.is_superuser:
         return redirect('login') 
@@ -1102,7 +1109,7 @@ def wish_to_buy_admin(request):
 # views.py
 from django.http import JsonResponse
 from Web.models import WishToBuy
-@login_required(login_url='login')
+@staff_required
 def wish_to_buy_list(request):
     data = []
 
@@ -1198,7 +1205,7 @@ from .forms import (
 # ---------------------------------------------------------------------------
 # Product list
 # ---------------------------------------------------------------------------
-@login_required
+@staff_required
 def product_list(request):
     products = Product.objects.filter(is_deleted=False).order_by('-id')
  
@@ -1230,7 +1237,7 @@ def product_list(request):
 # ---------------------------------------------------------------------------
 # Product add / edit (core fields only)
 # ---------------------------------------------------------------------------
-@login_required
+@staff_required
 def product_form_view(request, pk=None):
     product = get_object_or_404(Product, pk=pk, is_deleted=False) if pk else None
  
@@ -1263,7 +1270,7 @@ def product_form_view(request, pk=None):
 from django.http import JsonResponse
 from django.template.loader import render_to_string
 
-@login_required
+@staff_required
 def size_chart_form_view(request, pk=None):
     chart = get_object_or_404(SizeChart, pk=pk, is_deleted=False) if pk else None
     form = SizeChartForm(request.POST or None, instance=chart)
@@ -1287,7 +1294,7 @@ def size_chart_form_view(request, pk=None):
 #   POST (valid)   -> return {"success": true, "message": "..."} (JS closes + reloads)
 # ---------------------------------------------------------------------------
  
-@login_required
+@staff_required
 def variant_add_modal(request, product_id):
     """Returns the multi-variant builder partial (option groups -> generated
     combination table). Saving happens via variant_bulk_create, not here."""
@@ -1304,7 +1311,7 @@ def variant_add_modal(request, product_id):
     return JsonResponse({'html': html})
  
  
-@login_required
+@staff_required
 def variant_edit_modal(request, product_id, variant_id):
     product = get_object_or_404(Product, pk=product_id)
     variant = get_object_or_404(ProductVariant, pk=variant_id, product=product, is_deleted=False)
@@ -1336,7 +1343,8 @@ def variant_edit_modal(request, product_id, variant_id):
     )
     return JsonResponse({'html': html})
 
-@login_required
+@staff_required
+@require_POST
 def variant_delete(request, product_id, variant_id):
     variant = get_object_or_404(ProductVariant, pk=variant_id, product_id=product_id, is_deleted=False)
     if variant.product.is_simple:
@@ -1407,7 +1415,7 @@ def _variant_rows(product):
 
 from django.template.loader import render_to_string
 
-@login_required
+@staff_required
 def variant_bulk_edit_modal(request, product_id):
     """GET  -> renders the bulk-edit form (option inputs + variants table) for the modal.
     POST -> saves everything (updates, creates, deletes, option definitions) atomically."""
@@ -1552,7 +1560,7 @@ def variant_bulk_edit_modal(request, product_id):
         'message': f'{updated} updated, {created} created, {len(deleted_ids)} deleted.',
     })
  
-@login_required
+@staff_required
 def variant_bulk_create(request, product_id):
     """Saves every row generated by the variant-combination builder (name/options ->
     cartesian product table) in one go, plus the ProductVariantOption definitions
@@ -1658,7 +1666,7 @@ def variant_bulk_create(request, product_id):
         'success': True,
         'message': f'{len(created_variants)} variant(s) created successfully.',
     })
-@login_required
+@staff_required
 def image_modal(request, product_id):
     product = get_object_or_404(
         Product,
@@ -1782,14 +1790,15 @@ def image_modal(request, product_id):
 
 
  
-@login_required
+@staff_required
+@require_POST
 def image_delete(request, product_id, image_id):
     image = get_object_or_404(ProductImage, pk=image_id, product_id=product_id)
     image.delete()
     messages.success(request, "Image removed.")
     return redirect('product_edit', pk=product_id)
  
-@login_required
+@staff_required
 def promotion_modal(request, product_id, promotion_id=None):
 
     product = get_object_or_404(
@@ -1871,14 +1880,15 @@ def promotion_modal(request, product_id, promotion_id=None):
         "html": html
     })
  
-@login_required
+@staff_required
+@require_POST
 def promotion_delete(request, product_id, promotion_id):
     promotion = get_object_or_404(Promotion, pk=promotion_id, products__id=product_id)
     promotion.products.remove(product_id)
     messages.success(request, "Promotion removed from this product.")
     return redirect('product_edit', pk=product_id)
  
-@login_required
+@staff_required
 def tag_modal(request, product_id):
 
     product = get_object_or_404(
@@ -1941,7 +1951,8 @@ def tag_modal(request, product_id):
         "html": html
     })
  
-@login_required
+@staff_required
+@require_POST
 def tag_remove(request, product_id, tag_id):
     product = get_object_or_404(Product, pk=product_id)
     product.tags.remove(tag_id)

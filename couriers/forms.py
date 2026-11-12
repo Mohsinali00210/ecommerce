@@ -1,0 +1,161 @@
+from django import forms
+
+from .adapters import adapter_choices
+from .models import (CourierCity, CourierCredential, CourierProvider, ShipmentStatus,
+                     ShipperProfile, StatusMapping)
+
+
+class _Bootstrap:
+    def _style(self):
+        for f in self.fields.values():
+            w = f.widget
+            if isinstance(w, forms.CheckboxInput):
+                w.attrs.setdefault("class", "form-check-input")
+            elif isinstance(w, forms.Select):
+                w.attrs.setdefault("class", "form-select form-select-sm")
+            else:
+                w.attrs.setdefault("class", "form-control form-control-sm")
+
+
+class BookingForm(_Bootstrap, forms.Form):
+    provider = forms.ModelChoiceField(queryset=CourierProvider.objects.filter(is_active=True))
+    shipper = forms.ModelChoiceField(queryset=ShipperProfile.objects.all(), label="Pickup / return from")
+    weight_grams = forms.IntegerField(min_value=1, label="Weight (grams)")
+    pieces = forms.IntegerField(min_value=1, initial=1)
+    description = forms.CharField(max_length=250, widget=forms.Textarea(attrs={"rows": 2}),
+                                  label="Packet description")
+    cod_amount = forms.DecimalField(min_value=0, decimal_places=2, label="COD amount (Rs)",
+                                    help_text="0 for prepaid orders")
+    consignee_name = forms.CharField(max_length=255, label="Customer name")
+    consignee_phone = forms.CharField(max_length=30, label="Customer phone")
+    consignee_email = forms.EmailField(required=False, label="Customer email")
+    consignee_address = forms.CharField(widget=forms.Textarea(attrs={"rows": 2}), label="Delivery address")
+    destination_city = forms.ModelChoiceField(queryset=CourierCity.objects.none(), required=False,
+                                              label="Destination city (courier list)")
+    destination_city_name = forms.CharField(max_length=150, required=False,
+                                            label="City (as customer typed)")
+    special_instructions = forms.CharField(max_length=250, required=False)
+    shipment_type = forms.CharField(max_length=30, required=False)
+    tracking_number = forms.CharField(max_length=100, required=False,
+                                      help_text="Manual couriers only: CN given by the courier")
+
+    def __init__(self, *args, provider=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        p = provider
+        if self.is_bound and self.data.get("provider"):
+            p = CourierProvider.objects.filter(pk=self.data.get("provider")).first() or provider
+        if p:
+            self.fields["destination_city"].queryset = CourierCity.objects.filter(
+                provider=p, is_active=True, allow_destination=True)
+        self._style()
+
+    def clean(self):
+        data = super().clean()
+        provider = data.get("provider")
+        if provider:
+            adapter = provider.get_adapter()
+            if adapter.supports_cities and not data.get("destination_city"):
+                self.add_error("destination_city", "Pick the destination city from the courier's list.")
+            if not adapter.supports_api_booking and not data.get("tracking_number"):
+                self.add_error("tracking_number", "Enter the tracking number for this manual courier.")
+        return data
+
+
+class ProviderForm(_Bootstrap, forms.ModelForm):
+    adapter = forms.ChoiceField(choices=())
+
+    class Meta:
+        model = CourierProvider
+        fields = ["name", "code", "adapter", "environment", "live_base_url", "sandbox_base_url",
+                  "tracking_url_template", "is_active", "is_default", "auto_book_enabled",
+                  "auto_book_on_status", "auto_book_payment_methods", "default_weight_grams",
+                  "default_shipment_type", "sort_order"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["adapter"].choices = adapter_choices()
+        from Web.models import Order
+        self.fields["auto_book_on_status"] = forms.ChoiceField(choices=Order.ORDER_STATUS)
+        self._style()
+
+    def clean_is_default(self):
+        v = self.cleaned_data["is_default"]
+        if v:
+            CourierProvider.objects.exclude(pk=self.instance.pk).filter(is_default=True) \
+                .update(is_default=False)
+        return v
+
+
+class CredentialForm(_Bootstrap, forms.ModelForm):
+    api_key = forms.CharField(required=False, widget=forms.PasswordInput(render_value=False),
+                              help_text="Leave empty to keep the saved value")
+    api_password = forms.CharField(required=False, widget=forms.PasswordInput(render_value=False),
+                                   help_text="Leave empty to keep the saved value")
+    extra_secret = forms.CharField(required=False, widget=forms.PasswordInput(render_value=False),
+                                   label="Other secret", help_text="Leave empty to keep the saved value")
+
+    class Meta:
+        model = CourierCredential
+        fields = ["label", "environment", "api_key", "api_password", "account_number", "extra",
+                  "extra_secret", "is_active"]
+        widgets = {"extra": forms.Textarea(attrs={"rows": 2})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style()
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        for f in ("api_key", "api_password", "extra_secret"):
+            new = self.cleaned_data.get(f)
+            if not new and self.instance.pk:
+                # keep the stored secret
+                setattr(obj, f, CourierCredential.objects.get(pk=self.instance.pk).__dict__[f])
+        if commit:
+            obj.save()
+        return obj
+
+
+class ShipperForm(_Bootstrap, forms.ModelForm):
+    class Meta:
+        model = ShipperProfile
+        fields = ["label", "contact_name", "phone", "email", "address", "city",
+                  "return_same_as_pickup", "return_contact_name", "return_phone", "return_address",
+                  "return_city", "is_default"]
+        widgets = {"address": forms.Textarea(attrs={"rows": 2}),
+                   "return_address": forms.Textarea(attrs={"rows": 2})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style()
+
+    def clean_is_default(self):
+        v = self.cleaned_data["is_default"]
+        if v:
+            ShipperProfile.objects.exclude(pk=self.instance.pk).filter(is_default=True) \
+                .update(is_default=False)
+        return v
+
+
+class StatusMappingForm(_Bootstrap, forms.ModelForm):
+    class Meta:
+        model = StatusMapping
+        fields = ["provider", "courier_status", "match_type", "shipment_status", "order_status",
+                  "notify_customer", "priority"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from Web.models import Order
+        self.fields["order_status"] = forms.ChoiceField(
+            choices=[("", "— don't change order —")] + list(Order.ORDER_STATUS), required=False)
+        self._style()
+
+
+class ManualStatusForm(_Bootstrap, forms.Form):
+    status = forms.ChoiceField(choices=[c for c in ShipmentStatus.choices
+                                        if c[0] not in ("booking_failed",)])
+    note = forms.CharField(max_length=300, required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style()

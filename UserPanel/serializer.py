@@ -21,7 +21,7 @@ class NotificationSerializer(serializers.ModelSerializer):
  
 # Order flow shown as a progress bar. cancelled / returned / failed are
 # terminal states outside this flow and are shown on their own.
-TRACK_STEPS = ["pending", "submited", "processing", "shipped", "delivered"]
+TRACK_STEPS = ["pending", "submited", "processing", "booked", "shipped", "out_for_delivery", "delivered"]
  
  
 # ---------------------------------------------------------------------------
@@ -60,6 +60,7 @@ class TrackOrderSerializer(serializers.ModelSerializer):
     items = TrackOrderItemSerializer(many=True, read_only=True)
     timeline = serializers.SerializerMethodField()
     shipping_address = serializers.SerializerMethodField()
+    courier = serializers.SerializerMethodField()
  
     class Meta:
         model = Order  # noqa: F821
@@ -69,7 +70,7 @@ class TrackOrderSerializer(serializers.ModelSerializer):
             "payment_method_label", "payment_status_label",
             "placed_at", "delivered_at",
             "subtotal", "shipping_charges", "total_amount",
-            "items", "timeline", "shipping_address",
+            "items", "timeline", "shipping_address", "courier",
         ]
  
     def get_timeline(self, obj):
@@ -92,6 +93,25 @@ class TrackOrderSerializer(serializers.ModelSerializer):
             steps.append({"key": key, "label": labels[key], "state": state})
         return steps
  
+    def get_courier(self, obj):
+        """Courier + scan history (no personal data, safe for anonymous lookups)."""
+        from couriers.models import Shipment
+        s = Shipment.active_for(obj)
+        if not s:
+            return None
+        return {
+            "name": s.provider.name,
+            "tracking_number": s.tracking_number,
+            "tracking_url": s.tracking_url,
+            "status_label": s.get_status_display(),
+            "courier_status": s.raw_status,
+            "events": [
+                {"label": e.raw_status, "note": e.description, "location": e.location,
+                 "time": e.event_time}
+                for e in s.events.exclude(source="manual")[:30]
+            ],
+        }
+
     def get_shipping_address(self, obj):
         """Only the order's owner gets the address; anonymous lookups never see it."""
         request = self.context.get("request")

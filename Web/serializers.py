@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from .models import Cart, CartItem
 from accounts.models import Address
@@ -447,13 +448,20 @@ class PlaceOrderSerializer(serializers.Serializer):
         # CREATE ORDER ITEMS (unit price = price after promotion at this qty)
         # -------------------------------------------------
         for product, variant, qty, priced in lines:
-            OrderItem.objects.create(
-                order=order,
-                product=product,
-                variant=variant,
-                quantity=qty,
-                price=priced["applied"]["final"],
-            )
+            try:
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    variant=variant,
+                    quantity=qty,
+                    price=priced["applied"]["final"],
+                )
+            except DjangoValidationError:
+                # Someone bought the last units between validation and now.
+                # Raising here rolls the whole order back (create() is atomic).
+                raise serializers.ValidationError(
+                    f"Not enough stock available for {product.name}."
+                )
         purchased = Q()
         for product, variant, qty, priced in lines:
             purchased |= Q(product=product, variant=variant)  # variant=None matches NULL

@@ -1,3 +1,9 @@
+from django.contrib.auth.decorators import user_passes_test
+from rest_framework.permissions import IsAdminUser
+
+# Reports expose sales/revenue figures: staff only (they were open before).
+staff_required = user_passes_test(lambda u: u.is_authenticated and u.is_staff, login_url='login')
+
 from django.shortcuts import render
 
 # Create your views here.
@@ -11,6 +17,7 @@ from Web.models import OrderItem,Order
 
 
 class SalesReportAPIView(APIView):
+    permission_classes = [IsAdminUser]
 
     def get(self, request):
         start_date = request.GET.get("start_date")
@@ -50,24 +57,30 @@ class SalesReportAPIView(APIView):
             "date_sales": date_sales
         })
 
+@staff_required
 def SalesReport(request):
     return render(request, "salesreport.html")
 
+@staff_required
 def InventoryReport(request):
     return render(request, "inventoryreport.html")
 
+@staff_required
 def CustomerAnalytics(request):
     return render(request, "customeranalytics.html")
 
+@staff_required
 def RevenueProfit(request):
     return render(request, "revenueprofit.html")
 
+@staff_required
 def OrderStats(request):
     return render(request, "orderstats.html")
 
 from django.db.models import F
 from products.models import Product
 class InventoryReportAPIView(APIView):
+    permission_classes = [IsAdminUser]
 
     def get(self, request):
 
@@ -96,6 +109,7 @@ class InventoryReportAPIView(APIView):
 from django.db.models import Sum, Count
 
 class CustomerAnalyticsAPIView(APIView):
+    permission_classes = [IsAdminUser]
 
     def get(self, request):
 
@@ -123,6 +137,7 @@ class CustomerAnalyticsAPIView(APIView):
 
 
 class RevenueProfitAPIView(APIView):
+    permission_classes = [IsAdminUser]
 
     def get(self, request):
 
@@ -179,6 +194,7 @@ class RevenueProfitAPIView(APIView):
 
 
 class OrderStatsAPIView(APIView):
+    permission_classes = [IsAdminUser]
 
     def get(self, request):
 

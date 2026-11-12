@@ -36,6 +36,30 @@ import uuid
 import qrcode
 from io import BytesIO
 from django.core.files import File
+
+
+def adjust_variant_stock(variant_id, delta):
+    """Change a variant's stock by `delta` (negative = sell) with single SQL
+    UPDATEs, keep the product's stock/sold in sync. Returns False when there
+    isn't enough stock for a sale."""
+    from django.db.models import F
+    from django.db.models.functions import Greatest
+
+    qs = ProductVariant.objects.filter(pk=variant_id)
+    if delta < 0:
+        qs = qs.filter(stock_quantity__gte=-delta)
+    if not qs.update(stock_quantity=F("stock_quantity") + delta):
+        return False
+    variant = ProductVariant.objects.select_related("product").get(pk=variant_id)
+    product = variant.product
+    if product.is_simple:
+        if variant.is_active:
+            Product.objects.filter(pk=product.pk).update(stock_quantity=variant.stock_quantity)
+    else:
+        product.sync_stock_from_variants()
+    Product.objects.filter(pk=product.pk).update(sold=Greatest(F("sold") - delta, 0))
+    return True
+
 class Order(BaseAuditModel):
     PAYMENT_METHODS = [
         ('cod', 'Cash on Delivery'),
@@ -46,10 +70,13 @@ class Order(BaseAuditModel):
         ('pending', 'Pending'),
         ('submited', 'Submited'),
         ('processing', 'Processing'),
+        ('booked', 'Booked with courier'),
         ('shipped', 'Shipped'),
+        ('out_for_delivery', 'Out for delivery'),
         ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled'),
-        ('returned', 'Cancelled'),
+        ('return_in_transit', 'Returning'),
+        ('returned', 'Returned'),
         ('dispatch', 'Dispatch'),
         ('ordersuccessfull', 'Order Success Full'),
         ('failed', 'Payment Failed'),
@@ -87,11 +114,8 @@ class Order(BaseAuditModel):
             old_order = Order.objects.get(pk=self.pk)
             if old_order.status not in ['cancelled', 'returned'] and self.status in ['cancelled', 'returned']:
                 for item in self.items.all():
-                    if item.variant:
-                        item.variant.stock_quantity += item.quantity
-                        item.variant.save()
-                        item.variant.product.sold -= item.quantity
-                        item.variant.product.save()
+                    if item.variant_id:
+                        adjust_variant_stock(item.variant_id, item.quantity)
         if not self.order_number:
             self.order_number = self.generate_order_number()
             
@@ -117,15 +141,11 @@ class OrderItem(BaseAuditModel):
 
     def save(self, *args, **kwargs):
         self.total = self.price * self.quantity
-        if not self.pk:  
-            if self.variant:
-                if self.variant.stock_quantity < self.quantity:
-                    raise ValidationError("Not enough stock available")
-
-                self.variant.stock_quantity -= self.quantity
-                self.variant.save()
-                self.variant.product.sold += self.quantity
-                self.variant.product.save()
+        if not self.pk and self.variant_id:
+            # Atomic, race-safe decrement: the UPDATE only succeeds while enough
+            # stock is left, so two simultaneous checkouts can't oversell.
+            if not adjust_variant_stock(self.variant_id, -self.quantity):
+                raise ValidationError("Not enough stock available")
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -227,7 +247,7 @@ class OrderRequest(BaseAuditModel):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="requests")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     request_type = models.CharField(max_length=10, choices=REQUEST_TYPE_CHOICES)
-    items = models.ManyToManyField(OrderItem, blank=True, null=True)
+    items = models.ManyToManyField(OrderItem, blank=True)
     reason = models.TextField(blank=True, null=True)
     preferred_action = models.CharField(max_length=20, choices=PREFERRED_ACTION_CHOICES, null=True, blank=True)
     attachment = models.FileField(upload_to="order_requests/", null=True, blank=True)

@@ -309,6 +309,18 @@
         <a href="{% url 'OrdersByStatus' 'success' %}" class="submenu-link">Success</a>
     </div>
 
+    <!-- Couriers / Shipping -->
+    <a href="#couriersSubmenu" data-bs-toggle="collapse" class="collapsed">
+        <i class="bi bi-truck"></i>
+        <span class="menu-text">Shipping</span>
+        <i class="bi bi-chevron-down caret-icon"></i>
+    </a>
+    <div class="collapse" id="couriersSubmenu">
+        <a href="{% url 'couriers:dashboard' %}" class="submenu-link">Shipments &amp; booking</a>
+        <a href="{% url 'couriers:dashboard' %}?status=attention" class="submenu-link">Needs attention</a>
+        <a href="{% url 'couriers:settings' %}" class="submenu-link">Courier settings</a>
+    </div>
+
     <!-- Customer Support -->
     {% comment %} <a href="{% url 'support_ticket_list' %}">
         <i class="bi bi-headset"></i>

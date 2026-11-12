@@ -32,7 +32,10 @@
                             <option>All</option>
                              <option value="pending">Pending</option>
                             <option value="processing">Processing</option>
+                            <option value="booked">Booked with courier</option>
                             <option value="shipped">Shipped</option>
+                            <option value="out_for_delivery">Out for delivery</option>
+                            <option value="return_in_transit">Returning</option>
                             <option value="delivered">Delivered</option>
                             <option value="cancelled">Cancelled</option>
                             <option value="success">Success</option>
@@ -232,7 +235,10 @@
                                         <option value="processing">Processing</option>
                                         <option value="success">Success</option>
                                         <option value="delivered">Delivered</option>
-                                        <option value="shipped">Shipped</option>
+                                        <option value="booked">Booked with courier</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="out_for_delivery">Out for delivery</option>
+                            <option value="return_in_transit">Returning</option>
                                         <option value="returned">Returned</option>
                                         <option value="cancelled">Cancelled</option>
                                         <option value="dispatch">Dispatch</option>
@@ -318,6 +324,7 @@
         </div>
 <!-- Bootstrap JS -->
   <script>
+    const courierBookBase = "{% url 'couriers:book' 0 %}";
 
     function printCourierSlip(IsFullSlip=1) {
 
@@ -893,9 +900,10 @@
                                         <button class="btn btn-outline-secondary btn-sm" onclick="openOrderModal(${item.id})" title="View">
                                             <i class="bi bi-eye"></i>
                                         </button>
-                                        <button class="btn btn-outline-primary btn-sm" title="Update Status">
-                                            <i class="bi bi-arrow-repeat"></i>
-                                        </button>
+                                        <a class="btn btn-outline-primary btn-sm" title="Courier booking / tracking"
+                                           href="${courierBookBase.replace('/0/', '/' + item.id + '/')}">
+                                            <i class="bi bi-truck"></i>
+                                        </a>
                                     </td>
                                 </tr>
                             `;

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load courier_tags %}
+{% block title %}Shipment {{ s.tracking_number }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h5 class="mb-0"><i class="bi bi-truck"></i> {{ s.provider.name }} · {{ s.tracking_number|default:"not booked" }}
+    {% shipment_badge s.status s.get_status_display %}</h5>
+  <div class="d-flex gap-2">
+    {% if s.slip_url %}<a href="{{ s.slip_url }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm"><i class="bi bi-printer"></i> Print slip</a>{% endif %}
+    {% if s.tracking_url %}<a href="{{ s.tracking_url }}" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">Courier tracking page</a>{% endif %}
+    <a href="{% url 'couriers:dashboard' %}" class="btn btn-outline-secondary btn-sm">Back</a>
+  </div>
+</div>
+
+{% if s.status == "booking_failed" %}
+<div class="alert alert-danger"><strong>Booking failed:</strong> {{ s.error_message }}
+  <a href="{% url 'couriers:book' s.order.pk %}" class="btn btn-sm btn-dark ms-2">Try again</a></div>
+{% elif s.unmapped_status %}
+<div class="alert alert-warning small">Courier status <strong>"{{ s.raw_status }}"</strong> has no mapping rule, so the order status wasn't changed.
+  <a href="{% url 'couriers:mapping_add' %}?raw={{ s.raw_status|urlencode }}&p={{ s.provider.name|urlencode }}">Add mapping</a></div>
+{% endif %}
+{% if s.tracking_failures >= 3 %}
+<div class="alert alert-warning small">Tracking failed {{ s.tracking_failures }} times in a row: {{ s.error_message }}</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Tracking history</span>
+        {% if adapter.supports_tracking and s.tracking_number and not is_final %}
+        <form method="post" action="{% url 'couriers:shipment_refresh' s.pk %}">{% csrf_token %}
+          <button class="btn btn-outline-dark btn-sm"><i class="bi bi-arrow-repeat"></i> Refresh now</button></form>
+        {% endif %}
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for e in events %}
+        <li class="list-group-item small">
+          <div class="d-flex justify-content-between">
+            <span>{% if e.status %}{% shipment_badge e.status e.get_status_display %}{% endif %} <strong>{{ e.raw_status }}</strong></span>
+            <span class="text-muted">{{ e.event_time|date:"d M Y H:i" }} · {{ e.get_source_display }}</span>
+          </div>
+          {% if e.description or e.location %}<div class="text-muted">{{ e.description }}{% if e.location %} — {{ e.location }}{% endif %}</div>{% endif %}
+        </li>
+        {% empty %}
+        <li class="list-group-item small text-muted">No events yet.</li>
+        {% endfor %}
+      </ul>
+      {% if s.last_tracked_at %}<div class="card-footer small text-muted">Last checked {{ s.last_tracked_at|timesince }} ago</div>{% endif %}
+    </div>
+
+    {% if other_attempts %}
+    <div class="card mb-3">
+      <div class="card-header">Other shipments for this order</div>
+      <ul class="list-group list-group-flush">
+        {% for o in other_attempts %}
+        <li class="list-group-item small"><a href="{% url 'couriers:shipment' o.pk %}">{{ o.provider.name }} {{ o.tracking_number|default:"—" }}</a>
+          {% shipment_badge o.status o.get_status_display %} {{ o.created_at|date:"d M H:i" }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header">Packet</div>
+      <div class="card-body small">
+        <div><strong>Order:</strong> #{{ s.order.order_number }} ({{ s.order.get_status_display }})</div>
+        <div><strong>Weight:</strong> {{ s.weight_grams }} g · <strong>Pieces:</strong> {{ s.pieces }}</div>
+        <div><strong>COD:</strong> {% if s.cod_amount %}Rs {{ s.cod_amount|floatformat:0 }}{% else %}Prepaid{% endif %}</div>
+        <div><strong>Description:</strong> {{ s.description }}</div>
+        {% if s.special_instructions %}<div><strong>Instructions:</strong> {{ s.special_instructions }}</div>{% endif %}
+        <hr>
+        <div><strong>To:</strong> {{ s.consignee_name }} · {{ s.consignee_phone }}</div>
+        <div>{{ s.consignee_address }}</div>
+        <div><strong>City:</strong> {{ s.destination_city_name }}{% if s.destination_city %} (id {{ s.destination_city.external_id }}){% endif %}</div>
+        {% if s.shipper %}<hr>
+        <div><strong>Pickup:</strong> {{ s.shipper.contact_name }}, {{ s.shipper.city }}</div>
+        {% with r=s.shipper.returns %}<div><strong>Returns to:</strong> {{ r.name }}, {{ r.address }}, {{ r.city }}</div>{% endwith %}
+        {% endif %}
+        <hr>
+        <div class="text-muted">Booked {{ s.booked_at|date:"d M Y H:i"|default:"—" }} by {{ s.created_by|default:"auto-booking" }}</div>
+      </div>
+    </div>
+
+    {% if not is_final %}
+    <div class="card mb-3">
+      <div class="card-header">Actions</div>
+      <div class="card-body">
+        <form method="post" action="{% url 'couriers:shipment_status' s.pk %}" class="mb-3">{% csrf_token %}
+          <label class="form-label small mb-0">Set status manually</label>
+          <div class="d-flex gap-2">{{ status_form.status }}
+            <button class="btn btn-outline-dark btn-sm text-nowrap">Update</button></div>
+          {{ status_form.note }}
+        </form>
+        <form method="post" action="{% url 'couriers:shipment_cancel' s.pk %}"
+              onsubmit="return confirm('Cancel this booking{% if adapter.supports_cancel %} with {{ s.provider.name }}{% endif %}?')">
+          {% csrf_token %}
+          <input name="reason" class="form-control form-control-sm mb-2" placeholder="Reason (optional)">
+          <button class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-x-circle"></i> Cancel booking</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <details class="small">
+      <summary>Raw request / response</summary>
+      <pre class="bg-light p-2 mt-2" style="max-height:300px;overflow:auto">{{ s.request_payload|pprint }}</pre>
+      <pre class="bg-light p-2" style="max-height:300px;overflow:auto">{{ s.response_payload|pprint }}</pre>
+    </details>
+  </div>
+</div>
+{% endblock %}

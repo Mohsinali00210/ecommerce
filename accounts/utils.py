@@ -16,7 +16,8 @@
 #         fail_silently=False,
 #     )
 
-import random
+import random  # noqa: F401 (kept for any other users)
+import secrets
 from datetime import timedelta
 
 from django.conf import settings
@@ -56,7 +57,7 @@ def generate_otp(user, purpose, minutes_valid=10):
     Creates a fresh 6-digit OTP for (user, purpose), invalidating any earlier
     unused ones for that same purpose so only the most recent code works.
     """
-    code = f"{random.randint(0, 999999):06d}"
+    code = f"{secrets.randbelow(1_000_000):06d}"  # crypto-strength, not random.randint
     OTP.objects.filter(user=user, purpose=purpose).delete()
     return OTP.objects.create(
         user=user,

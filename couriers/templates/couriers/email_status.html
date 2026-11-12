@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:24px;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif;color:#222">
+  <table role="presentation" width="100%" style="max-width:560px;margin:auto;background:#fff;border-radius:8px">
+    <tr><td style="padding:24px">
+      <h2 style="margin:0 0 12px;font-size:20px">{{ title }}</h2>
+      <p style="margin:0 0 16px;line-height:1.5">{{ message }}</p>
+      {% if shipment and shipment.tracking_number %}
+      <table role="presentation" style="width:100%;background:#fafafa;border:1px solid #eee;border-radius:6px;font-size:14px">
+        <tr><td style="padding:10px">Order</td><td style="padding:10px"><strong>#{{ order.order_number }}</strong></td></tr>
+        <tr><td style="padding:10px">Courier</td><td style="padding:10px">{{ shipment.provider.name }}</td></tr>
+        <tr><td style="padding:10px">Tracking number</td><td style="padding:10px"><strong>{{ shipment.tracking_number }}</strong></td></tr>
+        {% if shipment.cod_amount %}<tr><td style="padding:10px">Pay on delivery</td><td style="padding:10px">Rs {{ shipment.cod_amount|floatformat:0 }}</td></tr>{% endif %}
+      </table>
+      {% endif %}
+      {% if site_url %}
+      <p style="margin:20px 0 0"><a href="{{ site_url }}/track-order/?q={{ order.order_number }}"
+         style="background:#111;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Track your order</a></p>
+      {% endif %}
+      <p style="margin:24px 0 0;font-size:12px;color:#888">Shan Zee</p>
+    </td></tr>
+  </table>
+</body>
+</html>

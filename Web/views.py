@@ -561,10 +561,18 @@ class RemoveCartItemAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Only items in the caller's own cart (was: any cart item by id).
+        if request.user.is_authenticated:
+            carts = Cart.objects.filter(user=request.user)
+        elif request.session.session_key:
+            carts = Cart.objects.filter(session_key=request.session.session_key, user__isnull=True)
+        else:
+            carts = Cart.objects.none()
         cart_item = get_object_or_404(
             CartItem,
             id=item_id,
-            is_deleted=False
+            is_deleted=False,
+            cart__in=carts,
         )
 
         # Soft delete
@@ -908,6 +916,10 @@ from .serializers import OrderDetailSerializer
 
 
 class OrderDetailAPIView(RetrieveAPIView):
+    def get_queryset(self):
+        # Customers may only open their own orders (was: any order by id).
+        return super().get_queryset().filter(user=self.request.user)
+
     queryset = Order.objects.select_related(
         "user",
         "shipping_address",
@@ -972,8 +984,8 @@ class OrderRequestAPIView(APIView):
 
         # Validate order exists and belongs to user
         try:
-            order = Order.objects.get(id=order_id)
-        except Order.DoesNotExist:
+            order = Order.objects.get(id=order_id, user=request.user)
+        except (Order.DoesNotExist, ValueError, TypeError):
             return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
         data["order"] = order.id
@@ -1258,20 +1270,25 @@ import json
 from .models import ChatThread, ChatMessage
 
 
-@csrf_exempt
+@login_required
+@require_POST
 def send_message(request):
+    # Was csrf_exempt with no login check, and .get() crashed for a first message.
     if request.method == "POST":
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body)
+        except ValueError:
+            return JsonResponse({"success": False, "message": "Invalid JSON"}, status=400)
 
         user = request.user
-        message = data.get("message")
-        product_id = data.get("product_id")
-        variant_id = data.get("variant_id")
-        thread = ChatThread.objects.get(product_id=product_id, user=user)
-        if thread:
-            pass
-        else:
-            thread, created = ChatThread.objects.get_or_create(
+        message = (data.get("message") or "").strip()
+        if not message:
+            return JsonResponse({"success": False, "message": "Message is empty"}, status=400)
+        product_id = data.get("product_id") or None
+        variant_id = data.get("variant_id") or None
+        thread = ChatThread.objects.filter(product_id=product_id, user=user).first()
+        if thread is None:
+            thread = ChatThread.objects.create(
                 user=user,
                 product_id=product_id,
                 variant_id=variant_id
