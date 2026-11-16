@@ -1,3 +1,4 @@
+from django_ratelimit.decorators import ratelimit  # noqa: E402
 from django.shortcuts import render, get_object_or_404,redirect
 from products.models import Product, Promotion,ProductReview,ProductVariant
 from django.utils import timezone
@@ -837,55 +838,25 @@ class PlaceOrderAPIView(APIView):
             user=request.user,
             is_read=False,
         )
-        # Email data
-        order_items = order.items.select_related(
-            "product",
-            "variant",
-        ).prefetch_related(
-            "product__images"
-        )
+        # Emails go out in the background after the order is committed
+        # (online orders get their confirmation once payment succeeds).
+        from Web.order_emails import queue_order_placed
+        queue_order_placed(order)
 
-        order_url = request.build_absolute_uri(
-            reverse("home:order-detail", args=[order.order_number])
-        )
-
-        admin_order_url = request.build_absolute_uri(
-            reverse("Orders")
-        )
-
-        # Customer email
-        if request.user.email:
-            send_templated_email(
-                to_email=request.user.email,
-                subject=f"Order #{order.order_number} - Shan Zee",
-                template_name="Web/emails/order_confirmation.html",
-                context={
-                    "order": order,
-                    "order_items": order_items,
-                    "order_url": order_url,
-                    "site_url": request.build_absolute_uri("/").rstrip("/"),
-                },
-            )
-
-        # Admin email
-        send_templated_email(
-            to_email=settings.ADMIN_EMAIL,
-            subject=f"New Order #{order.order_number} - Shan Zee",
-            template_name="Web/emails/admin_new_order.html",
-            context={
-                "order": order,
-                "order_items": order_items,
-                "admin_order_url": admin_order_url,
-            },
-        )
         # -------------------------------------------------
         # RESPONSE
         # -------------------------------------------------
+        payment_url = None
+        if order.payment_method == "online":
+            from Web.order_emails import order_token
+            payment_url = reverse("payments:pay", args=[order_token(order)])
         return Response(
             {
                 "success": True,
                 "message": "Order placed successfully",
                 "order_id": order.id,
+                "payment_method": order.payment_method,
+                "payment_url": payment_url,
                 "subtotal": pricing["subtotal"],          # list prices, before discounts
                 "discount": pricing["discount"],          # promotion savings
                 "shipping": pricing["shipping_total"],    # capped at MAX_SHIPPING_CHARGE
@@ -932,6 +903,7 @@ class OrderDetailAPIView(RetrieveAPIView):
     )
     serializer_class = OrderDetailSerializer
     permission_classes = [IsAuthenticated]
+@ratelimit(key="ip", rate="5/h", method="POST", block=True)
 def Contact(request):
 
     data = {}
@@ -946,6 +918,14 @@ def Contact(request):
         subject = request.POST.get("subject")
         message = request.POST.get("message")
         attachment = request.FILES.get("attachment")
+        attachment_error = None
+        if attachment:
+            from payments.validators import validate_attachment
+            try:
+                validate_attachment(attachment)
+            except ValueError as exc:
+                attachment_error = str(exc)
+                attachment = None
 
         # Preserve values if error
         data = {
@@ -957,6 +937,10 @@ def Contact(request):
 
         if not name or not email or not subject or not message:
             error = "All required fields must be filled."
+        elif attachment_error:
+            error = attachment_error
+        elif len(message) > 5000 or len(subject) > 200:
+            error = "Please keep the message shorter."
         else:
             SupportTicket.objects.create(
                 user=request.user if request.user.is_authenticated else None,
@@ -1398,6 +1382,7 @@ from django.core.validators import validate_email
 from Web.models import NewsletterSubscriber
 
 @require_POST
+@ratelimit(key="ip", rate="10/h", block=True)
 def newsletter_subscribe(request):
     email = request.POST.get("email", "").strip().lower()
 

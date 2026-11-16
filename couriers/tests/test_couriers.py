@@ -47,6 +47,8 @@ class Fixtures:
             return_address="Plot 9, Returns Warehouse", return_city="Karachi", is_default=True)
         self.staff = User.objects.create_user(email="staff@x.com", password="pw-Strong-123",
                                               full_name="Staff", is_staff=True)
+        from django.contrib.auth.models import Group
+        self.staff.groups.add(Group.objects.get(name="Administrator"))  # RBAC role
         self.customer = User.objects.create_user(email="cust@x.com", password="pw-Strong-123",
                                                  full_name="Ali Khan")
         self.other = User.objects.create_user(email="other@x.com", password="pw-Strong-123",
@@ -325,7 +327,7 @@ class AdminScreenTests(Fixtures, TestCase):
         for name, args in [("couriers:dashboard", []), ("couriers:settings", []),
                            ("couriers:book", [self.order.pk])]:
             r = self.client.get(reverse(name, args=args))
-            self.assertEqual(r.status_code, 302, name)
+            self.assertEqual(r.status_code, 403, name)  # signed in, but not staff
 
     def test_staff_pages_render(self):
         self.client.force_login(self.staff)
@@ -376,9 +378,9 @@ class SecurityFixTests(Fixtures, TestCase):
     def test_customer_cannot_use_product_admin(self):
         self.client.force_login(self.customer)
         r = self.client.get(reverse("product_edit", args=[self.product.pk]))
-        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.status_code, 403)
         r = self.client.post(reverse("variant_delete", args=[self.product.pk, self.variant.pk]))
-        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.status_code, 403)
         self.variant.refresh_from_db()
         self.assertFalse(self.variant.is_deleted)
 
@@ -389,7 +391,7 @@ class SecurityFixTests(Fixtures, TestCase):
 
     def test_reports_staff_only(self):
         self.client.force_login(self.customer)
-        self.assertEqual(self.client.get(reverse("sales_report")).status_code, 302)
+        self.assertEqual(self.client.get(reverse("sales_report")).status_code, 403)
         from rest_framework_simplejwt.tokens import RefreshToken
         token = str(RefreshToken.for_user(self.customer).access_token)
         r = self.client.get("/Adminpanel/Reports/get-sales-report/", HTTP_AUTHORIZATION=f"Bearer {token}")

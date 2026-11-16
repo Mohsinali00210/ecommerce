@@ -718,7 +718,7 @@ function getDropDown(el = "Category",url="{% url 'category-list'%}") {
     fetch(url, {
         method: "GET",
         headers: {
-            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`,
             "Content-Type": "application/json"
         }
     })
@@ -740,7 +740,7 @@ function getBrands(el = "brandsBody") {
     fetch(API_BASE_URL, {
         method: "GET",
         headers: {
-            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`,
             "Content-Type": "application/json"
         }
     })
@@ -793,7 +793,7 @@ function getBrands(el = "brandsBody") {
     .then(data => {
         TOKEN=data.access;
     // Save access token
-    localStorage.setItem("access_token", data.access);
+    sessionStorage.setItem("access_token", data.access);
     })
     .catch(err => console.error(err)); {% endcomment %}
 
@@ -957,7 +957,7 @@ function saveProduct(e) {
     fetch(url, {
         method: isEdit ? "PATCH" : "POST",
         headers: {
-            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
         },
         body: formData
     })
@@ -995,7 +995,7 @@ function loadProduct(productId) {
     $("#id").val(productId);
     const url = "{% url 'product-detail' 0 %}".replace("0", productId);
     fetch(url, {
-        headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` }
+        headers: { "Authorization": `Bearer ${sessionStorage.getItem("access_token")}` }
     })
     .then(res => res.json())
     .then(data => fillProductForm(data))
@@ -1164,7 +1164,7 @@ function fillProductForm(product) {
 {% comment %} function loadProduct(productId) {
     fetch(`/api/v1/products/${productId}/`, {
         headers: {
-            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
         }
     })
     .then(res => res.json())

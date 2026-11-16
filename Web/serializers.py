@@ -300,6 +300,7 @@ def active_promos_prefetch(now=None, lookup="product__promotions"):
 
 class PlaceOrderSerializer(serializers.Serializer):
     address_id = serializers.IntegerField()
+    payment_method = serializers.ChoiceField(choices=["cod", "bank", "online"], default="cod")
  
     checkout_items = serializers.ListField(
         child=serializers.DictField(),
@@ -427,6 +428,17 @@ class PlaceOrderSerializer(serializers.Serializer):
         totals = summarize_lines([priced for *_, priced in lines])
  
         goods_total = totals["subtotal"] - totals["discount"]  # after promotions
+
+        # -------------------------------------------------
+        # PAYMENT METHOD: must be enabled in Store settings (checked on the
+        # server, so a disabled method can't be forced from the browser)
+        # -------------------------------------------------
+        from payments import services as payment_services
+        method = validated_data.get("payment_method", "cod")
+        try:
+            payment_services.validate_method(method, totals["final_total"])
+        except payment_services.PaymentNotAllowed as exc:
+            raise serializers.ValidationError(str(exc))
  
         # -------------------------------------------------
         # CREATE ORDER
@@ -435,7 +447,8 @@ class PlaceOrderSerializer(serializers.Serializer):
             user=user,
             shipping_address=address,
             billing_address=address,
-            payment_method="COD",
+            payment_method=method,
+            payment_status="pending",
             status="pending",
             shipping_charges=totals["shipping_total"],
             subtotal=goods_total,
@@ -467,6 +480,8 @@ class PlaceOrderSerializer(serializers.Serializer):
             purchased |= Q(product=product, variant=variant)  # variant=None matches NULL
         CartItem.objects.filter(cart__user=user).filter(purchased).delete()
 
+
+        self.payment = payment_services.create_for_order(order, method)
 
         # Let the view read the breakdown without recalculating.
         self.pricing = totals
@@ -623,6 +638,24 @@ class OrderRequestSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["id", "user", "status", "created_at"]
+
+    def validate_attachment(self, f):
+        if f:
+            from payments.validators import validate_attachment
+            try:
+                validate_attachment(f)
+            except ValueError as exc:
+                raise serializers.ValidationError(str(exc))
+        return f
+
+    def validate(self, attrs):
+        order, items = attrs.get("order"), attrs.get("items") or []
+        user = self.context["request"].user
+        if order is not None and order.user_id != user.id:
+            raise serializers.ValidationError({"order": "Order not found."})
+        if order is not None and any(i.order_id != order.pk for i in items):
+            raise serializers.ValidationError({"items": "Choose items from this order."})
+        return attrs
 
     def create(self, validated_data):
         # Pop items if provided; default to empty list

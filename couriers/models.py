@@ -156,6 +156,12 @@ class CourierCredential(TimeStamped):
             return ""
         return "•" * 6 + value[-4:] if len(value) > 4 else "•" * 6
 
+    def save(self, *args, **kwargs):
+        # Pasted keys often carry spaces/newlines, which LCS rejects as "Invalid API Key".
+        self.api_key = (self.api_key or "").strip()
+        self.api_password = (self.api_password or "").strip()
+        super().save(*args, **kwargs)
+
     def rotate_webhook_token(self):
         self.webhook_token = _new_token()
         self.save(update_fields=["webhook_token", "modified_at"])

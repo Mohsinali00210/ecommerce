@@ -175,4 +175,59 @@ class ErrorLog(models.Model):
     request_data = models.JSONField(null=True, blank=True)
     query_params = models.JSONField(null=True, blank=True)
 
+    severity = models.CharField(max_length=10, default="ERROR", db_index=True)
+    request_id = models.CharField(max_length=32, blank=True, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=255, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+
+class SecurityEvent(models.Model):
+    """Audit trail: logins, logouts, failed logins, denied access, session
+    timeouts and sensitive admin actions."""
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    event = models.CharField(max_length=50, db_index=True)
+    severity = models.CharField(max_length=10, default="INFO", db_index=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                             related_name="security_events")
+    username = models.CharField(max_length=254, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=255, blank=True)
+    path = models.CharField(max_length=255, blank=True)
+    method = models.CharField(max_length=10, blank=True)
+    request_id = models.CharField(max_length=32, blank=True)
+    details = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.created_at:%Y-%m-%d %H:%M} {self.event} {self.username}"
+
+
+class AdminAccess(models.Model):
+    """No table: only carries the admin-panel permissions used for role-based
+    access (assigned to roles = Django groups)."""
+
+    class Meta:
+        managed = False
+        default_permissions = ()
+        permissions = [
+            ("view_dashboard", "Admin: view dashboard & reports"),
+            ("view_catalog", "Admin: view products, categories, brands, inventory"),
+            ("manage_catalog", "Admin: create/edit/delete catalog items"),
+            ("view_orders", "Admin: view orders & order requests"),
+            ("manage_orders", "Admin: update orders, approve requests"),
+            ("manage_shipping", "Admin: book/cancel shipments, courier settings"),
+            ("view_customers", "Admin: view customers"),
+            ("manage_customers", "Admin: block/unblock customers"),
+            ("manage_support", "Admin: chat, tickets, product questions"),
+            ("manage_marketing", "Admin: promotions, blog, top bar"),
+            ("manage_finance", "Admin: wallet withdrawals"),
+            ("view_logs", "Admin: view error & security logs"),
+            ("manage_roles", "Admin: assign admin roles"),
+            ("manage_settings", "Admin: store settings (payments, emails)"),
+            ("manage_backups", "Admin: database backups & restore (super admins)"),
+        ]

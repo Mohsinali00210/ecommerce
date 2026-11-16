@@ -13,3 +13,6 @@ venv/
 *.log
 celerybeat-schedule*
 celerybeat.pid
+/logs/
+/private_media/
+/backups/

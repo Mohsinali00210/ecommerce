@@ -1,4 +1,5 @@
 {% extends "base2.html" %}
+{% load payment_tags %}
 {% block body_class %}theme-orders{% endblock %}
 {% load static %}
 {% block content %}
@@ -145,6 +146,8 @@
             </div>
           {% endif %}
 
+          {% order_payment_box order %}
+
           <!-- ============ Order summary card ============ -->
           <div class="p-4 mb-4 border rounded" style="border-color:var(--border) !important;">
             <div class="row g-3">
@@ -158,7 +161,7 @@
               </div>
               <div class="col-sm-4">
                 <div class="small text-muted-custom">Payment Status</div>
-                <div class="fw-semibold">{{ order.payment_status|title }}</div>
+                <div class="fw-semibold">{{ order.get_payment_status_display }}</div>
               </div>
               {% if order.transaction_id %}
                 <div class="col-sm-4">

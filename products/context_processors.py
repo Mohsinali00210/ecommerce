@@ -6,7 +6,7 @@ from Web.models import Order, OrderSeenLog
 def admin_order_counts(request):
     unseen_orders_count = 0
 
-    if request.user.is_authenticated and request.user.is_superuser:
+    if request.user.is_authenticated and request.user.is_staff:
 
         seen_orders = OrderSeenLog.objects.filter(
             user=request.user,

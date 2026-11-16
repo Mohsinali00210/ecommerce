@@ -141,17 +141,11 @@
 
         let startX = 0;
         let startScrollLeft = 0;
-        let pointerDown = false;
-        let activePointerId = null;
         let dragged = false;
         let paused = false;
         let resumeTimer;
         let previousFrame = 0;
         let groupWidth = 0;
-
-        // Stop the browser's native image/link drag (it cancels our pointer events)
-        strip.querySelectorAll('img, a').forEach((el) => el.setAttribute('draggable', 'false'));
-        strip.addEventListener('dragstart', (event) => event.preventDefault());
 
         const ensureLoopContent = () => {
             groupWidth = firstGroup.getBoundingClientRect().width;
@@ -189,37 +183,28 @@
         window.requestAnimationFrame(moveAutomatically);
 
         strip.addEventListener('mouseenter', () => { paused = true; });
-        strip.addEventListener('mouseleave', () => { if (!pointerDown) paused = false; });
+        strip.addEventListener('mouseleave', () => { paused = false; });
 
         strip.addEventListener('pointerdown', (event) => {
             paused = true;
             if (event.pointerType !== 'mouse' || event.button !== 0) return;
-            pointerDown = true;
-            activePointerId = event.pointerId;
             startX = event.clientX;
             startScrollLeft = strip.scrollLeft;
             dragged = false;
-            // NOTE: no setPointerCapture here. Capturing on pointerdown retargets the
-            // click to the strip, so the <a> never navigates. Capture only once a drag starts.
+            strip.setPointerCapture(event.pointerId);
         });
 
         strip.addEventListener('pointermove', (event) => {
-            if (!pointerDown || event.pointerId !== activePointerId) return;
+            if (!strip.hasPointerCapture(event.pointerId)) return;
             const distance = event.clientX - startX;
-            if (!dragged && Math.abs(distance) > 4) {
+            if (Math.abs(distance) > 4) {
                 dragged = true;
                 strip.classList.add('is-dragging');
-                strip.setPointerCapture(event.pointerId);
-            }
-            if (dragged) {
                 strip.scrollLeft = startScrollLeft - distance;
             }
         });
 
         const stopDragging = (event) => {
-            if (event.pointerId !== activePointerId) return;
-            pointerDown = false;
-            activePointerId = null;
             if (strip.hasPointerCapture(event.pointerId)) {
                 strip.releasePointerCapture(event.pointerId);
             }

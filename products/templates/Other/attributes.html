@@ -147,7 +147,7 @@ function getDropDown(el = "AttributeType",url=`${window.location.origin}/Adminpa
     fetch(url, {
         method: "GET",
         headers: {
-            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`,
             "Content-Type": "application/json"
         }
     })
@@ -172,7 +172,7 @@ function getAttributes(el = "attributesBody", parentId = null) {
     fetch(API_BASE_URL, {
         method: "GET",
         headers: {
-            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`,
             "Content-Type": "application/json"
         }
     })
@@ -227,7 +227,7 @@ function getAttributes(el = "attributesBody", parentId = null) {
     .then(data => {
         TOKEN=data.access;
     // Save access token
-    localStorage.setItem("access_token", data.access);
+    sessionStorage.setItem("access_token", data.access);
     })
     .catch(err => console.error(err)); {% endcomment %}
 
@@ -266,7 +266,7 @@ function saveAttribute() {
     else { body.parent = null; }
     fetch(url, {
         method: method,
-        headers: {  "Authorization": `Bearer ${localStorage.getItem("access_token")}`, "Content-Type": "application/json" },
+        headers: {  "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`, "Content-Type": "application/json" },
         body: JSON.stringify(body)
     })
     .then(res => {

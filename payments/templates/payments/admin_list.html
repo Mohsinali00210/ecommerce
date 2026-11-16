@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Payments{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div><h2>Payments</h2><p>Every payment attempt: cash on delivery, bank transfers and Safepay.</p></div>
+  <a href="{% url 'admin_payment_gateway' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-gear me-1"></i>Safepay settings</a>
+</div>
+
+{% if to_review %}
+<div class="alert alert-warning d-flex justify-content-between align-items-center">
+  <span><i class="bi bi-receipt me-1"></i> {{ to_review }} bank transfer receipt{{ to_review|pluralize }} waiting for review.</span>
+  <a href="?status=review" class="btn btn-sm btn-primary">Review now</a>
+</div>
+{% endif %}
+{% if gateway and gateway.is_active and gateway.environment == "sandbox" %}
+<div class="alert alert-info small">Safepay is in <strong>sandbox</strong> mode: no real money is charged.</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-body border-bottom">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-md-3"><label class="form-label" for="st">Status</label>
+        <select id="st" name="status" class="form-select form-select-sm"><option value="">All</option>
+          <option value="review" {% if f_status == "review" %}selected{% endif %}>Receipts to review</option>
+          {% for k, v in statuses %}<option value="{{ k }}" {% if f_status == k %}selected{% endif %}>{{ v }}</option>{% endfor %}
+        </select></div>
+      <div class="col-md-3"><label class="form-label" for="me">Method</label>
+        <select id="me" name="method" class="form-select form-select-sm"><option value="">All</option>
+          {% for k, v in methods %}<option value="{{ k }}" {% if f_method == k %}selected{% endif %}>{{ v }}</option>{% endfor %}
+        </select></div>
+      <div class="col-md-4"><label class="form-label" for="q">Search</label>
+        <input id="q" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Order number, reference, email"></div>
+      <div class="col-md-2 d-grid"><button class="btn btn-primary btn-sm"><i class="bi bi-funnel me-1"></i>Filter</button></div>
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead><tr><th>Date</th><th>Order</th><th>Customer</th><th>Method</th><th class="text-end">Amount</th><th>Status</th><th>Reference</th><th></th></tr></thead>
+      <tbody>
+      {% for p in page %}
+        <tr>
+          <td class="text-nowrap">{{ p.created_at|date:"d M Y H:i" }}</td>
+          <td class="fw-semibold">#{{ p.order.order_number }}</td>
+          <td>{{ p.order.user.email|default:"—" }}</td>
+          <td>{{ p.get_method_display }}{% if p.proof %} <i class="bi bi-paperclip text-muted" title="Receipt uploaded"></i>{% endif %}</td>
+          <td class="text-end fw-semibold">Rs {{ p.amount|floatformat:0 }}</td>
+          <td><span class="sz-pill {% if p.status == 'paid' %}s-success{% elif p.status == 'pending' %}s-pending{% else %}s-cancelled{% endif %}">{{ p.get_status_display }}</span></td>
+          <td class="small text-muted">{{ p.reference|default:"" }}</td>
+          <td><a href="{% url 'admin_payment_detail' p.pk %}" class="btn btn-outline-secondary btn-sm">Open</a></td>
+        </tr>
+      {% empty %}<tr><td colspan="8"><div class="sz-empty"><i class="bi bi-credit-card"></i>No payments match.</div></td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page.paginator.num_pages > 1 %}
+  <div class="card-footer d-flex justify-content-between small">
+    <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    <span>{% if page.has_previous %}<a href="?status={{ f_status }}&method={{ f_method }}&q={{ q|urlencode }}&page={{ page.previous_page_number }}">‹ Prev</a>{% endif %}
+      {% if page.has_next %}<a class="ms-3" href="?status={{ f_status }}&method={{ f_method }}&q={{ q|urlencode }}&page={{ page.next_page_number }}">Next ›</a>{% endif %}</span>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

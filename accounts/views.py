@@ -95,30 +95,49 @@ def login_view(request):
         user = authenticate(request, email=username, password=password)
         if user is not None:
             login(request, user)
-            # Redirect based on user type
-            if user.is_superuser:
-                return redirect("addProduct")  # Django admin panel
-            else:
-                return redirect("home:home")  # regular user home page
+            next_url = _get_safe_next(request)
+            if next_url:
+                return redirect(next_url)
+            # Staff go to the admin dashboard, customers to the shop
+            if user.is_staff:
+                return redirect("admin_dashboard")
+            return redirect("home:home")
         else:
             error = "Invalid username or password"
 
-    return render(request, "Login.html", {"error": error})
+    info = None
+    if request.GET.get("expired"):
+        info = "Your session expired. Please sign in again."
+    return render(request, "Login.html", {"error": error, "info": info})
 from django.utils.http import url_has_allowed_host_and_scheme
 from urllib.parse import urlparse
 
 
+AUTH_PATHS = ("/api/v1/login", "/api/v1/register", "/api/v1/logout", "/api/v1/forgot-password",
+              "/api/v1/reset-password", "/accounts/")
+
+
 def _get_safe_next(request):
-    """Return a safe same-site path to redirect to, or None."""
+    """Return a safe same-site path to redirect to, or None.
+
+    Order: explicit ?next / POST next, then the page the login modal was opened
+    on (Referer). Auth pages themselves are never a target - the login page used
+    to send people straight back to the login page. A Referer that *is* the
+    login page contributes its own ?next= instead."""
+    from urllib.parse import parse_qs
     candidate = request.POST.get("next") or request.GET.get("next")
 
-    # Fallback: the page the modal was opened on (e.g. the product page)
     if not candidate:
         referer = request.META.get("HTTP_REFERER")
         if referer:
             parsed = urlparse(referer)
-            candidate = parsed.path + (f"?{parsed.query}" if parsed.query else "")
+            if parsed.path.startswith(AUTH_PATHS):
+                candidate = (parse_qs(parsed.query).get("next") or [None])[0]
+            else:
+                candidate = parsed.path + (f"?{parsed.query}" if parsed.query else "")
 
+    if candidate and urlparse(candidate).path.startswith(AUTH_PATHS):
+        return None
     if candidate and url_has_allowed_host_and_scheme(
         candidate,
         allowed_hosts={request.get_host()},
@@ -142,8 +161,8 @@ def login_api(request):
         next_url = _get_safe_next(request)
         if next_url:
             redirect_url = next_url
-        elif user.is_superuser:
-            redirect_url = "/Adminpanel/Products/products/add/"
+        elif user.is_staff:
+            redirect_url = "/Adminpanel/"
         else:
             redirect_url = "/"
 
@@ -156,6 +175,7 @@ def login_api(request):
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password
 
+@ratelimit(key="ip", rate="10/h", method="POST", block=True)
 def register_view(request):
     error = None
     # Pre-fill dictionary
@@ -209,6 +229,7 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 
 @require_POST
+@ratelimit(key="ip", rate="10/h", method="POST", block=True)
 def register_api(request):
 
     full_name = request.POST.get("full_name", "").strip()
@@ -386,7 +407,10 @@ from django.contrib.auth import logout
 
 def logout_view(request):
     logout(request)
-    return redirect("login")  # redirect to login page
+    response = redirect("login")
+    # Wipe API tokens the shop keeps in the browser (localStorage/sessionStorage).
+    response["Clear-Site-Data"] = '"storage"'
+    return response
 
 
 

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Logs & audit{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div><h2>Logs &amp; audit</h2><p>Application errors and the security audit trail. Files are also written to <code>logs/</code>.</p></div>
+</div>
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item"><a class="nav-link {% if tab == 'errors' %}active{% endif %}" href="?tab=errors">Application errors</a></li>
+  <li class="nav-item"><a class="nav-link {% if tab == 'security' %}active{% endif %}" href="?tab=security">Security events</a></li>
+</ul>
+<div class="card">
+  <div class="card-body border-bottom">
+    <form class="row g-2 align-items-end" method="get">
+      <input type="hidden" name="tab" value="{{ tab }}">
+      <div class="col-md-4"><label class="form-label" for="q">Search</label>
+        <input id="q" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="{% if tab == 'security' %}event, email, IP, path or request id{% else %}message, path or request id{% endif %}"></div>
+      <div class="col-md-2"><label class="form-label" for="sev">Severity</label>
+        <select id="sev" name="severity" class="form-select form-select-sm">
+          <option value="">All</option>
+          <option {% if severity == "INFO" %}selected{% endif %}>INFO</option>
+          <option {% if severity == "WARNING" %}selected{% endif %}>WARNING</option>
+          <option {% if severity == "ERROR" %}selected{% endif %}>ERROR</option>
+          <option {% if severity == "CRITICAL" %}selected{% endif %}>CRITICAL</option>
+        </select></div>
+      {% if tab == "security" %}
+      <div class="col-md-3"><label class="form-label" for="ev">Event</label>
+        <select id="ev" name="event" class="form-select form-select-sm"><option value="">All</option>
+          {% for e in events %}<option value="{{ e }}" {% if e == f_event %}selected{% endif %}>{{ e }}</option>{% endfor %}</select></div>
+      {% else %}
+      <div class="col-md-2"><label class="form-label" for="st">HTTP status</label>
+        <input id="st" name="status" value="{{ f_status }}" class="form-control form-control-sm" inputmode="numeric" placeholder="500"></div>
+      {% endif %}
+      <div class="col-md-2 d-grid"><button class="btn btn-primary btn-sm"><i class="bi bi-funnel me-1"></i>Filter</button></div>
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      {% if tab == "security" %}
+      <thead><tr><th>Time</th><th>Event</th><th>Severity</th><th>User</th><th>IP</th><th>Path</th><th></th></tr></thead>
+      <tbody>
+      {% for e in page %}
+        <tr><td class="text-nowrap">{{ e.created_at|date:"d M Y H:i:s" }}</td><td class="fw-semibold">{{ e.event }}</td>
+          <td><span class="badge {% if e.severity == 'INFO' %}bg-secondary{% elif e.severity == 'WARNING' %}bg-warning{% else %}bg-danger{% endif %}">{{ e.severity }}</span></td>
+          <td>{{ e.username|default:"—" }}</td><td>{{ e.ip_address|default:"—" }}</td><td class="small text-muted">{{ e.method }} {{ e.path|truncatechars:50 }}</td>
+          <td><a href="{% url 'admin_log_detail' 'security' e.pk %}" class="btn btn-outline-secondary btn-sm">Details</a></td></tr>
+      {% empty %}<tr><td colspan="7"><div class="sz-empty"><i class="bi bi-shield-check"></i>No events match.</div></td></tr>{% endfor %}
+      </tbody>
+      {% else %}
+      <thead><tr><th>Time</th><th>Severity</th><th>Status</th><th>Endpoint</th><th>Message</th><th>Ref</th><th></th></tr></thead>
+      <tbody>
+      {% for e in page %}
+        <tr><td class="text-nowrap">{{ e.created_at|date:"d M Y H:i:s" }}</td>
+          <td><span class="badge {% if e.severity == 'WARNING' %}bg-warning{% elif e.severity == 'INFO' %}bg-secondary{% else %}bg-danger{% endif %}">{{ e.severity }}</span></td>
+          <td>{{ e.status_code }}</td><td class="small">{{ e.method }} {{ e.endpoint|truncatechars:45 }}</td>
+          <td class="small">{{ e.error_message|truncatechars:90 }}</td><td class="small text-muted">{{ e.request_id|default:"" }}</td>
+          <td><a href="{% url 'admin_log_detail' 'error' e.pk %}" class="btn btn-outline-secondary btn-sm">Details</a></td></tr>
+      {% empty %}<tr><td colspan="7"><div class="sz-empty"><i class="bi bi-check2-circle"></i>No errors logged.</div></td></tr>{% endfor %}
+      </tbody>
+      {% endif %}
+    </table>
+  </div>
+  {% if page.paginator.num_pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center small">
+    <span>Page {{ page.number }} of {{ page.paginator.num_pages }} · {{ page.paginator.count }} entries</span>
+    <span>
+      {% if page.has_previous %}<a class="btn btn-outline-secondary btn-sm" href="?tab={{ tab }}&q={{ q|urlencode }}&severity={{ severity }}&event={{ f_event }}&status={{ f_status }}&page={{ page.previous_page_number }}">‹ Prev</a>{% endif %}
+      {% if page.has_next %}<a class="btn btn-outline-secondary btn-sm" href="?tab={{ tab }}&q={{ q|urlencode }}&severity={{ severity }}&event={{ f_event }}&status={{ f_status }}&page={{ page.next_page_number }}">Next ›</a>{% endif %}
+    </span>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

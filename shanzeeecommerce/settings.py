@@ -33,7 +33,7 @@ def env_list(name, default=""):
 # ---------------------------------------------------------------------------
 # Core / security
 # ---------------------------------------------------------------------------
-DEBUG = env_bool("DJANGO_DEBUG", True)
+DEBUG = env_bool("DJANGO_DEBUG", False)
 
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
@@ -43,8 +43,12 @@ if not SECRET_KEY:
     else:
         raise ImproperlyConfigured("Set DJANGO_SECRET_KEY in the environment (.env).")
 
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
-CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", "")
+ALLOWED_HOSTS = env_list(
+    "DJANGO_ALLOWED_HOSTS",
+    "shanzee.com,www.shanzee.com,127.0.0.1,localhost"
+)
+# CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", "")
+
 SITE_URL = env("SITE_URL", "http://127.0.0.1:8000").rstrip("/")
 
 if not DEBUG:
@@ -57,6 +61,10 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = "same-origin"
     X_FRAME_OPTIONS = "DENY"
+    CSRF_TRUSTED_ORIGINS = [
+        "https://shanzee.com",
+        "https://www.shanzee.com",
+    ]
 
 # ---------------------------------------------------------------------------
 # Applications
@@ -86,15 +94,21 @@ INSTALLED_APPS = [
     'chat',
     'UserPanel',
     'couriers',
+    'adminpanel',
+    'payments',
 ]
 
 MIDDLEWARE = [
+    "accounts.error_logging.RequestIDMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     "accounts.error_logging.ErrorLogMiddleware",
+    "adminpanel.session.AdminSessionMiddleware",   # idle / absolute timeout for staff
+    "accounts.rbac.AdminAccessMiddleware",          # role-based access to admin URLs
+    "adminpanel.unseen.UnseenMiddleware",           # "new since last visit" badges
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
@@ -110,6 +124,7 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 "products.context_processors.admin_order_counts",
+                "adminpanel.context_processors.admin_ui",
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -161,6 +176,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "couriers.tasks.poll_active_shipments",
         "schedule": timedelta(minutes=COURIER_POLL_MINUTES),
     },
+    "payments-expire-unpaid": {
+        "task": "payments.tasks.expire_unpaid_online_orders",
+        "schedule": timedelta(minutes=10),
+    },
+    "adminpanel-scheduled-backup": {
+        "task": "adminpanel.tasks.scheduled_backup",
+        "schedule": crontab(minute=7),   # checks every hour; runs at the hour set in Store settings
+    },
     "couriers-sync-cities": {
         "task": "couriers.tasks.sync_all_cities",
         "schedule": crontab(hour=4, minute=17, day_of_week="mon"),
@@ -177,6 +200,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    "EXCEPTION_HANDLER": "adminpanel.drf.exception_handler",
 }
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
@@ -184,6 +208,18 @@ SIMPLE_JWT = {
 }
 
 SITE_ID = 1
+
+# ---------------------------------------------------------------------------
+# Sessions (staff sessions also end when the browser closes - set at login)
+# ---------------------------------------------------------------------------
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_FAILURE_VIEW = "adminpanel.views.csrf_failure"
+ADMIN_SESSION_IDLE_MINUTES = int(env("ADMIN_SESSION_IDLE_MINUTES", "60"))
+ADMIN_SESSION_MAX_HOURS = int(env("ADMIN_SESSION_MAX_HOURS", "12"))
+ADMIN_SESSION_WARNING_SECONDS = int(env("ADMIN_SESSION_WARNING_SECONDS", "120"))
+ADMIN_JWT_MINUTES = int(env("ADMIN_JWT_MINUTES", "15"))
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
@@ -235,6 +271,12 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+# Never served by the web server: bank receipts etc. (served by permission-checked views)
+PRIVATE_MEDIA_ROOT = Path(env("PRIVATE_MEDIA_ROOT", str(BASE_DIR / "private_media")))
+# Database backups (keep outside the web root; ideally on another disk)
+BACKUP_DIR = Path(env("BACKUP_DIR", str(BASE_DIR / "backups")))
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 # ---------------------------------------------------------------------------
 # Email (Hostinger SMTP by default; password only from the environment)
@@ -250,9 +292,40 @@ EMAIL_HOST_PASSWORD = env("SMTP_PASSWORD", "")
 EMAIL_TIMEOUT = 20
 DEFAULT_FROM_EMAIL = env("SMTP_FROM", "shanzee@shanzee.com")
 
+# ---------------------------------------------------------------------------
+# Logging: logs/app.log (everything), logs/error.log (errors only),
+# logs/security.log (audit trail). JSON lines, rotated at 10 MB x 10 files.
+# ---------------------------------------------------------------------------
+LOG_DIR = Path(env("LOG_DIR", str(BASE_DIR / "logs")))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+LOG_LEVEL = env("LOG_LEVEL", "INFO")
+
+
+def _rotating(filename, level="INFO"):
+    return {"class": "logging.handlers.RotatingFileHandler", "filename": str(LOG_DIR / filename),
+            "maxBytes": 10 * 1024 * 1024, "backupCount": 10, "encoding": "utf-8",
+            "formatter": "json", "level": level}
+
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "loggers": {"couriers": {"handlers": ["console"], "level": env("COURIER_LOG_LEVEL", "INFO")}},
+    "formatters": {
+        "json": {"()": "accounts.log_formatters.JsonFormatter"},
+        "console": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "console"},
+        "app_file": _rotating("app.log", LOG_LEVEL),
+        "error_file": _rotating("error.log", "ERROR"),
+        "security_file": _rotating("security.log", "INFO"),
+    },
+    "loggers": {
+        "app": {"handlers": ["console", "app_file", "error_file"], "level": LOG_LEVEL, "propagate": False},
+        "security": {"handlers": ["security_file", "console"], "level": "INFO", "propagate": False},
+        "couriers": {"handlers": ["console", "app_file", "error_file"],
+                     "level": env("COURIER_LOG_LEVEL", "INFO"), "propagate": False},
+        "django.request": {"handlers": ["app_file", "error_file"], "level": "WARNING", "propagate": False},
+        "django.security": {"handlers": ["security_file"], "level": "INFO", "propagate": False},
+    },
 }

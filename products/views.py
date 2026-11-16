@@ -3,6 +3,7 @@ from django.views.decorators.http import require_POST
 
 # Admin-panel pages: logged in AND staff. (Was login_required only, which let
 # any registered customer edit products, variants, images and promotions.)
+from django.db.models import Count, Q  # noqa: E402
 staff_required = _upt(lambda u: u.is_authenticated and u.is_active and u.is_staff, login_url="login")
 
 from itertools import product
@@ -30,16 +31,11 @@ from rest_framework.permissions import BasePermission
 from accounts.error_logging import log_error
 
 class IsSuperUser(BasePermission):
+    """Name kept for compatibility: now means "staff whose role allows this
+    URL + method" (see accounts/rbac.py ADMIN_RULES). Superusers pass."""
     def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.is_superuser
-        )
-# Create your views here.
-class IsAdminRole(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return bool(request.user and request.user.is_authenticated and request.user.is_staff)
+        from accounts import rbac
+        return rbac.allowed(request.user, request.path, request.method)
 
 
 
@@ -82,36 +78,24 @@ class CategoryViewSet(viewsets.ModelViewSet):
         self.perform_update(serializer)
         return Response(serializer.data)
     def destroy(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            self.perform_destroy(instance)
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
-        except Exception as exc:
-            log_error(request, e, 500)
-
-            self.log_exception(
-                request,
-                exc,
-                status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-            raise
-
-   
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_queryset(self):
-        queryset = Category.objects.filter(is_deleted=False)
+        queryset = (Category.objects.filter(is_deleted=False)
+                    .select_related("parent", "created_by")
+                    .annotate(active_children=Count("children", filter=Q(children__is_deleted=False)))
+                    .order_by("name"))
+        if self.action != "list":
+            return queryset  # retrieve / update / delete by id
         parent_id = self.request.query_params.get('parent')
-        
-        if parent_id == 'null' or parent_id is None and self.request.path.endswith('/'):
-            # If we are on the main page, show only top-level categories
-            if parent_id == 'null':
-                return queryset.filter(parent__isnull=True)
-            return queryset
-        
+        if parent_id == 'null':
+            return queryset.filter(parent__isnull=True)
         if parent_id:
+            if not str(parent_id).isdigit():
+                return queryset.none()
             return queryset.filter(parent_id=parent_id)
-            
         return queryset
 
     def perform_create(self, serializer):
@@ -119,9 +103,14 @@ class CategoryViewSet(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
     def perform_destroy(self, instance):
-        # Soft delete logic: instead of deleting from DB, mark as deleted
-        instance.is_deleted = True
-        instance.save()
+        # Soft delete the category and everything under it (children would
+        # otherwise stay "active" but unreachable).
+        ids, frontier = [instance.pk], [instance.pk]
+        while frontier:
+            frontier = list(Category.objects.filter(parent_id__in=frontier, is_deleted=False)
+                            .values_list("pk", flat=True))
+            ids.extend(frontier)
+        Category.objects.filter(pk__in=ids).update(is_deleted=True)
 
 
 
@@ -505,27 +494,16 @@ class PromotionViewSet(viewsets.ModelViewSet):
 
 
 def log_validation_error(self, request, errors):
-    ErrorLog.objects.create(
-        user=request.user if request.user.is_authenticated else None,
-        endpoint=request.path,
-        method=request.method,
-        error_message=str(errors),
-        status_code=status.HTTP_400_BAD_REQUEST,
-        request_data=request.data,
-    )
+    # Goes through the central logger: request data is sanitised (no files,
+    # passwords masked) so logging itself can't crash the request.
+    from accounts.error_logging import log_error
+    log_error(request, status_code=status.HTTP_400_BAD_REQUEST,
+              message=f"Validation error: {errors}", severity="WARNING", once=False)
 
 
 def log_exception(self, request, exc, status_code):
-    ErrorLog.objects.create(
-        user=request.user if request.user.is_authenticated else None,
-        endpoint=request.path,
-        method=request.method,
-        error_message=str(exc),
-        stack_trace=traceback.format_exc(),
-        status_code=status_code,
-        request_data=request.data if request.method != "GET" else None,
-        query_params=request.query_params.dict(),
-    )
+    from accounts.error_logging import log_error
+    log_error(request, exc, status_code)
 
 class AttributeTypesViewSet(viewsets.ModelViewSet):
     serializer_class = AttributeTypesSerializer
@@ -535,46 +513,32 @@ class AttributeTypesViewSet(viewsets.ModelViewSet):
         return Attribute_Types.objects.filter(is_deleted=False)
 @staff_required
 def categories(request):
-    if not request.user.is_superuser:
-        return redirect('login') 
     return render(request, "categories/categories.html")
 
 @staff_required
 def attributes(request):
-    if not request.user.is_superuser:
-        return redirect('login') 
     return render(request, "Other/attributes.html")
 @staff_required
 def brands(request):
-    if not request.user.is_superuser:
-        return redirect('login') 
     return render(request, "Other/brands.html")
 
 @staff_required
 def addProduct(request, product_id =None):
-    if not request.user.is_superuser:
-        return redirect('login')   
     tax_categories = TaxCategory.objects.filter(is_active=True, is_deleted=False)
     context = { 'tax_categories': tax_categories }
     return render(request, "products/addProduct.html",context)
 
 @staff_required
 def editProduct(request):
-    if not request.user.is_superuser:
-        return redirect('login') 
     return render(request, "products/addProduct.html")
 @staff_required
 def editProduct(request, id=None):
-    if not request.user.is_superuser:
-        return redirect('login') 
     return render(request, "products/addProduct.html", {
         "product_id": id
     })
 
 @staff_required
 def products(request):
-    if not request.user.is_superuser:
-        return redirect('login')
  
     product_qs = Product.objects.filter(is_deleted=False).order_by('-id')
  
@@ -605,20 +569,14 @@ def products(request):
 
 @staff_required
 def ProductPreview(request):
-    if not request.user.is_superuser:
-        return redirect('login') 
     return render(request, "products/ProductPreview.html")
 
 @staff_required
 def orders(request):
-    if not request.user.is_superuser:
-        return redirect('login') 
     return render(request, "orders/Orders.html")
 
 @staff_required
 def OrdersByStatus(request, status):
-    if not request.user.is_superuser:
-        return redirect('login') 
     return render(request, "orders/OrdersByStatus.html",{"status":status})
 
 
@@ -796,8 +754,6 @@ from Web.models import SupportTicket
 
 @staff_required
 def support_ticket_list_view(request):
-    if not request.user.is_superuser:
-        return redirect('login') 
     tickets = SupportTicket.objects.all().order_by("-created_at")
     return render(request, "Other/support_ticket_list.html", {"tickets": tickets})
 
@@ -918,16 +874,12 @@ class AdminReviewUpdateAPIView(UpdateAPIView):
     permission_classes = [IsSuperUser]
 @staff_required
 def admin_reviews_page(request):
-    if not request.user.is_superuser:
-        return redirect('login') 
     return render(request, "products/admin_reviews.html")
 
 from django.db.models import Count
 
 @staff_required
 def wishlist_page(request):
-    if not request.user.is_superuser:
-        return redirect('login') 
     wishlist_items = (Wishlist.objects
                       .filter(user=request.user)
                       .select_related("product")
@@ -959,8 +911,6 @@ class PromotionsViewSet(viewsets.ModelViewSet):
 
 @staff_required
 def promotions_page(request):
-    if not request.user.is_superuser:
-        return redirect('login') 
     return render(request, "promotions/promotions.html")
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404
@@ -982,8 +932,6 @@ def toggle_promotion_status(request, promo_id):
     })
 @staff_required
 def inventory_page(request):
-    if not request.user.is_superuser:
-        return redirect('login') 
     return render(request, "Inventory/Inventory.html")
 
 from .models import ProductVariantInventory
@@ -1093,8 +1041,6 @@ class PictureViewSet(viewsets.ModelViewSet):
 
 @staff_required
 def picture_page(request):
-    if not request.user.is_superuser:
-        return redirect('login') 
     return render(request, "Other/pictures.html")
 
 
@@ -1102,8 +1048,6 @@ def picture_page(request):
 # views.py
 @staff_required
 def wish_to_buy_admin(request):
-    if not request.user.is_superuser:
-        return redirect('login') 
     return render(request, "Other/wish_to_buy.html")
 
 # views.py
@@ -1967,11 +1911,8 @@ from .serializers import BlogCategorySerializer, BlogPostSerializer
 
 class IsAdminOrStaff(permissions.BasePermission):
     def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and (request.user.is_staff or request.user.is_superuser)
-        )
+        from accounts import rbac
+        return rbac.allowed(request.user, request.path, request.method)
 
 
 class BlogCategoryViewSet(viewsets.ModelViewSet):

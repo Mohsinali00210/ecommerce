@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Store settings{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div><h2>Store settings</h2><p>Payments, customer emails and automatic backups.</p></div>
+</div>
+<form method="post" novalidate>{% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+  <div class="row g-3">
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header"><i class="bi bi-credit-card me-1 text-primary"></i> Payments</div>
+        <div class="card-body">
+          <div class="p-3 rounded mb-3" style="background:{% if form.instance.online_payments_enabled %}#e8f7ee{% else %}#fdecec{% endif %}">
+            <div class="form-check form-switch m-0">
+              {{ form.online_payments_enabled }}
+              <label class="form-check-label fw-semibold" for="{{ form.online_payments_enabled.id_for_label }}">Online payments (Safepay)</label>
+            </div>
+            <div class="small text-muted mt-1">Master switch. Off = customers can't choose or complete any online payment; the server also refuses it.
+              {% if gateway %}Safepay: {% if gateway.is_active %}<span class="text-success">active</span>{% else %}<span class="text-danger">not active</span>{% endif %}, {{ gateway.get_environment_display|lower }}.{% endif %}
+              <a href="{% url 'admin_payment_gateway' %}">Safepay settings</a></div>
+            {% for e in form.online_payments_enabled.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="form-check form-switch mb-2">{{ form.cod_enabled }} <label class="form-check-label" for="{{ form.cod_enabled.id_for_label }}">Cash on delivery</label></div>
+          <div class="mb-3 ms-4" style="max-width:260px">
+            <label class="form-label small" for="{{ form.cod_max_amount.id_for_label }}">Max order total for COD (Rs, empty = no limit)</label>{{ form.cod_max_amount }}
+            {% for e in form.cod_max_amount.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="form-check form-switch mb-2">{{ form.bank_transfer_enabled }} <label class="form-check-label" for="{{ form.bank_transfer_enabled.id_for_label }}">Bank transfer (customer uploads the receipt)</label></div>
+          <div class="mb-3 ms-4">
+            <label class="form-label small" for="{{ form.bank_transfer_details.id_for_label }}">Bank details shown to customers</label>{{ form.bank_transfer_details }}
+          </div>
+          <div style="max-width:260px">
+            <label class="form-label small" for="{{ form.online_payment_timeout_minutes.id_for_label }}">Cancel unpaid online orders after (minutes)</label>{{ form.online_payment_timeout_minutes }}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-envelope me-1 text-primary"></i> Customer emails</span>
+          <button type="button" class="btn btn-outline-primary btn-sm" onclick="szTestEmail()"><i class="bi bi-send me-1"></i>Send test email</button>
+        </div>
+        <div class="card-body">
+          <div class="form-check form-switch mb-2">{{ form.email_order_confirmation }} <label class="form-check-label" for="{{ form.email_order_confirmation.id_for_label }}">Order confirmation (with a private order link)</label></div>
+          <div class="form-check form-switch mb-2">{{ form.email_status_changes }} <label class="form-check-label" for="{{ form.email_status_changes.id_for_label }}">Email when the order status changes to:</label></div>
+          <div class="ms-4 d-flex flex-wrap gap-3 mb-3">
+            {% for cb in form.email_statuses %}<div class="form-check m-0">{{ cb.tag }}<label class="form-check-label small" for="{{ cb.id_for_label }}">{{ cb.choice_label }}</label></div>{% endfor %}
+          </div>
+          <div class="form-check form-switch">{{ form.email_admin_new_order }} <label class="form-check-label" for="{{ form.email_admin_new_order.id_for_label }}">Email the admin about every new order</label></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header d-flex justify-content-between"><span><i class="bi bi-hdd-stack me-1 text-primary"></i> Automatic backups</span>
+          {% if request.user.is_superuser %}<a href="{% url 'admin_backups' %}" class="small">Open backups</a>{% endif %}</div>
+        <div class="card-body row g-3">
+          <div class="col-12"><div class="form-check form-switch">{{ form.backup_schedule_enabled }} <label class="form-check-label" for="{{ form.backup_schedule_enabled.id_for_label }}">Make a backup every day</label></div></div>
+          <div class="col-sm-4"><label class="form-label small" for="{{ form.backup_hour.id_for_label }}">At hour (0-23)</label>{{ form.backup_hour }}{% for e in form.backup_hour.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+          <div class="col-sm-4"><label class="form-label small" for="{{ form.backup_keep.id_for_label }}">Keep last</label>{{ form.backup_keep }}</div>
+          <div class="col-sm-4 d-flex align-items-end"><div class="form-check form-switch">{{ form.backup_include_media }} <label class="form-check-label small" for="{{ form.backup_include_media.id_for_label }}">Include images</label></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mt-3"><button class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Save settings</button></div>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+async function szTestEmail() {
+  const r = await Admin.api("{% url 'admin_email_test' %}", { method: "POST", auth: false, silent: true });
+  if (r.ok) Admin.toast(r.data.message, "success");
+  else Swal.fire({ icon: "error", title: "Email isn't working", text: (r.data && r.data.detail) || "Couldn't reach the server." });
+}
+</script>
+{% endblock %}

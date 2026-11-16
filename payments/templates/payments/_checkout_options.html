@@ -1,0 +1,13 @@
+{% for m in methods %}
+<label class="payment-option d-flex align-items-center gap-3 p-3{% if not m.available %} opacity-50{% endif %}">
+  <input type="radio" name="payment_method" value="{{ m.code }}" {% if m.code == first %}checked{% endif %} {% if not m.available %}disabled{% endif %}>
+  <i class="bi {{ m.icon }} fs-4" aria-hidden="true"></i>
+  <div>
+    <div class="fw-semibold">{{ m.label }}</div>
+    <small class="text-muted-custom">{% if m.available %}{{ m.description }}{% else %}{{ m.reason }}{% endif %}</small>
+    {% if m.code == "bank" and m.details %}<div class="small mt-1 text-muted-custom" style="white-space:pre-line">{{ m.details }}</div>{% endif %}
+  </div>
+</label>
+{% empty %}
+<div class="alert alert-warning mb-0">No payment method is available right now. Please contact us.</div>
+{% endfor %}

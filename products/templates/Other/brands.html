@@ -134,7 +134,7 @@ function getDropDown(el = "Category",url=`${window.location.origin}/Adminpanel/P
     fetch(url, {
         method: "GET",
         headers: {
-            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`,
             "Content-Type": "application/json"
         }
     })
@@ -156,7 +156,7 @@ function getBrands(el = "brandsBody") {
     fetch(API_BASE_URL, {
         method: "GET",
         headers: {
-            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`,
             "Content-Type": "application/json"
         }
     })
@@ -209,7 +209,7 @@ function getBrands(el = "brandsBody") {
     .then(data => {
         TOKEN=data.access;
     // Save access token
-    localStorage.setItem("access_token", data.access);
+    sessionStorage.setItem("access_token", data.access);
     })
     .catch(err => console.error(err)); {% endcomment %}
 function fillBrandModal(item) {
@@ -247,7 +247,7 @@ function saveBrand() {
     if (logoFile) { formData.append('logo', logoFile);}
     let url = BrandId === '' ? API_BASE_URL : `${API_BASE_URL}${BrandId}/`;
     let method = BrandId === '' ? "POST" : "PATCH";
-    fetch(url, { method: method, headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` }, body: formData })
+    fetch(url, { method: method, headers: { "Authorization": `Bearer ${sessionStorage.getItem("access_token")}` }, body: formData })
     .then(res => {
         if (res.ok) { return res.json().then(data => ({ status: 'success', data })); }
         else if (res.status === 400) { return res.json().then(data => ({ status: 'validation_error', data })); } 

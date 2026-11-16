@@ -1,3 +1,5 @@
+from django_ratelimit.decorators import ratelimit  # noqa: E402
+from django.utils.decorators import method_decorator  # noqa: E402
 
 from django.shortcuts import render,get_object_or_404
 from django.utils import timezone
@@ -549,7 +551,7 @@ def search_products(request):
     # ----- Facets are computed from facet_base_qs (pre option-filter), so
     # ----- checking one option value doesn't make the others disappear.
     category_facets = (
-        Category.objects.filter(products__in=facet_base_qs,is_active=True,is_deleted=False)
+        Category.objects.filter(products__in=facet_base_qs)
         .annotate(count=Count("products", filter=Q(products__in=facet_base_qs), distinct=True))
         .filter(count__gt=0)
         .order_by("name")
@@ -594,12 +596,7 @@ def search_products(request):
 
     qs = (
         qs.select_related("brand")
-        .prefetch_related(
-            "images",
-            "tags",
-            Prefetch("category", queryset=Category.objects.filter(is_active=True)),
-            active_promo_prefetch(now),
-        )
+          .prefetch_related("images", "tags", "category", active_promo_prefetch(now))
     )
     qs = with_review_stats(qs)      # <-- new
 
@@ -677,7 +674,7 @@ def home(request):
     )
 
     # ----- Categories / hero slides -----
-    categories = Category.objects.filter(parent__isnull=True, is_active=True, is_deleted=False)
+    categories = Category.objects.filter(parent__isnull=True)
 
     hero_slides = list(
         Picture.objects
@@ -723,6 +720,7 @@ import json
 
 @login_required
 @require_POST
+@ratelimit(key="user", rate="10/h", block=True)
 def submit_review(request):
     try:
         data = json.loads(request.body)
@@ -769,6 +767,7 @@ def submit_review(request):
 # # views.py
 @login_required
 @require_POST
+@ratelimit(key="user", rate="10/h", block=True)
 def submit_question(request):
     try:
         data = json.loads(request.body)
@@ -2098,6 +2097,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from Web.models import SupportTicket, SupportTicketReply
 
 
+@ratelimit(key="ip", rate="5/h", method="POST", block=True)
 def Contact(request):
 
     data = {}
@@ -2111,6 +2111,14 @@ def Contact(request):
         subject = request.POST.get("subject")
         message = request.POST.get("message")
         attachment = request.FILES.get("attachment")
+        attachment_error = None
+        if attachment:
+            from payments.validators import validate_attachment
+            try:
+                validate_attachment(attachment)
+            except ValueError as exc:
+                attachment_error = str(exc)
+                attachment = None
 
         data = {
             "name": name,
@@ -2124,6 +2132,10 @@ def Contact(request):
             error = "All required fields must be filled."
         elif support_type not in dict(SupportTicket.SUPPORT_CHOICES):
             error = "Please choose a valid support type."
+        elif attachment_error:
+            error = attachment_error
+        elif len(message) > 5000 or len(subject) > 200:
+            error = "Please keep the message shorter."
         else:
             SupportTicket.objects.create(
                 user=request.user if request.user.is_authenticated else None,
@@ -2260,7 +2272,7 @@ def best_deals(request):
     deals_qs = deals_qs.distinct()
 
     category_facets = (
-        Category.objects.filter(products__in=deals_qs,is_active=True,is_deleted=False)
+        Category.objects.filter(products__in=deals_qs)
         .annotate(count=Count("products", filter=Q(products__in=deals_qs), distinct=True))
         .filter(count__gt=0)
         .order_by("name")
@@ -2597,11 +2609,13 @@ from .serializer import TrackOrderThrottle,TrackOrderSerializer
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny
 from django.views.generic import TemplateView
+from rest_framework import status as drf_status  # was missing: unknown order numbers crashed with a 500
 from rest_framework.response import Response
 
 # ---------------------------------------------------------------------------
 # Views
 # ---------------------------------------------------------------------------
+@method_decorator(ratelimit(key="ip", rate="30/10m", block=True), name="dispatch")
 class TrackOrderAPIView(APIView):
     """
     GET /api/track-order/?q=ORD-1A2B3C4D
@@ -2618,7 +2632,7 @@ class TrackOrderAPIView(APIView):
         if not number or len(number) > 100:
             return Response(
                 {"success": False, "message": "Enter an order number or tracking number."},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=drf_status.HTTP_400_BAD_REQUEST,
             )
  
         order = (
@@ -2633,7 +2647,7 @@ class TrackOrderAPIView(APIView):
         if not order:
             return Response(
                 {"success": False, "message": "No order found with this order or tracking number."},
-                status=status.HTTP_404_NOT_FOUND,
+                status=drf_status.HTTP_404_NOT_FOUND,
             )
  
         data = TrackOrderSerializer(order, context={"request": request}).data
@@ -2644,3 +2658,26 @@ class TrackOrderPageView(TemplateView):
     template_name = "orders/track_order.html"
 
 
+
+
+# ---------------------------------------------------------------------------
+# Change password (signed-in customers)
+# ---------------------------------------------------------------------------
+from django.contrib.auth import update_session_auth_hash  # noqa: E402
+from django.contrib.auth.forms import PasswordChangeForm  # noqa: E402
+
+
+@login_required
+@ratelimit(key="user", rate="10/h", method="POST", block=True)
+def change_password(request):
+    form = PasswordChangeForm(request.user, request.POST or None)
+    for f in form.fields.values():
+        f.widget.attrs["class"] = "form-control"
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        update_session_auth_hash(request, user)  # stay signed in here, other sessions end
+        from accounts.error_logging import security_event
+        security_event("password_changed", request, user=user)
+        messages.success(request, "Your password has been changed.")
+        return redirect("home:user-profile")
+    return render(request, "home/ChangePassword.html", {"form": form})

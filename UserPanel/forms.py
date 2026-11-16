@@ -33,6 +33,16 @@ class ProfileEditForm(forms.ModelForm):
             existing = field.widget.attrs.get("class", "")
             field.widget.attrs["class"] = f"{existing} {css_class}".strip()
 
+    def clean_avatar(self):
+        f = self.cleaned_data.get("avatar")
+        if f and hasattr(f, "content_type"):  # a new upload
+            from payments.validators import validate_image
+            try:
+                validate_image(f, max_bytes=2 * 1024 * 1024)
+            except ValueError as exc:
+                raise forms.ValidationError(str(exc))
+        return f
+
     def clean_email(self):
         email = (self.cleaned_data.get("email") or "").strip().lower()
         if email:

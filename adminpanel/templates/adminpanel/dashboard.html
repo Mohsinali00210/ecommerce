@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div>
+    <h2>Welcome back{% if first_name %}, {{ first_name }}{% endif %} 👋</h2>
+    <p id="dashRangeLabel">Here's how the store is doing.</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <div class="sz-segmented" role="group" aria-label="Date range" id="dashPresets">
+      {% for key, label in presets %}<button type="button" data-range="{{ key }}" {% if key == "30d" %}class="active" aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>{{ label }}</button>{% endfor %}
+    </div>
+    <form class="d-flex gap-1 align-items-center" id="dashCustom" aria-label="Custom date range">
+      <input type="date" class="form-control form-control-sm" id="dashFrom" aria-label="From date" required>
+      <span class="text-muted">–</span>
+      <input type="date" class="form-control form-control-sm" id="dashTo" aria-label="To date" required>
+      <button class="btn btn-primary btn-sm" type="submit">Apply</button>
+    </form>
+  </div>
+</div>
+
+<!-- KPI cards -->
+<div class="row g-3 mb-3" id="dashKpis">
+  {% for i in "123456" %}<div class="col-6 col-lg-4 col-xxl-2"><div class="sz-kpi"><div class="sz-skeleton" style="height:96px"></div></div></div>{% endfor %}
+</div>
+
+<!-- Snapshot -->
+<div class="row g-2 mb-3" id="dashSnapshot"></div>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-8">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-graph-up-arrow me-1 text-primary"></i> Revenue &amp; orders</span>
+        <span class="small text-muted" id="trendUnit"></span>
+      </div>
+      <div class="card-body"><div class="sz-chart"><canvas id="chartTrend" role="img" aria-label="Revenue and orders over time"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-pie-chart me-1 text-primary"></i> Orders by status</div>
+      <div class="card-body"><div class="sz-chart"><canvas id="chartStatus" role="img" aria-label="Orders by status"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-6 col-xl-5">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-trophy me-1 text-primary"></i> Top products by revenue</div>
+      <div class="card-body"><div class="sz-chart"><canvas id="chartProducts" role="img" aria-label="Top products"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-lg-6 col-xl-4">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-tags me-1 text-primary"></i> Sales by category</div>
+      <div class="card-body"><div class="sz-chart"><canvas id="chartCategories" role="img" aria-label="Sales by category"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-lg-12 col-xl-3">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-credit-card me-1 text-primary"></i> Payment methods</div>
+      <div class="card-body"><div class="sz-chart"><canvas id="chartPayment" role="img" aria-label="Payment methods"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-people me-1 text-primary"></i> New customers</div>
+      <div class="card-body"><div class="sz-chart sm"><canvas id="chartCustomers" role="img" aria-label="New customers over time"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-xl-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-clock me-1 text-primary"></i> When customers order (hour of day)</div>
+      <div class="card-body"><div class="sz-chart sm"><canvas id="chartHours" role="img" aria-label="Orders by hour of day"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-6">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-bag me-1 text-primary"></i> Recent orders</span>
+        <a href="{% url 'Orders' %}" class="small">View all</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead><tr><th>Order</th><th>Customer</th><th>Status</th><th class="text-end">Total</th></tr></thead>
+          <tbody id="dashOrders"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-exclamation-triangle me-1 text-warning"></i> Low stock</div>
+      <ul class="sz-feed" id="dashLowStock"></ul>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-activity me-1 text-primary"></i> Recent activity</div>
+      <ul class="sz-feed" id="dashActivity"></ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}<script src="{% static 'adminpanel/vendor/chartjs/chart.umd.min.js' %}"></script>
+<script>
+(() => {
+  const DATA_URL = "{% url 'admin_dashboard_data' %}";
+  const PALETTE = ["#5b4cf0", "#22b8cf", "#f59f00", "#12b886", "#e64980", "#7950f2", "#fd7e14", "#868e96"];
+  const KPI_TINTS = { revenue: ["#efedff", "#5b4cf0"], orders: ["#e6f4fb", "#0284c7"], aov: ["#fff4e0", "#d97706"],
+                      items: ["#e8f7ee", "#16a34a"], customers: ["#fdeef5", "#d6336c"], loss_rate: ["#fdecec", "#dc2626"] };
+  const charts = {};
+  let state = { range: "30d" };
+
+  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+  Chart.defaults.font.size = 11.5;
+  Chart.defaults.color = "#6b7290";
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+  Chart.defaults.plugins.legend.labels.boxWidth = 8;
+  Chart.defaults.plugins.tooltip.backgroundColor = "#0f1424";
+  Chart.defaults.plugins.tooltip.padding = 10;
+  Chart.defaults.plugins.tooltip.cornerRadius = 8;
+
+  const fmtValue = (v, f) => f === "money" ? Admin.money(v) : f === "pct" ? `${Number(v).toFixed(1)}%` : Admin.num(Math.round(v));
+
+  function draw(id, config) {
+    if (charts[id]) { charts[id].data = config.data; charts[id].options = config.options || charts[id].options; charts[id].update(); return; }
+    charts[id] = new Chart(document.getElementById(id), config);
+  }
+  const gridY = { grid: { color: "#eef0f6" }, border: { display: false } };
+  const noGridX = { grid: { display: false }, border: { display: false } };
+
+  function renderKpis(cards) {
+    document.getElementById("dashKpis").innerHTML = cards.map((c) => {
+      const [tint, color] = KPI_TINTS[c.key] || ["#efedff", "#5b4cf0"];
+      let delta = `<span class="sz-kpi-delta flat">no prior data</span>`;
+      if (c.change !== null) {
+        const cls = c.change === 0 ? "flat" : c.good ? "up" : "down";
+        const arrow = c.change > 0 ? "bi-arrow-up-right" : c.change < 0 ? "bi-arrow-down-right" : "bi-dash";
+        delta = `<span class="sz-kpi-delta ${cls}"><i class="bi ${arrow}"></i>${Math.abs(c.change)}%</span><small>vs previous period</small>`;
+      }
+      return `<div class="col-6 col-lg-4 col-xxl-2">
+        <div class="sz-kpi" style="--kpi-tint:${tint};--kpi-color:${color}">
+          <div class="sz-kpi-icon"><i class="bi ${c.icon}"></i></div>
+          <div class="sz-kpi-label">${Admin.esc(c.label)}</div>
+          <div class="sz-kpi-value">${fmtValue(c.value, c.format)}</div>
+          <div>${delta}</div>
+        </div></div>`;
+    }).join("");
+  }
+
+  function renderSnapshot(s) {
+    const items = [
+      ["bi-hourglass-split", s.open_orders, "Open orders", s.open_orders > 0 ? "warn" : ""],
+      ["bi-arrow-repeat", s.pending_requests, "Return / cancel requests", s.pending_requests > 0 ? "warn" : ""],
+      ["bi-headset", s.open_tickets, "Open support tickets", ""],
+      ["bi-exclamation-triangle", s.low_stock, "Low-stock variants", s.low_stock > 0 ? "warn" : ""],
+      ["bi-x-octagon", s.out_of_stock, "Out of stock", s.out_of_stock > 0 ? "danger" : ""],
+      ["bi-people", s.customers_total, "Customers in total", ""],
+    ];
+    document.getElementById("dashSnapshot").innerHTML = items.map(([icon, v, label, tone]) =>
+      `<div class="col-6 col-md-4 col-xl-2"><div class="sz-stat ${tone}"><i class="bi ${icon}"></i><div><b>${Admin.num(v)}</b><span>${label}</span></div></div></div>`).join("");
+  }
+
+  function renderCharts(d) {
+    const t = d.trends;
+    document.getElementById("trendUnit").textContent = `per ${t.unit}`;
+    draw("chartTrend", {
+      data: { labels: t.labels, datasets: [
+        { type: "line", label: "Revenue", data: t.revenue, yAxisID: "y", borderColor: "#5b4cf0", borderWidth: 2.5, tension: .35, pointRadius: 0, pointHoverRadius: 5, fill: true,
+          backgroundColor: (ctx) => { const { chart } = ctx; const g = chart.ctx.createLinearGradient(0, 0, 0, chart.height); g.addColorStop(0, "rgba(91,76,240,.28)"); g.addColorStop(1, "rgba(91,76,240,0)"); return g; } },
+        { type: "bar", label: "Orders", data: t.orders, yAxisID: "y1", backgroundColor: "rgba(34,184,207,.55)", borderRadius: 6, maxBarThickness: 18 },
+      ] },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+        scales: { x: noGridX, y: { ...gridY, ticks: { callback: (v) => Admin.money(v) } }, y1: { position: "right", grid: { display: false }, border: { display: false }, ticks: { precision: 0 } } },
+        plugins: { tooltip: { callbacks: { label: (c) => c.dataset.label === "Revenue" ? ` Revenue: ${Admin.money(c.raw)}` : ` Orders: ${c.raw}` } } } },
+    });
+    const st = d.breakdowns.status;
+    draw("chartStatus", { type: "doughnut",
+      data: { labels: st.map((x) => x.label), datasets: [{ data: st.map((x) => x.value), backgroundColor: PALETTE, borderWidth: 0, hoverOffset: 6 }] },
+      options: { maintainAspectRatio: false, cutout: "68%", plugins: { legend: { position: "bottom" } } } });
+    const tp = d.breakdowns.top_products;
+    draw("chartProducts", { type: "bar",
+      data: { labels: tp.map((x) => x.label.length > 26 ? x.label.slice(0, 25) + "…" : x.label), datasets: [{ label: "Revenue", data: tp.map((x) => x.value), backgroundColor: "#5b4cf0", borderRadius: 6, maxBarThickness: 20 }] },
+      options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: (c) => ` ${Admin.money(c.raw)} · ${tp[c.dataIndex].qty} sold` } } },
+        scales: { x: { ...gridY, ticks: { callback: (v) => Admin.money(v) } }, y: noGridX } } });
+    const cats = d.breakdowns.categories;
+    draw("chartCategories", { type: "polarArea",
+      data: { labels: cats.map((x) => x.label), datasets: [{ data: cats.map((x) => x.value), backgroundColor: PALETTE.map((c) => c + "cc"), borderWidth: 0 }] },
+      options: { maintainAspectRatio: false, scales: { r: { ticks: { display: false }, grid: { color: "#eef0f6" } } },
+        plugins: { legend: { position: "bottom" }, tooltip: { callbacks: { label: (c) => ` ${c.label}: ${Admin.money(c.raw)}` } } } } });
+    const pay = d.breakdowns.payment;
+    draw("chartPayment", { type: "pie",
+      data: { labels: pay.map((x) => x.label), datasets: [{ data: pay.map((x) => x.value), backgroundColor: ["#5b4cf0", "#f59f00", "#12b886", "#e64980", "#22b8cf"], borderWidth: 2, borderColor: "#fff" }] },
+      options: { maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } } });
+    draw("chartCustomers", { type: "line",
+      data: { labels: t.labels, datasets: [{ label: "New customers", data: t.customers, borderColor: "#e64980", backgroundColor: "rgba(230,73,128,.12)", fill: true, tension: .35, pointRadius: 0, borderWidth: 2.5 }] },
+      options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: noGridX, y: { ...gridY, ticks: { precision: 0 } } } } });
+    const hours = d.breakdowns.hours;
+    const maxH = Math.max(1, ...hours);
+    draw("chartHours", { type: "bar",
+      data: { labels: hours.map((_, h) => `${String(h).padStart(2, "0")}:00`), datasets: [{ label: "Orders", data: hours, borderRadius: 4,
+        backgroundColor: hours.map((v) => `rgba(91,76,240,${0.18 + 0.82 * v / maxH})`) }] },
+      options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ...noGridX, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 } }, y: { ...gridY, ticks: { precision: 0 } } } } });
+  }
+
+  function renderRecent(r) {
+    document.getElementById("dashOrders").innerHTML = r.orders.length ? r.orders.map((o) => `
+      <tr><td class="fw-semibold">#${Admin.esc(o.number)}<div class="small text-muted">${Admin.timeAgo(o.when)}</div></td>
+          <td>${Admin.esc(o.customer)}</td>
+          <td><span class="sz-pill s-${Admin.esc(o.status)}">${Admin.esc(o.status_label)}</span></td>
+          <td class="text-end fw-semibold">${Admin.money(o.total)}</td></tr>`).join("")
+      : `<tr><td colspan="4"><div class="sz-empty"><i class="bi bi-bag"></i>No orders yet.</div></td></tr>`;
+    document.getElementById("dashLowStock").innerHTML = r.low_stock.length ? r.low_stock.map((v) => `
+      <li><span class="sz-feed-icon" style="background:${v.stock ? "#fff4e0" : "#fdecec"};color:${v.stock ? "#d97706" : "#dc2626"}"><i class="bi bi-box"></i></span>
+        <div class="sz-feed-main"><div class="fw-semibold">${Admin.esc(v.product)}</div><small>${Admin.esc(v.variant)}</small></div>
+        <span class="badge ${v.stock ? "bg-warning" : "bg-danger"}">${v.stock} left</span></li>`).join("")
+      : `<li><div class="sz-empty w-100"><i class="bi bi-check2-circle"></i>Stock levels look healthy.</div></li>`;
+    const icons = { login: "bi-box-arrow-in-right", logout: "bi-box-arrow-right", login_failed: "bi-shield-exclamation",
+                    access_denied: "bi-slash-circle", session_timeout: "bi-hourglass-bottom", roles_changed: "bi-shield-lock" };
+    document.getElementById("dashActivity").innerHTML = r.activity.length ? r.activity.map((a) => `
+      <li><span class="sz-feed-icon" ${a.severity !== "INFO" ? 'style="background:#fdecec;color:#dc2626"' : ""}><i class="bi ${icons[a.event] || "bi-activity"}"></i></span>
+        <div class="sz-feed-main"><div>${Admin.esc(a.event.replace(/_/g, " "))}</div><small>${Admin.esc(a.user || a.ip || "")}</small></div>
+        <small>${Admin.timeAgo(a.when)}</small></li>`).join("")
+      : `<li><div class="sz-empty w-100"><i class="bi bi-activity"></i>No activity yet.</div></li>`;
+  }
+
+  async function load() {
+    const qs = new URLSearchParams(state).toString();
+    const res = await Admin.api(`${DATA_URL}?${qs}`);
+    if (!res.ok) return;
+    const d = res.data;
+    const from = new Date(d.range.from), to = new Date(d.range.to);
+    document.getElementById("dashRangeLabel").textContent =
+      `${from.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} – ${to.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`;
+    document.getElementById("dashFrom").value = d.range.from;
+    document.getElementById("dashTo").value = d.range.to;
+    renderKpis(d.kpis); renderSnapshot(d.snapshot); renderCharts(d); renderRecent(d.recent);
+  }
+
+  document.getElementById("dashPresets").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-range]");
+    if (!b) return;
+    document.querySelectorAll("#dashPresets button").forEach((x) => { x.classList.toggle("active", x === b); x.setAttribute("aria-pressed", x === b); });
+    state = { range: b.dataset.range };
+    load();
+  });
+  document.getElementById("dashCustom").addEventListener("submit", (e) => {
+    e.preventDefault();
+    document.querySelectorAll("#dashPresets button").forEach((x) => { x.classList.remove("active"); x.setAttribute("aria-pressed", "false"); });
+    state = { range: "custom", from: document.getElementById("dashFrom").value, to: document.getElementById("dashTo").value };
+    load();
+  });
+  document.getElementById("dashTo").max = new Date().toISOString().slice(0, 10);
+  load();
+})();
+</script>
+{% endblock %}

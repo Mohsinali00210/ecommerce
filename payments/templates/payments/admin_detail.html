@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Payment for #{{ p.order.order_number }}{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div><h2>{{ p.get_method_display }} · Rs {{ p.amount|floatformat:0 }}</h2>
+    <p>Order #{{ p.order.order_number }} · {{ p.order.user.email|default:"guest" }} · created {{ p.created_at|date:"d M Y H:i" }}</p></div>
+  <a href="{% url 'admin_payments' %}" class="btn btn-outline-secondary btn-sm">Back</a>
+</div>
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-header">Status</div>
+      <div class="card-body">
+        <p><span class="sz-pill {% if p.status == 'paid' %}s-success{% elif p.status == 'pending' %}s-pending{% else %}s-cancelled{% endif %}">{{ p.get_status_display }}</span></p>
+        <dl class="row small mb-0">
+          <dt class="col-5">Gateway</dt><dd class="col-7">{{ p.gateway|default:"—" }}</dd>
+          <dt class="col-5">Tracker</dt><dd class="col-7 text-break">{{ p.tracker|default:"—" }}</dd>
+          <dt class="col-5">Reference</dt><dd class="col-7">{{ p.reference|default:"—" }}</dd>
+          <dt class="col-5">Paid at</dt><dd class="col-7">{{ p.paid_at|date:"d M Y H:i"|default:"—" }}</dd>
+          <dt class="col-5">Expires</dt><dd class="col-7">{{ p.expires_at|date:"d M Y H:i"|default:"—" }}</dd>
+          <dt class="col-5">Verified by</dt><dd class="col-7">{{ p.verified_by.email|default:"—" }}</dd>
+          {% if p.note %}<dt class="col-5">Note</dt><dd class="col-7">{{ p.note }}</dd>{% endif %}
+        </dl>
+      </div>
+    </div>
+    {% if p.proof %}
+    <div class="card mb-3"><div class="card-header">Bank transfer receipt</div>
+      <div class="card-body"><a href="{% url 'payments:view_proof' p.pk %}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm"><i class="bi bi-file-earmark-text me-1"></i>Open receipt</a>
+        <span class="small text-muted ms-2">uploaded {{ p.proof_uploaded_at|date:"d M H:i" }}</span></div></div>
+    {% endif %}
+    {% if can_manage %}
+    <div class="card"><div class="card-header">Actions</div>
+      <div class="card-body">
+        {% if p.status != "paid" and p.status != "refunded" %}
+        <form method="post" action="{% url 'admin_payment_action' p.pk %}" class="mb-3" data-confirm="Mark this payment as received? The customer gets a confirmation." data-confirm-danger="false">{% csrf_token %}
+          <input type="hidden" name="action" value="mark_paid">
+          <input name="reference" class="form-control form-control-sm mb-2" placeholder="Bank / transaction reference" aria-label="Reference">
+          <button class="btn btn-success btn-sm w-100"><i class="bi bi-check2-circle me-1"></i>Mark as paid</button>
+        </form>
+        {% endif %}
+        {% if p.status == "pending" %}
+        <form method="post" action="{% url 'admin_payment_action' p.pk %}" class="mb-3" data-confirm="Reject this receipt?">{% csrf_token %}
+          <input type="hidden" name="action" value="reject">
+          <input name="note" class="form-control form-control-sm mb-2" placeholder="Reason (shown to staff)" aria-label="Reason">
+          <button class="btn btn-outline-danger btn-sm w-100">Reject receipt</button>
+        </form>
+        {% endif %}
+        {% if p.status == "paid" %}
+        <form method="post" action="{% url 'admin_payment_action' p.pk %}" data-confirm="Record that this payment was refunded? (Do the refund in Safepay / your bank first.)">{% csrf_token %}
+          <input type="hidden" name="action" value="refunded">
+          <input name="note" class="form-control form-control-sm mb-2" placeholder="Refund note" aria-label="Refund note">
+          <button class="btn btn-outline-danger btn-sm w-100">Record refund</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  <div class="col-lg-7">
+    <div class="card"><div class="card-header">History</div>
+      <ul class="sz-feed">
+        {% for e in events %}
+        <li><span class="sz-feed-icon"><i class="bi {% if e.kind == 'paid' %}bi-check2{% elif 'webhook' in e.kind %}bi-broadcast{% else %}bi-clock-history{% endif %}"></i></span>
+          <div class="sz-feed-main"><div class="fw-semibold">{{ e.kind|cut:"_"|capfirst }}{% if e.verified %} <span class="badge bg-success">verified</span>{% endif %}</div>
+            <small>{{ e.created_by.email|default:"system" }}</small></div>
+          <small>{{ e.created_at|date:"d M H:i:s" }}</small></li>
+        {% empty %}<li><div class="sz-empty w-100">No history.</div></li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

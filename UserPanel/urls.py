@@ -18,6 +18,7 @@ urlpatterns = [
         path("best-deals/", views.best_deals, name="best-deals"),
         path("user-profile/", views.profile, name="user-profile"),
         path("edit-profile/", views.edit_profile, name="edit-profile"),
+        path("change-password/", views.change_password, name="change-password"),
         path("user-wallet/", views.wallet_view, name="user-wallet"),
         path("address-set-default/<int:address_id>/", views.address_set_default, name="address-set-default"),
         path("address-delete/<int:address_id>/", views.address_delete, name="address-delete"),

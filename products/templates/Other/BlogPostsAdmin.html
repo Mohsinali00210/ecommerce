@@ -157,7 +157,7 @@ let categoryCache = [];
 function getBlogPosts() {
     fetch(BLOG_POST_API_URL, {
         method: "GET",
-        headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` }
+        headers: { "Authorization": `Bearer ${sessionStorage.getItem("access_token")}` }
     })
     .then(res => res.json())
     .then(data => {
@@ -267,7 +267,7 @@ function saveBlogPost() {
 
     fetch(url, {
         method: method,
-        headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` },
+        headers: { "Authorization": `Bearer ${sessionStorage.getItem("access_token")}` },
         body: formData
     })
     .then(res => {
@@ -301,7 +301,7 @@ function deleteBlogPost(id) {
 
     fetch(`${BLOG_POST_API_URL}${id}/`, {
         method: "DELETE",
-        headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` }
+        headers: { "Authorization": `Bearer ${sessionStorage.getItem("access_token")}` }
     })
     .then(res => {
         if (res.ok || res.status === 204) {
@@ -322,7 +322,7 @@ function deleteBlogPost(id) {
 function getBlogCategories() {
     fetch(BLOG_CATEGORY_API_URL, {
         method: "GET",
-        headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` }
+        headers: { "Authorization": `Bearer ${sessionStorage.getItem("access_token")}` }
     })
     .then(res => res.json())
     .then(data => {
@@ -368,7 +368,7 @@ function saveBlogCategory() {
     fetch(BLOG_CATEGORY_API_URL, {
         method: "POST",
         headers: {
-            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`,
             "Content-Type": "application/json"
         },
         body: JSON.stringify({ name: name })
@@ -401,7 +401,7 @@ function deleteBlogCategory(id) {
 
     fetch(`${BLOG_CATEGORY_API_URL}${id}/`, {
         method: "DELETE",
-        headers: { "Authorization": `Bearer ${localStorage.getItem("access_token")}` }
+        headers: { "Authorization": `Bearer ${sessionStorage.getItem("access_token")}` }
     })
     .then(res => {
         if (res.ok || res.status === 204) {

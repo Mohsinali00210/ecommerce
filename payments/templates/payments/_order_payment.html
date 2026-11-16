@@ -1,0 +1,37 @@
+{% if payment %}
+<div class="card border-0 shadow-sm mb-3" id="paymentBox">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div><div class="small text-muted">Payment</div>
+        <div class="fw-semibold">{{ payment.get_method_display }} · Rs {{ payment.amount|floatformat:0 }}</div></div>
+      <span class="badge {% if payment.status == 'paid' %}bg-success{% elif payment.status == 'pending' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ payment.get_status_display }}</span>
+    </div>
+    {% if payment.can_retry %}
+      <a class="btn btn-dark mt-3" href="{% url 'payments:pay' token %}"><i class="bi bi-credit-card me-1"></i>Complete payment</a>
+      {% if payment.expires_at %}<div class="small text-muted mt-2">Unpaid orders are cancelled at {{ payment.expires_at|date:"d M, H:i" }}.</div>{% endif %}
+    {% endif %}
+    {% if payment.method == "bank" and payment.status != "paid" and payment.status != "refunded" %}
+      {% if bank_details %}<div class="small mt-3" style="white-space:pre-line"><strong>Transfer to:</strong>
+{{ bank_details }}</div>{% endif %}
+      <form class="mt-3" id="proofForm" enctype="multipart/form-data" data-url="{% url 'payments:upload_proof' payment.pk %}">
+        <label class="form-label small" for="proofFile">{% if payment.proof %}Replace receipt{% else %}Upload your transfer receipt{% endif %} (JPG, PNG, PDF · max 5 MB)</label>
+        <div class="d-flex gap-2"><input type="file" id="proofFile" name="proof" class="form-control form-control-sm" accept="image/jpeg,image/png,image/webp,application/pdf" required>
+          <button class="btn btn-dark btn-sm text-nowrap" type="submit">Upload</button></div>
+        <div class="small mt-2" id="proofMsg" role="status">{% if payment.proof %}Receipt received {{ payment.proof_uploaded_at|date:"d M H:i" }} - we're checking it.{% endif %}</div>
+      </form>
+      <script>
+        document.getElementById("proofForm").addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const f = e.target, msg = document.getElementById("proofMsg");
+          const fd = new FormData(f);
+          const r = await fetch(f.dataset.url, { method: "POST", body: fd, credentials: "same-origin",
+                                                 headers: { "X-CSRFToken": "{{ csrf_token }}" } });
+          let d = {}; try { d = await r.json(); } catch (_) {}
+          msg.textContent = d.message || (r.ok ? "Uploaded." : "Upload failed. Please try again.");
+          msg.className = "small mt-2 " + (r.ok ? "text-success" : "text-danger");
+        });
+      </script>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

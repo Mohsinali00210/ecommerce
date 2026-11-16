@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Backups{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div><h2>Backups &amp; restore</h2>
+    <p>Full copy of the database{% if settings.backup_include_media %} and uploaded images{% endif %}. Downloading and restoring need a code sent to {{ request.user.email }}.</p></div>
+  <div class="d-flex gap-2">
+    <form method="post" action="{% url 'admin_backup_create' %}" class="d-flex gap-2 align-items-center">{% csrf_token %}
+      <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" role="switch" name="include_media" value="1" id="incMedia" checked>
+        <label class="form-check-label small" for="incMedia">Include images</label></div>
+      <button class="btn btn-primary btn-sm text-nowrap"><i class="bi bi-plus-lg me-1"></i>Back up now</button>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="sz-stat"><i class="bi bi-calendar-check"></i><div>
+    <b>{% if settings.backup_schedule_enabled %}Daily at {{ settings.backup_hour }}:00{% else %}Off{% endif %}</b>
+    <span>Automatic backups{% if settings.backup_schedule_enabled %} · keeps {{ settings.backup_keep }}{% endif %} · <a href="{% url 'admin_store_settings' %}">change</a></span></div></div></div>
+  <div class="col-md-4"><div class="sz-stat {% if download_left %}{% else %}warn{% endif %}"><i class="bi bi-shield-lock"></i><div>
+    <b id="dlState">{% if download_left %}Unlocked{% else %}Locked{% endif %}</b><span>Downloads{% if download_left %} for {{ download_left }}s{% endif %}</span></div></div></div>
+  <div class="col-md-4"><div class="sz-stat"><i class="bi bi-upload"></i><div>
+    <form method="post" enctype="multipart/form-data" action="{% url 'admin_backup_upload' %}" class="d-flex gap-2">{% csrf_token %}
+      <input type="file" name="file" accept=".zip,application/zip" class="form-control form-control-sm" required aria-label="Backup file to import">
+      <button class="btn btn-outline-primary btn-sm text-nowrap">Import</button></form>
+    <span>Upload a backup to restore it</span></div></div></div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead><tr><th>Created</th><th>Type</th><th>Status</th><th class="text-end">Records</th><th class="text-end">Size</th><th>Note</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+      {% for b in backups %}
+        <tr>
+          <td class="text-nowrap">{{ b.created_at|date:"d M Y H:i" }}<div class="small text-muted">{{ b.created_by.email|default:"automatic" }}</div></td>
+          <td><span class="badge bg-secondary">{{ b.get_kind_display }}</span>{% if b.includes_media %} <i class="bi bi-images text-muted" title="Includes images"></i>{% endif %}</td>
+          <td><span class="sz-pill {% if b.status == 'ready' or b.status == 'restored' %}s-success{% elif b.status == 'failed' %}s-cancelled{% else %}s-pending{% endif %}">{{ b.get_status_display }}</span>
+            {% if b.restored_at %}<div class="small text-muted">restored {{ b.restored_at|date:"d M H:i" }}</div>{% endif %}</td>
+          <td class="text-end">{{ b.record_count }}</td>
+          <td class="text-end">{{ b.size_bytes|filesizeformat }}</td>
+          <td class="small text-muted">{{ b.note|default:"" }}{% if b.error %}<div class="text-danger">{{ b.error|truncatechars:120 }}</div>{% endif %}</td>
+          <td class="text-end text-nowrap">
+            {% if b.status == "ready" or b.status == "restored" %}
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="Backups.download({{ b.pk }})"><i class="bi bi-download"></i> Download</button>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="Backups.restore({{ b.pk }}, '{{ b.created_at|date:"d M Y H:i" }}')"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>
+            {% endif %}
+            <form method="post" action="{% url 'admin_backup_delete' b.pk %}" class="d-inline" data-confirm="Delete this backup file permanently?">{% csrf_token %}
+              <button class="btn btn-outline-secondary btn-sm" aria-label="Delete"><i class="bi bi-trash"></i></button></form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7"><div class="sz-empty"><i class="bi bi-hdd-stack"></i>No backups yet - make the first one.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="alert alert-info small mt-3 mb-0">
+  <strong>Keep copies off this server.</strong> Download important backups and store them somewhere safe (another disk or cloud storage).
+  A restore replaces <em>all</em> current data; a safety backup of the current data is made automatically first.
+</div>
+
+<form method="post" id="restoreForm" class="d-none">{% csrf_token %}<input name="confirm"><input name="restore_media" value="1"></form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const Backups = (() => {
+  const OTP_REQ = "{% url 'admin_otp_request' 'PURPOSE' %}", OTP_VER = "{% url 'admin_otp_verify' 'PURPOSE' %}";
+  const DL = "{% url 'admin_backup_download' 0 %}", RS = "{% url 'admin_backup_restore' 0 %}";
+  const unlocked = { download: {{ download_left|yesno:"true,false" }}, restore: {{ restore_left|yesno:"true,false" }} };
+
+  async function askCode(purpose, title) {
+    const sent = await Admin.api(OTP_REQ.replace("PURPOSE", purpose), { method: "POST", auth: false, silent: true });
+    if (!sent.ok) {
+      await Swal.fire({ icon: "error", title: "Couldn't send the code",
+        html: `${Admin.esc((sent.data && sent.data.detail) || "The server didn't respond.")}<br><br>
+               <small>Fix the email settings, then use <b>Send test email</b> in
+               <a href="{% url 'admin_store_settings' %}">Store settings</a> to check.
+               Server access? <code>python manage.py backup_db</code> works without email.</small>` });
+      return false;
+    }
+    for (;;) {
+      const r = await Swal.fire({
+        title, html: `${Admin.esc(sent.data.message)}<br><small>The code works for 10 minutes.</small>`,
+        input: "text", inputAttributes: { inputmode: "numeric", autocomplete: "one-time-code", maxlength: 6, "aria-label": "6-digit code" },
+        showCancelButton: true, confirmButtonText: "Verify", reverseButtons: true,
+        inputValidator: (v) => (/^\d{6}$/.test(v) ? undefined : "Enter the 6-digit code"),
+      });
+      if (!r.isConfirmed) return false;
+      const fd = new FormData(); fd.append("code", r.value);
+      const v = await Admin.api(OTP_VER.replace("PURPOSE", purpose), { method: "POST", body: fd, auth: false, silent: true });
+      if (v.ok) return true;
+      await Swal.fire({ icon: "error", title: "Not verified", text: (v.data && v.data.message) || "Try again." });
+      if (v.data && /Request a new one/.test(v.data.message || "")) return false;
+    }
+  }
+
+  async function download(id) {
+    if (!unlocked.download && !(await askCode("download", "Verify to download"))) return;
+    unlocked.download = true;
+    window.location.href = DL.replace("/0/", `/${id}/`);
+  }
+
+  async function restore(id, when) {
+    const first = await Swal.fire({
+      icon: "warning", title: "Restore this backup?",
+      html: `All current data will be replaced with the backup from <b>${Admin.esc(when)}</b>.<br>
+             A safety backup is made first, and everyone (including you) will be signed out.<br><br>
+             Type <b>RESTORE</b> to continue.`,
+      input: "text", inputAttributes: { "aria-label": "Type RESTORE" }, showCancelButton: true, reverseButtons: true,
+      confirmButtonText: "Continue", customClass: { confirmButton: "sz-danger" },
+      inputValidator: (v) => (v.trim().toUpperCase() === "RESTORE" ? undefined : "Type RESTORE to confirm"),
+    });
+    if (!first.isConfirmed) return;
+    if (!(await askCode("restore", "Verify to restore"))) return;
+    const f = document.getElementById("restoreForm");
+    f.action = RS.replace("/0/", `/${id}/`);
+    f.confirm.value = "RESTORE";
+    f.submit();
+  }
+  {% if running %}setTimeout(() => location.reload(), 4000);{% endif %}
+  return { download, restore };
+})();
+</script>
+{% endblock %}

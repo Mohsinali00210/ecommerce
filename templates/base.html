@@ -1,535 +1,236 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}Shan Zee Shope{% endblock %}</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="same-origin">
+<title>{% block title %}Dashboard{% endblock %} · Shan Zee Admin</title>
 
-   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-<!-- Bootstrap -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-
-<style>
-    body {
-        font-size: 11px;
-        background: #f5f6fa;
-        overflow-x: hidden;
-    }
-
-    /* Sidebar */
-    .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh;
-        width: 230px;
-        background: #343a40;
-        transition: width 0.25s ease;
-        color: #fff;
-        z-index: 1000;
-        overflow-y:auto;
-    }
-
-    .sidebar.collapsed {
-        width: 60px;
-    }
-    {% comment %} 
-    .sidebar:hover {
-        width: 230px;
-    } {% endcomment %}
-    
-
-    /* expand sidebar */
-    .sidebar:hover{
-        width:230px;
-    }
-
-    /* hide text & caret by default */
-    .sidebar.collapsed .menu-text,
-    .sidebar.collapsed .caret-icon,
-    .sidebar.collapsed .collapse.show{
-        display:none;
-    }
-
-    /* show when sidebar expands */
-    .sidebar.collapsed:hover .menu-text,
-    .sidebar.collapsed:hover .caret-icon,
-    .sidebar.collapsed:hover .collapse.show{
-        display:inline;
-    }
-
-    {% comment %} .sidebar.collapsed .menu-text, .sidebar.collapsed .caret-icon {
-        display: none;
-    } {% endcomment %}
-
-    .sidebar .logo {
-        height: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #212529;
-        font-weight: bold;
-    }
-
-    .sidebar a {
-        color: #adb5bd;
-        padding: 10px 15px;
-        display: flex;
-        align-items: center;
-        text-decoration: none;
-        gap: 10px;
-        white-space: nowrap;
-    }
-
-    .sidebar a:hover,
-    .sidebar a.active {
-        background: #495057;
-        color: #fff;
-    }
-
-    /* Main */
-    .main {
-        margin-left: 230px;
-        transition: margin-left 0.25s ease;
-    }
-
-    .main.collapsed {
-        margin-left: 60px;
-    }
-
-    /* Topbar */
-    .topbar {
-        height: 50px;
-        background: #fff;
-        border-bottom: 1px solid #dee2e6;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 15px;
-    }
-
-    /* Content */
-    .content {
-        padding: 15px;
-    }
-
-    /* Mobile */
-    @media (max-width: 768px) {
-        .sidebar {
-            left: -230px;
-        }
-        .sidebar.show {
-            left: 0;
-            width: 230px;
-        }
-        .sidebar:hover {
-            width: 230px;
-        }
-        .main {
-            margin-left: 0;
-        }
-    }
-</style>
-
-<style>
-    #global-loader {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(255, 255, 255, 0.8);
-        z-index: 9999;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        backdrop-filter: blur(2px);
-    }
-    .loader-content {
-        text-align: center;
-        background: white;
-        padding: 2rem;
-        border-radius: 10px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-    .caret-icon{
-        transition: transform 0.3s;
-    }
-
-    a:not(.collapsed) .caret-icon{
-        transform: rotate(180deg);
-    }
-</style>
-    {% block extra_css %}{% endblock %}
-</head>
-<body>
-
+<!-- Front-end libraries are self-hosted (adminpanel/static/adminpanel/vendor): no third-party scripts. -->
+<link href="{% static 'adminpanel/vendor/inter/inter.css' %}" rel="stylesheet">
+<link href="{% static 'adminpanel/vendor/bootstrap/bootstrap.min.css' %}" rel="stylesheet">
+<link href="{% static 'adminpanel/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
+<link href="{% static 'adminpanel/css/admin-theme.css' %}?v=4" rel="stylesheet">
+<script src="{% static 'adminpanel/vendor/jquery/jquery.min.js' %}"></script>
 <script>
-    
-    function syncSessionWithToken() {
-        fetch(`{% url 'get_my_token' %}`)
-        .then(res => {
-            if (res.status === 403) {
-                console.error("User is not logged into Django session.");
-                return;
-            }
-            return res.json();
-        })
-        .then(data => {
-            if (data && data.access) {
-                localStorage.setItem("access_token", data.access);
-                localStorage.setItem("refresh_token", data.refresh);
-            }
-        })
-        .catch(err => console.error("Sync error:", err));
-    }
-    $(document).ready(function() {
-        syncSessionWithToken().then(() => {
-            setInterval(refreshToken, 50 * 60 * 1000);
-        });
-    });
-    window.onfocus = function() {
-        refreshToken();
-    };
-    async function refreshToken() {
-        const refresh = localStorage.getItem("refresh_token");
-
-        if (!refresh) {
-            console.warn("No refresh token found. User must log in.");
-            return null;
-        }
-
-        try {
-            const response = await fetch('/api/token/refresh/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ refresh: refresh }),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                // Update the access token in storage
-                localStorage.setItem("access_token", data.access);
-                console.log("Access token refreshed successfully.");
-                return data.access;
-            } else {
-                // If the refresh token is also expired or invalid
-                console.error("Refresh token expired. Logging out...");
-                localStorage.clear();
-                window.location.href = "/login/"; 
-                return null;
-            }
-        } catch (error) {
-            console.error("Error during token refresh:", error);
-            return null;
-        }
-    }
-    async function authorizedApiCall(url, options = {}) {
-        let token = localStorage.getItem("access_token");
-
-        // Add Authorization header
-        options.headers = {
-            ...options.headers,
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-        };
-
-        let response = await fetch(url, options);
-
-        // If token is expired (Django returns 401)
-        if (response.status === 401) {
-            console.log("Access token expired, attempting refresh...");
-            const newToken = await refreshToken();
-
-            if (newToken) {
-                // Update header with the NEW token and retry the call once
-                options.headers["Authorization"] = `Bearer ${newToken}`;
-                response = await fetch(url, options);
-            }
-        }
-
-        return response;
-    }    
+  window.SZ_ADMIN = {
+    tokenUrl: "{% url 'admin_session_token' %}",
+    statusUrl: "{% url 'admin_session_status' %}",
+    extendUrl: "{% url 'admin_session_extend' %}",
+    unseenUrl: "{% url 'admin_unseen_counts' %}",
+    loginUrl: "{% url 'login' %}",
+    logoutUrl: "{% url 'logout' %}",
+    jwtMinutes: {{ admin_jwt_minutes|default:15 }},
+    session: {% if admin_session %}{ remaining: {{ admin_session.remaining }}, warning: {{ admin_session.warning }}, idle: {{ admin_session.idle_timeout }} }{% else %}null{% endif %},
+    messages: [{% for message in messages %}{ text: "{{ message|escapejs }}", level: "{{ message.tags|default:'info'|escapejs }}" }{% if not forloop.last %},{% endif %}{% endfor %}]
+  };
+  {% if admin_jwt %}try { sessionStorage.setItem("access_token", "{{ admin_jwt }}"); } catch (e) {}{% endif %}
+  try { if (localStorage.getItem("sz-mini") === "1") document.documentElement.classList.add("sz-pre-mini"); } catch (e) {}
 </script>
-
+<script src="{% static 'adminpanel/js/admin-core.js' %}?v=4"></script>
+{% block extra_css %}{% endblock %}
+</head>
+<body class="sz-admin">
+<script>if (document.documentElement.classList.contains("sz-pre-mini")) document.body.classList.add("sz-mini");</script>
+<a class="skip-link" href="#szContent">Skip to content</a>
 
 <!-- Sidebar -->
-<div class="sidebar collapsed" id="sidebar">
-    <div class="logo">ADMIN</div>
-    <!-- Dashboard -->
-    <a href="#reportsSubmenu"  data-bs-toggle="collapse" class="active collapsed">
-        <i class="bi bi-speedometer2"></i>
-        <span class="menu-text">Dashboard</span>
-        <i class="bi bi-chevron-down caret-icon"></i>
-    </a>
-     <div class="collapse" id="reportsSubmenu">
-        <a href="{% url 'sales_report' %}" class="submenu-link">Sales Reports</a>
-        <a href="{% url 'inventory_report' %}" class="submenu-link">Inventory Reports</a>
-        <a href="{% url 'customer_analytics' %}" class="submenu-link">Customer Analytics</a>
-        <a href="{% url 'revenue_profit' %}" class="submenu-link">Revenue Profit</a>
-        <a href="{% url 'order_stats' %}" class="submenu-link">Order Stats</a>
-    </div>
-    <!-- Products Section -->
-    <a href="#productsSubmenu" data-bs-toggle="collapse" class="collapsed">
-        <i class="bi bi-box-seam"></i>
-        <span class="menu-text">Products</span>
-        <i class="bi bi-chevron-down caret-icon"></i>
+<aside class="sz-sidebar" id="sidebar" aria-label="Admin navigation">
+  <div class="sz-brand">
+    <div class="sz-brand-mark" aria-hidden="true">SZ</div>
+    <div class="sz-brand-name">Shan Zee<small>Admin console</small></div>
+  </div>
 
-    </a>
-    <div class="collapse" id="productsSubmenu">
-        <a href="{% url 'products' %}" class="submenu-link">All Products</a>
-        <a href="{% url 'categories' %}" class="submenu-link">Categories</a>
-        <a href="{% url 'brands' %}" class="submenu-link">Brands</a>
-        <a href="{% url 'attributes' %}" class="submenu-link">Attributes</a>
-        <a href="{% url 'inventory-page' %}" class="submenu-link">Inventory</a>
-        <a href="{% url 'Blog-post' %}" class="submenu-link">Blog Post</a>
-    </div>
-
-    <!-- Orders Section -->
-    <a href="#ordersSubmenu" data-bs-toggle="collapse" class="collapsed">
-        <i class="bi bi-receipt"></i>
-        <span class="menu-text">Orders</span>
-        {% if unseen_orders_count > 0 %}
-            <span class="badge bg-danger ms-auto">{{ unseen_orders_count }}</span>
-        {% endif %}
-        <i class="bi bi-chevron-down caret-icon"></i>
-
-    </a>
-    <div class="collapse" id="ordersSubmenu">
-        <a href="{% url 'Orders' %}" class="submenu-link">All Orders </a>
-        <a href="{% url 'OrdersByStatus' 'pending' %}" class="submenu-link">Pending</a>
-        <a href="{% url 'OrdersByStatus' 'processing' %}" class="submenu-link">Processing</a>
-        <a href="{% url 'OrdersByStatus' 'shipped' %}" class="submenu-link">Shipped</a>
-        <a href="{% url 'OrdersByStatus' 'submited' %}" class="submenu-link">Submitted</a>
-        <a href="{% url 'OrdersByStatus' 'dispatch' %}" class="submenu-link">Dispatch</a>
-        <a href="{% url 'OrdersByStatus' 'success' %}" class="submenu-link">Success</a>
-    </div>
-
-    <!-- Couriers / Shipping -->
-    <a href="#couriersSubmenu" data-bs-toggle="collapse" class="collapsed">
-        <i class="bi bi-truck"></i>
-        <span class="menu-text">Shipping</span>
-        <i class="bi bi-chevron-down caret-icon"></i>
-    </a>
-    <div class="collapse" id="couriersSubmenu">
-        <a href="{% url 'couriers:dashboard' %}" class="submenu-link">Shipments &amp; booking</a>
-        <a href="{% url 'couriers:dashboard' %}?status=attention" class="submenu-link">Needs attention</a>
-        <a href="{% url 'couriers:settings' %}" class="submenu-link">Courier settings</a>
-    </div>
-
-    <!-- Customer Support -->
-    {% comment %} <a href="{% url 'support_ticket_list' %}">
-        <i class="bi bi-headset"></i>
-        <span class="menu-text">Contacts / Support</span>
-    </a> {% endcomment %}
-    <a href="{% url 'AdminTicketList' %}">
-        <i class="bi bi-headset"></i>
-        <span class="menu-text">Contacts / Support</span>
-    </a>
-     <a href="{% url 'admin_messages' %}">
-        <i class="bi bi-headset"></i>
-        <span class="menu-text">product / messages</span>
-    </a>
-    <a href="{% url 'StaffQuestionList' %}">
-        <i class="bi bi-headset"></i>
-        <span class="menu-text">product / Question</span>
-    </a>
-    <!-- Reviews -->
-    <a href="{% url 'AdminReviewsPage' %}">
-        <i class="bi bi-star"></i>
-        <span class="menu-text">Reviews</span>
-    </a>
-    <!-- Admin Withdrawals -->
-    <a href="{% url 'admin-withdrawals' %}">
-        <i class="bi bi-star"></i>
-        <span class="menu-text">Admin Withdrawals</span>
-    </a>
-
-    <!-- Wishlist & Promotions -->
-    <a href="#marketingSubmenu" data-bs-toggle="collapse" class="collapsed">
-        <i class="bi bi-gift"></i>
-        <span class="menu-text">Marketing</span>
-        <i class="bi bi-chevron-down caret-icon"></i>
-    </a>
-    <div class="collapse" id="marketingSubmenu">
-        <a href="{% url 'wishlist' %}" class="submenu-link">Wishlist</a>
-        <a href="{% url 'wish_to_buy_admin' %}" class="submenu-link">Wish To Buy</a>
-        <a href="{% url 'promotions_page' %}" class="submenu-link">Promotions</a>
-    </div>
-
-    <!-- Users Section -->
-    <a href="{% url 'UserList' %}">
-        <i class="bi bi-people"></i>
-        <span class="menu-text">Users</span>
-    </a>
-
-    <!-- Reports & Settings -->
-    <a href="#reportsSubmenu" data-bs-toggle="collapse" class="collapsed">
-        <i class="bi bi-bar-chart"></i>
-        <span class="menu-text">Reports</span>
-        <i class="bi bi-chevron-down caret-icon"></i>
+  <nav class="sz-nav">
+    {% if "view_dashboard" in admin_perms %}
+    <div class="sz-nav-heading">Overview</div>
+    <a href="{% url 'admin_dashboard' %}"><i class="bi bi-grid-1x2"></i><span class="menu-text">Dashboard</span></a>
+    <a href="#reportsSubmenu" data-bs-toggle="collapse" class="collapsed" aria-expanded="false">
+      <i class="bi bi-bar-chart-line"></i><span class="menu-text">Reports</span><i class="bi bi-chevron-down caret-icon"></i>
     </a>
     <div class="collapse" id="reportsSubmenu">
-        <a href="#" class="submenu-link">Sales</a>
-        <a href="#" class="submenu-link">Customers</a>
-        <a href="#" class="submenu-link">Inventory</a>
+      <a href="{% url 'sales_report' %}">Sales</a>
+      <a href="{% url 'revenue_profit' %}">Revenue &amp; profit</a>
+      <a href="{% url 'order_stats' %}">Order stats</a>
+      <a href="{% url 'customer_analytics' %}">Customer analytics</a>
+      <a href="{% url 'inventory_report' %}">Inventory</a>
     </div>
+    {% endif %}
 
-    <a href="#settingsSubmenu" data-bs-toggle="collapse" class="collapsed">
-        <i class="bi bi-gear"></i>
-        <span class="menu-text">Settings</span>
-        <i class="bi bi-chevron-down caret-icon"></i>
+    {% if "view_orders" in admin_perms %}
+    <div class="sz-nav-heading">Sales</div>
+    <a href="#ordersSubmenu" data-bs-toggle="collapse" class="collapsed" aria-expanded="false">
+      <i class="bi bi-receipt"></i><span class="menu-text">Orders</span>
+      {% if unseen_orders_count > 0 %}<span class="badge bg-danger">{{ unseen_orders_count }}</span>{% endif %}
+      <i class="bi bi-chevron-down caret-icon"></i>
     </a>
-    <div class="collapse" id="settingsSubmenu">
-        <a href="{% url 'topbar_manage' %}" class="submenu-link">TopBar</a>
-        <a href="#" class="submenu-link">Payment</a>
-        <a href="#" class="submenu-link">Shipping</a>
-        <a href="{% url 'picture-page' %}" class="submenu-link">Pictures</a>
+    <div class="collapse" id="ordersSubmenu">
+      <a href="{% url 'Orders' %}">All orders</a>
+      <a href="{% url 'OrdersByStatus' 'pending' %}">Pending</a>
+      <a href="{% url 'OrdersByStatus' 'processing' %}">Processing</a>
+      <a href="{% url 'OrdersByStatus' 'booked' %}">Booked with courier</a>
+      <a href="{% url 'OrdersByStatus' 'shipped' %}">Shipped</a>
+      <a href="{% url 'OrdersByStatus' 'out_for_delivery' %}">Out for delivery</a>
+      <a href="{% url 'OrdersByStatus' 'submited' %}">Submitted</a>
+      <a href="{% url 'OrdersByStatus' 'dispatch' %}">Dispatch</a>
+      <a href="{% url 'OrdersByStatus' 'success' %}">Success</a>
     </div>
-</div>
+    <a href="{% url 'admin_order_requests' %}"><i class="bi bi-arrow-repeat"></i><span class="menu-text">Return requests</span>
+      <span class="badge bg-danger" data-unseen="order_requests"{% if not admin_unseen.order_requests %} hidden{% endif %}>{{ admin_unseen.order_requests|default:0 }}</span>
+      <span class="badge bg-warning" data-unseen="requests_pending" title="Waiting for a decision"{% if not admin_unseen.requests_pending %} hidden{% endif %}>{{ admin_unseen.requests_pending|default:0 }} open</span></a>
+    <a href="{% url 'admin_payments' %}"><i class="bi bi-credit-card"></i><span class="menu-text">Payments</span>
+      <span class="badge bg-danger" data-unseen="payments"{% if not admin_unseen.payments %} hidden{% endif %}>{{ admin_unseen.payments|default:0 }}</span>
+      <span class="badge bg-warning" data-unseen="receipts_pending" title="Receipts to review"{% if not admin_unseen.receipts_pending %} hidden{% endif %}>{{ admin_unseen.receipts_pending|default:0 }}</span></a>
+    <a href="#couriersSubmenu" data-bs-toggle="collapse" class="collapsed" aria-expanded="false">
+      <i class="bi bi-truck"></i><span class="menu-text">Shipping</span><span class="badge bg-danger" data-unseen="shipping_total"{% if not admin_unseen.shipping_total %} hidden{% endif %}>{{ admin_unseen.shipping_total|default:0 }}</span><i class="bi bi-chevron-down caret-icon"></i>
+    </a>
+    <div class="collapse" id="couriersSubmenu">
+      <a href="{% url 'couriers:dashboard' %}">Shipments &amp; booking</a>
+      <a href="{% url 'couriers:dashboard' %}?status=attention">Needs attention <span class="badge bg-danger" data-unseen="shipments_attention"{% if not admin_unseen.shipments_attention %} hidden{% endif %}>{{ admin_unseen.shipments_attention|default:0 }}</span></a>
+      {% if "manage_shipping" in admin_perms %}<a href="{% url 'couriers:settings' %}">Courier settings</a>{% endif %}
+    </div>
+    {% endif %}
+    {% if "manage_finance" in admin_perms %}
+    <a href="{% url 'admin-withdrawals' %}"><i class="bi bi-wallet2"></i><span class="menu-text">Withdrawals</span><span class="badge bg-danger" data-unseen="withdrawals"{% if not admin_unseen.withdrawals %} hidden{% endif %}>{{ admin_unseen.withdrawals|default:0 }}</span></a>
+    {% endif %}
+
+    {% if "view_catalog" in admin_perms %}
+    <div class="sz-nav-heading">Catalog</div>
+    <a href="#productsSubmenu" data-bs-toggle="collapse" class="collapsed" aria-expanded="false">
+      <i class="bi bi-box-seam"></i><span class="menu-text">Products</span><i class="bi bi-chevron-down caret-icon"></i>
+    </a>
+    <div class="collapse" id="productsSubmenu">
+      <a href="{% url 'products' %}" id="ProductLink">All products</a>
+      <a href="{% url 'categories' %}" id="CategoryLink">Categories</a>
+      <a href="{% url 'brands' %}" id="BrandLink">Brands</a>
+      <a href="{% url 'attributes' %}" id="AttributeLink">Attributes</a>
+      <a href="{% url 'inventory-page' %}">Inventory</a>
+    </div>
+    {% endif %}
+
+    {% if "manage_marketing" in admin_perms or "view_customers" in admin_perms %}
+    <div class="sz-nav-heading">Marketing</div>
+    <a href="#marketingSubmenu" data-bs-toggle="collapse" class="collapsed" aria-expanded="false">
+      <i class="bi bi-megaphone"></i><span class="menu-text">Marketing</span><span class="badge bg-danger" data-unseen="marketing_total"{% if not admin_unseen.marketing_total %} hidden{% endif %}>{{ admin_unseen.marketing_total|default:0 }}</span><i class="bi bi-chevron-down caret-icon"></i>
+    </a>
+    <div class="collapse" id="marketingSubmenu">
+      {% if "manage_marketing" in admin_perms %}
+      <a href="{% url 'promotions_page' %}">Promotions</a>
+      <a href="{% url 'Blog-post' %}" id="BlogLink">Blog posts</a>
+      <a href="{% url 'topbar_manage' %}">Top bar</a>
+      <a href="{% url 'picture-page' %}" id="PictureButtonLink">Pictures</a>
+      {% endif %}
+      {% if "view_customers" in admin_perms %}
+      <a href="{% url 'wishlist' %}">Wishlist</a>
+      <a href="{% url 'wish_to_buy_admin' %}" id="WishToBuyLink">Wish to buy <span class="badge bg-danger" data-unseen="wish_to_buy"{% if not admin_unseen.wish_to_buy %} hidden{% endif %}>{{ admin_unseen.wish_to_buy|default:0 }}</span></a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if "view_customers" in admin_perms or "manage_support" in admin_perms %}
+    <div class="sz-nav-heading">Customers</div>
+    {% if "view_customers" in admin_perms %}
+    <a href="{% url 'UserList' %}"><i class="bi bi-people"></i><span class="menu-text">Customers</span><span class="badge bg-danger bg-opacity-75" data-unseen="customers"{% if not admin_unseen.customers %} hidden{% endif %}>{{ admin_unseen.customers|default:0 }}</span></a>
+    {% endif %}
+    {% if "manage_support" in admin_perms %}
+    <a href="#supportSubmenu" data-bs-toggle="collapse" class="collapsed" aria-expanded="false">
+      <i class="bi bi-headset"></i><span class="menu-text">Support</span><span class="badge bg-danger" data-unseen="support_total"{% if not admin_unseen.support_total %} hidden{% endif %}>{{ admin_unseen.support_total|default:0 }}</span><i class="bi bi-chevron-down caret-icon"></i>
+    </a>
+    <div class="collapse" id="supportSubmenu">
+      <a href="{% url 'AdminTicketList' %}">Contact tickets <span class="badge bg-danger" data-unseen="tickets"{% if not admin_unseen.tickets %} hidden{% endif %}>{{ admin_unseen.tickets|default:0 }}</span></a>
+      <a href="{% url 'admin_messages' %}">Product messages <span class="badge bg-danger" data-unseen="messages"{% if not admin_unseen.messages %} hidden{% endif %}>{{ admin_unseen.messages|default:0 }}</span></a>
+      <a href="{% url 'StaffQuestionList' %}">Product questions <span class="badge bg-danger" data-unseen="questions"{% if not admin_unseen.questions %} hidden{% endif %}>{{ admin_unseen.questions|default:0 }}</span></a>
+      <a href="{% url 'AdminReviewsPage' %}">Reviews <span class="badge bg-danger" data-unseen="reviews"{% if not admin_unseen.reviews %} hidden{% endif %}>{{ admin_unseen.reviews|default:0 }}</span></a>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if "view_logs" in admin_perms or "manage_roles" in admin_perms or "manage_settings" in admin_perms or "manage_backups" in admin_perms %}
+    <div class="sz-nav-heading">System</div>
+    {% if "manage_settings" in admin_perms %}
+    <a href="{% url 'admin_store_settings' %}"><i class="bi bi-sliders"></i><span class="menu-text">Store settings</span></a>
+    {% endif %}
+    {% if "manage_backups" in admin_perms %}
+    <a href="{% url 'admin_backups' %}"><i class="bi bi-hdd-stack"></i><span class="menu-text">Backups</span></a>
+    {% endif %}
+    {% if "manage_roles" in admin_perms %}
+    <a href="{% url 'admin_team' %}"><i class="bi bi-shield-lock"></i><span class="menu-text">Team &amp; roles</span></a>
+    {% endif %}
+    {% if "view_logs" in admin_perms %}
+    <a href="{% url 'admin_logs' %}"><i class="bi bi-journal-text"></i><span class="menu-text">Logs &amp; audit</span></a>
+    {% endif %}
+    {% endif %}
+  </nav>
+  <div class="sz-sidebar-foot">Signed in as {{ request.user.email }}</div>
+</aside>
+<div class="sz-backdrop" aria-hidden="true"></div>
 
 <!-- Main -->
-<div class="main collapsed" id="main">
+<div class="sz-main" id="main">
+  <header class="sz-topbar">
+    <button class="sz-icon-btn" type="button" onclick="toggleSidebar()" aria-label="Toggle navigation" aria-controls="sidebar">
+      <i class="bi bi-list"></i>
+    </button>
+    <h1 id="szPageTitle">{% block page_title %}{% endblock %}</h1>
 
-    <!-- Topbar -->
-    <div class="topbar">
-        <button class="btn btn-sm btn-outline-secondary" onclick="toggleSidebar()">
-            <i class="bi bi-list"></i>
-        </button>
-
-        <span>Admin Panel</span>
-
-        <div class="dropdown">
-            <a href="#" class="dropdown-toggle text-decoration-none text-dark" data-bs-toggle="dropdown">
-                <i class="bi bi-person-circle"></i>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="{% url 'home:user-profile' %}">Profile</a></li>
-                <li><a class="dropdown-item" href="{% url 'forgot-password' %}">Change Password</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="#">Logout</a></li>
-            </ul>
-        </div>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      {% if admin_session %}
+      <button type="button" class="sz-session" id="szSessionChip" title="Time left before automatic sign-out. Click to extend.">
+        <i class="bi bi-shield-check" aria-hidden="true"></i><span class="d-none d-sm-inline">Session</span>
+        <span data-left>--:--</span>
+      </button>
+      {% endif %}
+      <a class="sz-icon-btn d-none d-md-inline-grid" href="{% url 'home:home' %}" target="_blank" rel="noopener" title="View store" aria-label="View store">
+        <i class="bi bi-shop"></i>
+      </a>
+      {% if "view_orders" in admin_perms %}
+      <a class="sz-icon-btn" href="{% url 'Orders' %}" title="New orders" aria-label="{{ unseen_orders_count|default:0 }} new orders">
+        <i class="bi bi-bell"></i>
+        {% if unseen_orders_count > 0 %}<span class="sz-dot">{{ unseen_orders_count }}</span>{% endif %}
+      </a>
+      {% endif %}
+      <div class="dropdown">
+        <a href="#" class="sz-user" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
+          <span class="sz-avatar">{{ request.user.full_name|default:request.user.email|first|upper }}</span>
+          <span class="sz-user-meta d-none d-md-block">
+            <b>{{ request.user.full_name|default:request.user.email|truncatechars:22 }}</b><br>
+            <small>{{ admin_roles|join:", "|default:"Staff" }}</small>
+          </span>
+          <i class="bi bi-chevron-down small text-muted d-none d-md-inline"></i>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="{% url 'home:user-profile' %}"><i class="bi bi-person me-2"></i>Profile</a></li>
+          <li><a class="dropdown-item" href="{% url 'forgot-password' %}"><i class="bi bi-key me-2"></i>Change password</a></li>
+          <li><button class="dropdown-item" type="button" onclick="Admin.sessionExtend(); Admin.toast('Session extended.', 'success')"><i class="bi bi-clock-history me-2"></i>Extend session</button></li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <form method="post" action="{% url 'logout' %}" id="szLogoutForm" class="m-0">{% csrf_token %}
+              <button class="dropdown-item text-danger" type="submit" onclick="try{sessionStorage.clear()}catch(e){}"><i class="bi bi-box-arrow-right me-2"></i>Sign out</button>
+            </form>
+          </li>
+        </ul>
+      </div>
     </div>
+  </header>
 
-    <div class="content">
-        <div id="global-loader" class="d-none">
-            <div class="">
-                <div class="spinner-border text-primary" role="status"></div>
-                <span class="ms-2 fw-bold"></span>
-            </div>
-        </div>
-
-        <div id="alert-container">
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-
-        </div>
-
-        {% block content %}{% endblock %}
-    </div>
-
-   
+  <main class="sz-content" id="szContent" tabindex="-1">
+    <div id="global-loader" class="d-none" role="progressbar" aria-label="Loading"></div>
+    <div id="alert-container" aria-live="polite"></div>
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="sz-footer">© {% now "Y" %} Shan Zee · Admin console</footer>
 </div>
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{% static 'adminpanel/vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'adminpanel/vendor/sweetalert2/sweetalert2.all.min.js' %}"></script>
 <script>
-    
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('collapsed');
-        document.getElementById('main').classList.toggle('collapsed');
-    }
-    function showValidationAlert(messages,title='Validation Error',type='warning'){
-        Swal.fire({
-            icon: type,
-            title: 'Validation Error',
-            html: messages.join('<br>'),
-            confirmButtonText: 'OK',
-        });
-    }
-    function flattenErrors(errors, prefix = '') {
-        let messages = [];
-
-        Object.entries(errors).forEach(([key, value]) => {
-            let field = prefix ? `${prefix}.${key}` : key;
-
-            if (Array.isArray(value)) {
-                value.forEach(err => messages.push(`${field}: ${err}`));
-            } else if (typeof value === 'object') {
-                messages = messages.concat(flattenErrors(value, field));
-            }
-        });
-
-        return messages;
-    }
-   function showAlert(message, type = 'info') {
-        // Map 'danger' to 'error' because SweetAlert uses 'error'
-        const iconType = type === 'danger' ? 'error' : type;
-
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 8000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer)
-                toast.addEventListener('mouseleave', Swal.resumeTimer)
-            }
-        });
-
-        Toast.fire({
-            icon: iconType,
-            title: message
-        });
-    }
-    (function() {
-    const loader = document.getElementById('global-loader');
-    let activeRequests = 0;
-
-    const showLoader = () => {
-        activeRequests++;
-        loader.classList.remove('d-none');
-    };
-
-    const hideLoader = () => {
-        activeRequests--;
-        if (activeRequests <= 0) {
-            activeRequests = 0; // Reset for safety
-            loader.classList.add('d-none');
-        }
-    };
-
-    // Backup the original fetch
-    const originalFetch = window.fetch;
-
-    // Overwrite the global fetch
-    window.fetch = async (...args) => {
-        showLoader();
-        try {
-            const response = await originalFetch(...args);
-            return response;
-        } catch (error) {
-            return Promise.reject(error);
-        } finally {
-            hideLoader();
-        }
-    };
-})();
+  // Page title in the top bar falls back to the <title>.
+  (function () {
+    const h = document.getElementById("szPageTitle");
+    if (h && !h.textContent.trim()) h.textContent = document.title.split(" · ")[0];
+  })();
 </script>
-
 {% block extra_js %}{% endblock %}
-
 </body>
 </html>

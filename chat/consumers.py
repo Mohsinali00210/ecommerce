@@ -48,7 +48,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         user = self.scope["user"]
-        sender_type = "admin" if user.is_superuser else "user"
+        sender_type = "admin" if user.is_staff else "user"
 
         thread_id = self.thread_id
 

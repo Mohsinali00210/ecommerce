@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow"><meta name="referrer" content="no-referrer">
+<title>{% if order %}Order #{{ order.order_number }}{% else %}Order link{% endif %} · Shan Zee</title>
+<style>
+  :root { --a:#5b4cf0; --ink:#0f1424; --muted:#6b7290; --line:#e7e9f2; --ok:#16a34a; --warn:#d97706; --bad:#dc2626; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:#f4f5fa; color:var(--ink); }
+  header { background:var(--ink); color:#fff; padding:16px 20px; font-weight:800; letter-spacing:.06em; }
+  header a { color:#fff; text-decoration:none; }
+  main { max-width:760px; margin:24px auto; padding:0 14px 40px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:14px; box-shadow:0 4px 16px rgba(16,24,40,.05); }
+  h1 { font-size:22px; margin:4px 0 2px; } .muted { color:var(--muted); font-size:13px; }
+  .pill { display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; background:#efedff; color:var(--a); }
+  .pill.ok { background:#e8f7ee; color:var(--ok); } .pill.warn { background:#fff4e0; color:var(--warn); } .pill.bad { background:#fdecec; color:var(--bad); }
+  .steps { display:flex; gap:6px; margin-top:18px; }
+  .step { flex:1; text-align:center; font-size:12px; color:var(--muted); }
+  .step .dot { height:6px; border-radius:6px; background:var(--line); margin-bottom:8px; }
+  .step.done .dot { background:var(--a); } .step.current { color:var(--a); font-weight:700; }
+  .item { display:flex; gap:12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); }
+  .item:last-child { border-bottom:0; }
+  .item img { width:52px; height:52px; border-radius:10px; object-fit:cover; background:#f1f2f8; }
+  .item .grow { flex:1; } .right { text-align:right; }
+  table { width:100%; border-collapse:collapse; font-size:14px; } td { padding:6px 0; }
+  .total td { font-weight:800; font-size:16px; border-top:1px solid var(--line); padding-top:10px; }
+  .events { list-style:none; margin:0; padding:0; } .events li { padding:8px 0; border-bottom:1px dashed var(--line); font-size:13px; }
+  .btn { display:inline-block; background:var(--a); color:#fff; padding:11px 18px; border-radius:10px; font-weight:700; text-decoration:none; border:0; cursor:pointer; font-size:14px; }
+  .center { text-align:center; padding:60px 20px; }
+</style>
+</head>
+<body>
+<header><a href="/">SHAN ZEE</a></header>
+<main>
+{% if not order %}
+  <div class="card center">
+    <h1>{% if problem == "expired" %}This link has expired{% else %}This link isn't valid{% endif %}</h1>
+    <p class="muted">Sign in to see your orders, or use “Track order” with your order number.</p>
+    <p><a class="btn" href="{% url 'home:Orders' %}">My orders</a></p>
+  </div>
+{% else %}
+  <div class="card">
+    <div class="muted">Order</div>
+    <h1>#{{ order.order_number }}</h1>
+    <div class="muted">Placed {{ order.created_at|date:"d M Y, H:i" }}</div>
+    <p style="margin:12px 0 0">
+      <span class="pill {% if order.status == 'delivered' %}ok{% elif order.status in 'cancelled returned' %}bad{% endif %}">{{ order.get_status_display }}</span>
+      {% if payment %}
+        <span class="pill {% if payment.status == 'paid' %}ok{% elif payment.status == 'failed' or payment.status == 'cancelled' %}bad{% else %}warn{% endif %}">Payment: {{ payment.get_status_display }}</span>
+      {% endif %}
+    </p>
+    {% if steps %}
+    <div class="steps" aria-label="Order progress">
+      {% for s in steps %}<div class="step {% if s.done %}done{% endif %} {% if s.current %}current{% endif %}"><div class="dot"></div>{{ s.label }}</div>{% endfor %}
+    </div>
+    {% endif %}
+    {% if payment and payment.can_retry %}
+      <p style="margin-top:18px"><a class="btn" href="{% url 'payments:pay' token %}">Complete payment</a></p>
+    {% endif %}
+    {% if payment and payment.method == "bank" and payment.status == "pending" %}
+      <p class="muted" style="margin-top:14px">Waiting for your bank transfer. Sign in and open this order to upload the receipt.</p>
+    {% endif %}
+  </div>
+
+  {% if shipment %}
+  <div class="card">
+    <strong>{{ shipment.provider.name }}</strong> · tracking <strong>{{ shipment.tracking_number }}</strong>
+    <div class="muted">{{ shipment.get_status_display }}{% if shipment.raw_status %} - {{ shipment.raw_status }}{% endif %}</div>
+    {% if events %}
+    <ul class="events">{% for e in events %}<li><strong>{{ e.raw_status }}</strong> <span class="muted">· {{ e.event_time|date:"d M H:i" }}{% if e.location %} · {{ e.location }}{% endif %}</span></li>{% endfor %}</ul>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="card">
+    {% for it in items %}
+    <div class="item">
+      {% with img=it.product.images.first %}{% if img %}<img src="{{ img.image.url }}" alt="">{% else %}<img alt="">{% endif %}{% endwith %}
+      <div class="grow"><strong>{{ it.product.name|default:"Product" }}</strong>{% if it.variant %}<div class="muted">{{ it.variant.name }}</div>{% endif %}</div>
+      <div class="right">{{ it.quantity }} × Rs {{ it.price|floatformat:0 }}</div>
+    </div>
+    {% endfor %}
+    <table style="margin-top:10px">
+      <tr><td class="muted">Subtotal</td><td class="right">Rs {{ order.subtotal|floatformat:0 }}</td></tr>
+      <tr><td class="muted">Shipping</td><td class="right">{% if order.shipping_charges %}Rs {{ order.shipping_charges|floatformat:0 }}{% else %}Free{% endif %}</td></tr>
+      <tr class="total"><td>Total</td><td class="right">Rs {{ order.total_amount|floatformat:0 }}</td></tr>
+      <tr><td class="muted">Payment method</td><td class="right">{{ order.get_payment_method_display }}</td></tr>
+      {% if order.shipping_address %}<tr><td class="muted">Delivering to</td><td class="right">{{ order.shipping_address.full_name }}, {{ order.shipping_address.city }}</td></tr>{% endif %}
+    </table>
+  </div>
+  <p class="muted" style="text-align:center">This page is private to you. <a href="{% url 'home:Orders' %}">Sign in</a> for returns and full details.</p>
+{% endif %}
+</main>
+</body>
+</html>

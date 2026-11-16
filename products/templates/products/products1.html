@@ -120,7 +120,7 @@ function getDropDown(el = "categoryFilter",url="{% url 'category-list' %}") {
     fetch(url, {
         method: "GET",
         headers: {
-            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`,
             "Content-Type": "application/json"
         }
     })
@@ -145,7 +145,7 @@ function getProducts(el = "productsBody", filters = {}) {
     fetch(url, {
         method: "GET",
         headers: {
-            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
         }
     })
     .then(res => res.json())
@@ -222,7 +222,7 @@ document.getElementById("applyFilterBtn").addEventListener("click", function () 
     .then(data => {
         TOKEN=data.access;
     // Save access token
-    localStorage.setItem("access_token", data.access);
+    sessionStorage.setItem("access_token", data.access);
     })
     .catch(err => console.error(err)); {% endcomment %}
 

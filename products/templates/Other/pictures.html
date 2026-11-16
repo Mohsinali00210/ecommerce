@@ -223,7 +223,7 @@ function getPictures(el="picturesBody") {
 fetch(API_BASE_URL, {
 
     headers:{
-        "Authorization":`Bearer ${localStorage.getItem("access_token")}`
+        "Authorization":`Bearer ${sessionStorage.getItem("access_token")}`
     }
 
 })
@@ -391,7 +391,7 @@ $("#savePictureBtn").prop("disabled", true);
 fetch(url,{
 method:method,
 headers:{
-"Authorization":`Bearer ${localStorage.getItem("access_token")}`
+"Authorization":`Bearer ${sessionStorage.getItem("access_token")}`
 },
 body:formData
 })

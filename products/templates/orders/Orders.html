@@ -690,7 +690,7 @@
                     headers: {
                         "Content-Type": "application/json",
                         "X-CSRFToken": "{{ csrf_token }}",
-                        "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+                        "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`,
                     },
                     body: JSON.stringify({
                         status: document.getElementById("OrderStatus").value,
@@ -714,7 +714,7 @@
                         method: "GET", // GET request
                         headers: {
                             "Content-Type": "application/json", // Optional for GET
-                            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
                         }
                     })
                     .then(response => response.json())
@@ -810,7 +810,7 @@
                 .then(data => {
                     TOKEN=data.access;
                 // Save access token
-                localStorage.setItem("access_token", data.access);
+                sessionStorage.setItem("access_token", data.access);
                 })
                 .catch(err => console.error(err)); {% endcomment %}
 
@@ -834,7 +834,7 @@
                         method: "PATCH",
                         headers: {
                             "Content-Type": "application/json",
-                            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
                         },
                         body: JSON.stringify({
                             status: status,
@@ -867,7 +867,7 @@
                     fetch(`${url}?${params.toString()}`, {
                         method: "GET",
                         headers: {
-                            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+                            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`,
                             "Content-Type": "application/json"
                         }
                     })

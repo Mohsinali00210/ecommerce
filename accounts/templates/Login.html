@@ -48,6 +48,9 @@
 
                             {% csrf_token %}
 
+                            {% if info %}
+                                <div class="alert alert-warning py-2 small" role="status">{{ info }}</div>
+                            {% endif %}
                             {% if error %}
                                 <div class="alert alert-danger">
                                     {{ error }}

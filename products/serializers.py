@@ -4,16 +4,87 @@ import pdb
 import json
 from django.db import transaction
 
+MAX_CATEGORY_IMAGE_BYTES = 2 * 1024 * 1024
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+
+
 class CategorySerializer(serializers.ModelSerializer):
     created_by_name = serializers.ReadOnlyField(source='created_by.full_name')
+    children_count = serializers.SerializerMethodField()
+    parent_name = serializers.ReadOnlyField(source='parent.name')
 
     class Meta:
         model = Category
         fields = [
-            'id', 'name',  'is_active', 'parent','image',
-            'is_deleted', 'created_at', 'created_by', 'created_by_name'
+            'id', 'name',  'is_active', 'parent', 'parent_name', 'image',
+            'is_deleted', 'created_at', 'created_by', 'created_by_name', 'children_count'
         ]
-        read_only_fields = ['created_by', 'created_at']
+        read_only_fields = ['created_by', 'created_at', 'is_deleted']
+
+    def get_children_count(self, obj):
+        annotated = getattr(obj, "active_children", None)
+        if annotated is not None:
+            return annotated
+        return obj.children.filter(is_deleted=False).count()
+
+    def validate_name(self, value):
+        value = " ".join((value or "").split())
+        if not value:
+            raise serializers.ValidationError("Category name is required.")
+        if len(value) > 100:
+            raise serializers.ValidationError("Keep the name under 100 characters.")
+        return value
+
+    def validate_image(self, image):
+        if not image:
+            return image
+        if getattr(image, "size", 0) > MAX_CATEGORY_IMAGE_BYTES:
+            raise serializers.ValidationError("Image must be 2 MB or smaller.")
+        ctype = getattr(image, "content_type", None)
+        if ctype and ctype not in ALLOWED_IMAGE_TYPES:
+            raise serializers.ValidationError("Use a JPG, PNG, WEBP or GIF image.")
+        return image
+
+    def validate(self, attrs):
+        instance = self.instance
+        # On edit, keep the existing parent unless one was explicitly sent.
+        parent = attrs["parent"] if "parent" in attrs else (instance.parent if instance else None)
+        name = attrs.get("name", instance.name if instance else None)
+
+        if parent is not None:
+            if parent.is_deleted:
+                raise serializers.ValidationError({"parent": "The parent category was deleted."})
+            if instance is not None:
+                # A category can't be moved under itself or one of its own children.
+                node = parent
+                while node is not None:
+                    if node.pk == instance.pk:
+                        raise serializers.ValidationError(
+                            {"parent": "A category can't be placed under itself or its sub-categories."})
+                    node = node.parent
+
+        if name:
+            siblings = Category.objects.filter(parent=parent, name__iexact=name, is_deleted=False)
+            if instance is not None:
+                siblings = siblings.exclude(pk=instance.pk)
+            if siblings.exists():
+                where = f'under "{parent.name}"' if parent else "at the top level"
+                raise serializers.ValidationError({"name": f'"{name}" already exists {where}.'})
+        return attrs
+
+    def create(self, validated_data):
+        # unique_together(name, parent) also covers soft-deleted rows: re-use the
+        # deleted one instead of failing with a database error.
+        deleted = Category.objects.filter(parent=validated_data.get("parent"),
+                                          name__iexact=validated_data["name"], is_deleted=True).first()
+        if deleted:
+            for k, v in validated_data.items():
+                setattr(deleted, k, v)
+            deleted.is_deleted = False
+            deleted.save()
+            return deleted
+        return super().create(validated_data)
+
 
 class ProductAttributeSerializer(serializers.ModelSerializer):
     # These provide read-only context for the UI
@@ -854,9 +925,16 @@ class OrderRequestCommentSerializer(serializers.ModelSerializer):
         fields = ["id", "status", "comment", "user_name", "created_at"]
 class AdminOrderRequestUpdateSerializer(serializers.ModelSerializer):
     comments = OrderRequestCommentSerializer(many=True, read_only=True)
+    comment = serializers.CharField(write_only=True, required=False, allow_blank=True, max_length=1000)
+    status = serializers.ChoiceField(choices=["pending", "approved", "rejected"])
+
     class Meta:
         model = OrderRequest
-        fields = ["status", "comments"]
+        fields = ["status", "comment", "comments"]
+
+    def update(self, instance, validated_data):
+        validated_data.pop("comment", None)  # stored as OrderRequestComment by the view
+        return super().update(instance, validated_data)
 
 class AdminProductReviewSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)

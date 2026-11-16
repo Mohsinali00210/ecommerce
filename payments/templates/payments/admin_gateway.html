@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Safepay settings{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div><h2>Safepay</h2><p>Card, JazzCash and Easypaisa payments through Safepay's hosted checkout.</p></div>
+  <a href="{% url 'admin_payments' %}" class="btn btn-outline-secondary btn-sm">Back to payments</a>
+</div>
+<div class="row g-3">
+  <div class="col-lg-7">
+    <form method="post" class="card">{% csrf_token %}
+      <div class="card-header">Credentials (stored encrypted)</div>
+      <div class="card-body row g-3">
+        {% for field in form %}
+        <div class="{% if field.name == 'is_active' %}col-12 form-check ms-2{% else %}col-md-6{% endif %}">
+          {% if field.name == 'is_active' %}{{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">Use Safepay for online payments</label>
+          {% else %}{% include "couriers/_field.html" %}{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <div class="card-footer"><button class="btn btn-primary">Save</button></div>
+    </form>
+  </div>
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-header">Webhook URL</div>
+      <div class="card-body small">
+        <p>Add this endpoint in the Safepay dashboard (Developer → Endpoints) and paste its signing secret above.</p>
+        <div class="input-group input-group-sm"><input class="form-control font-monospace" value="{{ webhook_url }}" readonly onclick="this.select()" aria-label="Webhook URL">
+          <button type="button" class="btn btn-outline-secondary" onclick="navigator.clipboard.writeText('{{ webhook_url }}'); Admin.toast('Copied')"><i class="bi bi-clipboard"></i></button></div>
+      </div></div>
+    <div class="card"><div class="card-header">Turning it on</div>
+      <div class="card-body small">
+        <ol class="ps-3 mb-0">
+          <li>Paste your sandbox keys, tick <em>Use Safepay</em>, and save.</li>
+          <li>In <a href="{% url 'admin_store_settings' %}">Store settings</a>, switch <em>Online payments</em> on.</li>
+          <li>Place a test order with Safepay's test card.</li>
+          <li>Switch environment to <em>Live</em> with your live keys.</li>
+        </ol>
+        <p class="mt-2 mb-0">Turning <em>Online payments</em> off in Store settings hides it at checkout immediately; the server also refuses it.</p>
+      </div></div>
+  </div>
+</div>
+{% endblock %}

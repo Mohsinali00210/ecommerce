@@ -203,9 +203,11 @@ def book_order(order, data: BookingInput, user=None, auto=False):
     if failed:
         raise failed
 
+    from adminpanel.models import StoreSettings
     _notify(order, "Your order has been shipped",
             f"Your order #{order.order_number} has been handed to {provider.name}. "
-            f"Tracking number: {shipment.tracking_number}.", shipment)
+            f"Tracking number: {shipment.tracking_number}.", shipment,
+            email=not (order.status == "booked" and StoreSettings.get().emails_status("booked")))
     return shipment
 
 
@@ -340,6 +342,10 @@ def _apply_order_status(shipment, rule):
         if target == "delivered" and not order.delivered_at:
             order.delivered_at = timezone.now()
         order.save()
+    order_email_sent = False
+    if target and order.status == target:
+        from adminpanel.models import StoreSettings
+        order_email_sent = StoreSettings.get().emails_status(target)
     if rule.notify_customer and shipment.status in CUSTOMER_MESSAGES:
         amount = (f"Rs {shipment.cod_amount:,.0f}" if shipment.cod_amount else "your ID")
         if shipment.status == ShipmentStatus.OUT_FOR_DELIVERY and not shipment.cod_amount:
@@ -347,7 +353,8 @@ def _apply_order_status(shipment, rule):
         else:
             msg = CUSTOMER_MESSAGES[shipment.status].format(
                 n=order.order_number, c=shipment.provider.name, amount=amount)
-        _notify(order, f"Order {shipment.get_status_display().lower()}", msg, shipment)
+        _notify(order, f"Order {shipment.get_status_display().lower()}", msg, shipment,
+                email=not order_email_sent)
 
 
 def set_status_manually(shipment, shipment_status, user, note=""):
@@ -436,7 +443,9 @@ def sync_cities(provider):
 # ---------------------------------------------------------------------------
 # Customer notifications
 # ---------------------------------------------------------------------------
-def _notify(order, title, message, shipment=None):
+def _notify(order, title, message, shipment=None, email=True):
+    """In-app notification, plus an email unless the order-status email
+    (Web.order_emails) already tells the customer the same thing."""
     if not order.user_id:
         return
     from Web.models import Notification, NotificationRecipient
@@ -450,6 +459,8 @@ def _notify(order, title, message, shipment=None):
                                     is_general=False, is_active=True, order=order)
     NotificationRecipient.objects.create(notification=n, user_id=order.user_id, is_read=False)
 
+    if not email:
+        return
     from .tasks import send_shipment_email
     sid = shipment.pk if shipment else None
     transaction.on_commit(lambda: send_shipment_email.delay(order.pk, title, message, sid))

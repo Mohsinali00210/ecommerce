@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Log entry{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div><h2>{% if kind == "security" %}Security event: {{ obj.event }}{% else %}Error {{ obj.status_code }}{% endif %}</h2>
+    <p>{{ obj.created_at|date:"d M Y H:i:s" }} · severity {{ obj.severity }}{% if obj.request_id %} · ref {{ obj.request_id }}{% endif %}</p></div>
+  <a href="{% url 'admin_logs' %}?tab={% if kind == 'security' %}security{% else %}errors{% endif %}" class="btn btn-outline-secondary btn-sm">Back to logs</a>
+</div>
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card"><div class="card-header">Request</div>
+      <div class="card-body small">
+        <dl class="row mb-0">
+          <dt class="col-4">User</dt><dd class="col-8">{{ obj.user.email|default:obj.username|default:"anonymous" }}</dd>
+          <dt class="col-4">IP</dt><dd class="col-8">{{ obj.ip_address|default:"—" }}</dd>
+          <dt class="col-4">Method</dt><dd class="col-8">{{ obj.method|default:"—" }}</dd>
+          <dt class="col-4">Path</dt><dd class="col-8 text-break">{% if kind == "security" %}{{ obj.path }}{% else %}{{ obj.endpoint }}{% endif %}</dd>
+          <dt class="col-4">Browser</dt><dd class="col-8 text-break">{{ obj.user_agent|default:"—" }}</dd>
+        </dl>
+      </div></div>
+  </div>
+  <div class="col-lg-8">
+    {% if kind == "security" %}
+    <div class="card"><div class="card-header">Details</div><div class="card-body"><pre class="mb-0">{{ obj.details|pprint }}</pre></div></div>
+    {% else %}
+    <div class="card mb-3"><div class="card-header">Message</div><div class="card-body"><pre class="mb-0 text-wrap">{{ obj.error_message }}</pre></div></div>
+    {% if obj.stack_trace %}<div class="card mb-3"><div class="card-header">Stack trace</div><div class="card-body"><pre class="mb-0" style="max-height:420px;overflow:auto">{{ obj.stack_trace }}</pre></div></div>{% endif %}
+    <div class="card"><div class="card-header">Request data (sanitised)</div><div class="card-body"><pre class="mb-0">{{ obj.request_data|pprint }}
+{{ obj.query_params|pprint }}</pre></div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

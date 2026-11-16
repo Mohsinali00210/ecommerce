@@ -44,9 +44,11 @@ class LeopardsAdapter(BaseCourierAdapter):
     # -- low level ----------------------------------------------------------
     def _auth(self):
         cred = self.require_credential()
-        if not cred.api_key or not cred.api_password:
+        key = (cred.api_key or "").strip()
+        pwd = (cred.api_password or "").strip()
+        if not key or not pwd:
             raise CourierError("Leopards API key / password missing in courier settings.")
-        return {"api_key": cred.api_key, "api_password": cred.api_password}
+        return {"api_key": key, "api_password": pwd}
 
     def _extra(self, key, default=None):
         return (self.credential.extra or {}).get(key, default) if self.credential else default
@@ -63,7 +65,14 @@ class LeopardsAdapter(BaseCourierAdapter):
         if not isinstance(data, dict):
             raise CourierError("Unexpected response from Leopards.", {"body": data})
         if str(data.get("status")) != "1":
-            raise CourierError(_error_text(data), data)
+            msg = _error_text(data)
+            if "invalid" in msg.lower() and ("key" in msg.lower() or "password" in msg.lower()):
+                env = self.provider.get_environment_display()
+                msg = (f"{msg}. These credentials were sent to the {env} server "
+                       f"({self.provider.base_url}). Live and staging keys are different: "
+                       "make sure the key/password come from the same environment, "
+                       "and that API access is enabled on your LCS account.")
+            raise CourierError(msg, data)
         return data
 
     # -- operations ---------------------------------------------------------

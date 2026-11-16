@@ -1,414 +1,276 @@
 {% extends "base.html" %}
-
 {% block title %}Categories{% endblock %}
-
 {% block content %}
+<div class="sz-page-head">
+  <div>
+    <h2>Categories</h2>
+    <p>Organise products into categories and sub-categories (any depth).</p>
+  </div>
+  {% if "manage_catalog" in admin_perms %}
+  <button class="btn btn-primary" type="button" onclick="CategoryPage.openCreate(null)">
+    <i class="bi bi-plus-lg me-1"></i> New category
+  </button>
+  {% endif %}
+</div>
 
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
+  <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+    <nav aria-label="Category path">
+      <ol class="breadcrumb mb-0" id="catBreadcrumbs"></ol>
+    </nav>
+    <div class="d-flex gap-2">
+      <input type="search" class="form-control form-control-sm" id="catSearch" placeholder="Filter this level…"
+             aria-label="Filter categories" style="width:220px">
+      {% if "manage_catalog" in admin_perms %}
+      <button class="btn btn-outline-primary btn-sm text-nowrap" type="button" id="addHereBtn" onclick="CategoryPage.openCreate(CategoryPage.currentParent())">
+        <i class="bi bi-plus-circle me-1"></i><span>Add here</span>
+      </button>
+      {% endif %}
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th style="width:56px"></th>
+          <th>Name</th>
+          <th class="text-center">Sub-categories</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th class="text-end" style="width:210px">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="categoryBody">
+        <tr><td colspan="6"><div class="sz-skeleton" style="height:16px"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Create / edit -->
+<div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" id="categoryForm" novalidate>
+      <div class="modal-header">
+        <h6 class="modal-title" id="categoryModalTitle">Category</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="catId">
+        <input type="hidden" id="catParent">
+        <div class="alert alert-info py-2 small d-none" id="catParentInfo"></div>
+        <div class="mb-3">
+          <label class="form-label" for="catName">Name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="catName" maxlength="100" required autocomplete="off">
+          <div class="invalid-feedback" id="catNameError">Enter a name.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="catActive">Status</label>
+          <select class="form-select" id="catActive">
+            <option value="1">Active - visible in the shop</option>
+            <option value="0">Inactive - hidden</option>
+          </select>
+        </div>
         <div>
-            <i class="bi bi-folder"></i> Categories List
+          <label class="form-label" for="catImage">Image <span class="text-muted fw-normal">(JPG, PNG, WEBP · max 2 MB)</span></label>
+          <div class="d-flex gap-3 align-items-center">
+            <img id="catPreview" alt="" class="rounded border d-none" style="width:64px;height:64px;object-fit:cover">
+            <input type="file" class="form-control" id="catImage" accept="image/jpeg,image/png,image/webp,image/gif">
+          </div>
         </div>
-        <div>
-            <button class="btn btn-dark btn-sm" onclick="openAddCategoryModal();">
-                <i class="bi bi-plus-lg"></i>
-            </button>
-        </div>
-    </div>
-
-    <div class="card-body p-0">
-        <table class="table table-sm table-bordered align-middle mb-4">
-            <thead class="table-light">
-                <tr>
-                    <th>Category Name</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th style="width:160px;">Actions</th>
-                </tr>
-            </thead>
-            <tbody id="categoryBody"></tbody>
-        </table>
-    </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="catSaveBtn">Save</button>
+      </div>
+    </form>
+  </div>
 </div>
-
-<!-- ===================== Sub-category (hierarchy) modal ===================== -->
-<div class="modal fade" id="subCategoryModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <input type="hidden" id="currentParentId">
-
-            <div class="modal-header bg-dark text-white">
-                <h6 class="modal-title">
-                    <i class="bi bi-layers"></i> Category Hierarchy Manager
-                </h6>
-                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-
-            <div class="modal-body">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-3 p-2 bg-light rounded" id="categoryBreadcrumbs"></ol>
-                </nav>
-
-                <div class="card mb-4 shadow-sm">
-                    <div class="card-body p-3">
-                        <label class="form-label small fw-bold text-uppercase text-muted">
-                            Add New Item under: <span id="activeParentLabel" class="text-primary">Root</span>
-                        </label>
-                        <div class="input-group">
-                            <input type="text" id="newSubCatName" class="form-control form-control-sm" placeholder="Enter sub-category name...">
-                            <button class="btn btn-primary btn-sm" onclick="saveSubCategory()">
-                                <i class="bi bi-plus-circle"></i> Add
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="table-responsive" style="max-height: 400px;">
-                    <table class="table table-sm table-hover border">
-                        <thead class="table-light sticky-top">
-                            <tr>
-                                <th>Name</th>
-                                <th class="text-center">Nested Items</th>
-                                <th class="text-end">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="subCategoryTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="modal-footer bg-light">
-                <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Finish &amp; Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ===================== Add / Edit category modal ===================== -->
-<div class="modal fade" id="addCategoryModal" tabindex="-1">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h6 class="modal-title">
-                    <i class="bi bi-plus-circle"></i> <span id="categoryModalTitle">Category</span>
-                </h6>
-                <button class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-
-            <div class="modal-body">
-                <input type="hidden" id="CategoryId">
-
-                <label class="form-label">Category Name</label>
-                <input type="text" class="form-control form-control-sm" id="CategoryName">
-
-                <label class="form-label mt-2">Category Image</label>
-                <input type="file" id="CategoryImage" class="form-control form-control-sm" accept="image/*">
-                <img id="PreviewCategoryImage" src="" alt="" class="mt-2 d-none" style="max-width:100px">
-
-                <label class="form-label mt-2">Status</label>
-                <select class="form-select form-select-sm" id="is_active">
-                    <option value="">Select Status</option>
-                    <option value="1">Active</option>
-                    <option value="0">Inactive</option>
-                </select>
-            </div>
-
-            <div class="modal-footer">
-                <button class="btn btn-dark btn-sm w-100" onclick="saveCategory()">Save Category</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    // ---------- Sidebar ----------
-    $(".sidebar a").removeClass('active');
-    $("#CategoryLink").addClass('active');
-
-    // ---------- Config / state ----------
-    const API_BASE_URL = `${window.location.origin}/Adminpanel/Products/api/v1/categories/`;
-    const categoryCache = {};   // id -> category object (filled every time a list loads)
-    let navigationStack = [];   // breadcrumb path: [{id, name}, ...]
-
-    function authHeaders() {
-        return { "Authorization": `Bearer ${localStorage.getItem("access_token")}` };
-    }
-
-    // Prevents names like  Men's Wear  or  <b>  from breaking the HTML
-    function escapeHtml(value) {
-        return String(value ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-
-    // Wraps fetch so every call returns {ok, status, data}
-    async function apiRequest(url, method = "GET", body = null) {
-        const options = { method, headers: authHeaders() };
-        if (body) options.body = body;            // FormData -> browser sets Content-Type itself
-        const res = await fetch(url, options);
-        let data = null;
-        try { data = await res.json(); } catch (e) { /* 204 No Content etc. */ }
-        return { ok: res.ok, status: res.status, data };
-    }
-
-    function showApiError(result) {
-        if (result.status === 400) {
-            const d = result.data || {};
-            const firstKey = Object.keys(d)[0];
-            const msg = firstKey ? `${firstKey}: ${[].concat(d[firstKey])[0]}` : "Validation failed.";
-            showAlert(msg, "warning");
-        } else if (result.status === 401) {
-            showAlert("Session expired. Please login again.", "danger");
-        } else {
-            showAlert("Server error. Logged in database.", "danger");
-        }
-    }
-
-    // ---------- Load lists ----------
-    async function getCategories(el = "categoryBody", parentId = null) {
-        let url = API_BASE_URL + (parentId !== null ? `?parent=${parentId}` : `?parent=null`);
-
-        try {
-            const result = await apiRequest(url);
-            if (!result.ok) { showApiError(result); return; }
-
-            // Works with plain lists and with DRF pagination ({results: [...]})
-            const list = Array.isArray(result.data) ? result.data : (result.data?.results || []);
-            const isSubModal = (el === "subCategoryTableBody");
-            let html = "";
-
-            list.forEach(item => {
-                categoryCache[item.id] = item;
-                const name = escapeHtml(item.name);
-
-                if (!isSubModal) {
-                    html += `
-                    <tr>
-                        <td>${name}</td>
-                        <td><span class="badge ${item.is_active ? 'bg-success' : 'bg-secondary'}">${item.is_active ? 'Active' : 'Inactive'}</span></td>
-                        <td>${item.created_at ? new Date(item.created_at).toLocaleDateString() : ''}</td>
-                        <td>
-                            <div class="btn-group">
-                                <button class="btn btn-outline-secondary btn-sm" data-action="edit" data-id="${item.id}" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm" data-action="explore-root" data-id="${item.id}" title="Sub-categories">
-                                    <i class="bi bi-diagram-3"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>`;
-                } else {
-                    html += `
-                    <tr>
-                        <td class="fw-bold">${name}</td>
-                        <td class="text-center">
-                            <span class="badge rounded-pill bg-secondary">${item.children_count || 0}</span>
-                        </td>
-                        <td class="text-end">
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary" data-action="explore" data-id="${item.id}">
-                                    <i class="bi bi-arrow-right-short"></i> Explore
-                                </button>
-                                <button class="btn btn-outline-danger" data-action="delete" data-id="${item.id}">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>`;
-                }
-            });
-
-            if (list.length === 0) {
-                html = `<tr><td colspan="4" class="text-center text-muted">No items found here.</td></tr>`;
-            }
-            $(`#${el}`).html(html);
-        } catch (err) {
-            showAlert("Failed to load data", "danger");
-            console.error(err);
-        }
-    }
-
-    // ---------- One click handler for all row / breadcrumb buttons ----------
-    $(document).on('click', '[data-action]', function (e) {
-        e.preventDefault();
-        const action = $(this).data('action');
-        const id = Number($(this).data('id'));
-        const item = categoryCache[id];
-
-        switch (action) {
-            case 'edit':
-                fillCategoryModal(item);
-                $('#addCategoryModal').modal('show');
-                break;
-            case 'explore-root':           // from main table: start a fresh path
-                navigationStack = [];
-                openSubModal(item.id, item.name);
-                break;
-            case 'explore':                // inside the modal: go one level deeper
-                openSubModal(item.id, item.name);
-                break;
-            case 'crumb': {
-                const crumb = navigationStack.find(c => c.id === id);
-                if (crumb) openSubModal(crumb.id, crumb.name);
-                break;
-            }
-            case 'delete':
-                deleteCategory(id);
-                break;
-        }
-    });
-
-    // ---------- Add / edit top-level category ----------
-    function clearCategoryModal() {
-        $('#CategoryId').val('');
-        $('#CategoryName').val('');
-        $('#is_active').val('');
-        $('#CategoryImage').val('');
-        $('#PreviewCategoryImage').attr('src', '').addClass('d-none');
-    }
-
-    function openAddCategoryModal() {
-        clearCategoryModal();
-        $('#categoryModalTitle').text('Add Category');
-        $('#addCategoryModal').modal('show');
-    }
-
-    function fillCategoryModal(item) {
-        clearCategoryModal();
-        if (!item) return;
-        $('#categoryModalTitle').text('Edit Category');
-        $('#CategoryId').val(item.id);
-        $('#CategoryName').val(item.name);
-        $('#is_active').val(item.is_active ? '1' : '0');
-        if (item.image) {
-            $('#PreviewCategoryImage').attr('src', item.image).removeClass('d-none');
-        }
-    }
-
-    // Live preview when a new image is picked
-    $('#CategoryImage').on('change', function () {
-        const file = this.files[0];
-        if (file) $('#PreviewCategoryImage').attr('src', URL.createObjectURL(file)).removeClass('d-none');
-    });
-
-    async function saveCategory() {
-        const id = $('#CategoryId').val();
-        const name = $('#CategoryName').val().trim();
-        const isActive = $('#is_active').val();
-        const image = $('#CategoryImage')[0].files[0];
-
-        if (!name) { showAlert("Category name is required.", "warning"); return; }
-
-        const formData = new FormData();
-        formData.append("name", name);
-        if (isActive !== '') formData.append("is_active", isActive);
-        if (image) formData.append("image", image);
-
-        const url = id === '' ? API_BASE_URL : `${API_BASE_URL}${id}/`;
-        const method = id === '' ? "POST" : "PATCH";
-
-        try {
-            const result = await apiRequest(url, method, formData);
-            if (!result.ok) { showApiError(result); return; }
-
-            showAlert(id === '' ? "Category Created!" : "Category Updated!", "success");
-            $('#addCategoryModal').modal('hide');
-            getCategories();
-        } catch (err) {
-            showAlert("Connection failed!", "danger");
-            console.error(err);
-        }
-    }
-
-    // ---------- Sub-category modal ----------
-    function openSubModal(parentId, parentName) {
-        $('#currentParentId').val(parentId);
-        $('#activeParentLabel').text(parentName);
-        $('#newSubCatName').val('');
-        updateBreadcrumbs(parentId, parentName);
-        getCategories("subCategoryTableBody", parentId);
-        $('#subCategoryModal').modal('show');
-    }
-
-    function updateBreadcrumbs(id, name) {
-        const index = navigationStack.findIndex(x => x.id === id);
-        if (index === -1) navigationStack.push({ id, name });
-        else navigationStack = navigationStack.slice(0, index + 1);
-
-        let html = '<li class="breadcrumb-item"><a href="#" onclick="resetToRoot(); return false;">Root</a></li>';
-        navigationStack.forEach((crumb, i) => {
-            const safeName = escapeHtml(crumb.name);
-            html += (i === navigationStack.length - 1)
-                ? `<li class="breadcrumb-item active">${safeName}</li>`
-                : `<li class="breadcrumb-item"><a href="#" data-action="crumb" data-id="${crumb.id}">${safeName}</a></li>`;
-        });
-        $('#categoryBreadcrumbs').html(html);
-    }
-
-    function resetToRoot() {
-        $('#subCategoryModal').modal('hide');   // cleanup happens in hidden.bs.modal below
-    }
-
-    // When the hierarchy modal closes, reset its state so it can't leak into other saves
-    $('#subCategoryModal').on('hidden.bs.modal', function () {
-        navigationStack = [];
-        $('#currentParentId').val('');
-        $('#newSubCatName').val('');
-        getCategories();
-    });
-
-    async function saveSubCategory() {
-        const parentId = $('#currentParentId').val();
-        const name = $('#newSubCatName').val().trim();
-
-        if (!parentId) { showAlert("No parent category selected.", "warning"); return; }
-        if (!name) { showAlert("Sub-category name is required.", "warning"); return; }
-
-        const formData = new FormData();
-        formData.append("name", name);
-        formData.append("parent", parentId);
-
-        try {
-            const result = await apiRequest(API_BASE_URL, "POST", formData);
-            if (!result.ok) { showApiError(result); return; }
-
-            showAlert("Sub-category Created!", "success");
-            $('#newSubCatName').val('');
-            getCategories('subCategoryTableBody', Number(parentId));
-        } catch (err) {
-            showAlert("Connection failed!", "danger");
-            console.error(err);
-        }
-    }
-
-    async function deleteCategory(id) {
-        if (!confirm("Delete this category? Its sub-categories may be removed too.")) return;
-
-        try {
-            const result = await apiRequest(`${API_BASE_URL}${id}/`, "DELETE");
-            if (!result.ok) { showApiError(result); return; }
-
-            delete categoryCache[id];
-            showAlert("Category Deleted.", "success");
-
-            const parentId = $('#currentParentId').val();
-            if (parentId) getCategories('subCategoryTableBody', Number(parentId));
-            else getCategories();
-        } catch (err) {
-            showAlert("Something went wrong!", "danger");
-            console.error(err);
-        }
-    }
-
-    // ---------- Initial load ----------
-    getCategories("categoryBody", null);
-</script>
-
 {% endblock %}
 
 {% block extra_js %}
+<script>
+const CategoryPage = (() => {
+  const API = "{% url 'category-list' %}";
+  const CAN_EDIT = {% if "manage_catalog" in admin_perms %}true{% else %}false{% endif %};
+  const MAX_BYTES = 2 * 1024 * 1024;
+  let path = [];          // [{id, name}] from root to the level being shown
+  let rows = new Map();   // id -> category at the current level
+  const modal = () => bootstrap.Modal.getOrCreateInstance(document.getElementById("categoryModal"));
+  const $ = (id) => document.getElementById(id);
+
+  const currentParent = () => (path.length ? path[path.length - 1] : null);
+
+  async function load() {
+    const parent = currentParent();
+    const url = API + "?parent=" + (parent ? parent.id : "null");
+    const res = await Admin.api(url);
+    rows = new Map();
+    if (!res.ok) {
+      $("categoryBody").innerHTML = `<tr><td colspan="6"><div class="sz-empty"><i class="bi bi-exclamation-circle"></i>Couldn't load categories.</div></td></tr>`;
+      return;
+    }
+    (res.data || []).forEach((c) => rows.set(c.id, c));
+    render();
+    renderCrumbs();
+  }
+
+  function render() {
+    const q = $("catSearch").value.trim().toLowerCase();
+    const list = [...rows.values()].filter((c) => !q || c.name.toLowerCase().includes(q));
+    if (!list.length) {
+      const where = currentParent() ? `in “${Admin.esc(currentParent().name)}”` : "yet";
+      $("categoryBody").innerHTML = `<tr><td colspan="6"><div class="sz-empty"><i class="bi bi-folder2-open"></i>
+        ${q ? "No match for this filter." : `No categories ${where}.`}</div></td></tr>`;
+      return;
+    }
+    $("categoryBody").innerHTML = list.map((c) => `
+      <tr>
+        <td>${c.image ? `<img src="${Admin.esc(c.image)}" alt="" class="rounded" style="width:38px;height:38px;object-fit:cover">`
+                      : `<span class="sz-feed-icon"><i class="bi bi-folder"></i></span>`}</td>
+        <td class="fw-semibold">${Admin.esc(c.name)}</td>
+        <td class="text-center"><span class="badge bg-secondary">${c.children_count || 0}</span></td>
+        <td><span class="badge ${c.is_active ? "bg-success" : "bg-secondary"}">${c.is_active ? "Active" : "Inactive"}</span></td>
+        <td class="text-muted">${c.created_at ? new Date(c.created_at).toLocaleDateString() : ""}</td>
+        <td class="text-end text-nowrap">
+          <button type="button" class="btn btn-outline-primary btn-sm" data-action="explore" data-id="${c.id}"
+                  title="Open sub-categories of ${Admin.esc(c.name)}">
+            <i class="bi bi-diagram-3 me-1"></i>Explore
+          </button>
+          ${CAN_EDIT ? `
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-action="edit" data-id="${c.id}" aria-label="Edit ${Admin.esc(c.name)}">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm" data-action="delete" data-id="${c.id}" aria-label="Delete ${Admin.esc(c.name)}">
+            <i class="bi bi-trash"></i>
+          </button>` : ""}
+        </td>
+      </tr>`).join("");
+  }
+
+  function renderCrumbs() {
+    const crumbs = [`<li class="breadcrumb-item">${path.length ? `<a href="#" data-crumb="-1">All categories</a>` : "All categories"}</li>`];
+    path.forEach((p, i) => {
+      const last = i === path.length - 1;
+      crumbs.push(`<li class="breadcrumb-item ${last ? "active" : ""}" ${last ? 'aria-current="page"' : ""}>
+        ${last ? Admin.esc(p.name) : `<a href="#" data-crumb="${i}">${Admin.esc(p.name)}</a>`}</li>`);
+    });
+    $("catBreadcrumbs").innerHTML = crumbs.join("");
+    const addBtn = $("addHereBtn");
+    if (addBtn) addBtn.querySelector("span").textContent = currentParent() ? `Add under “${currentParent().name}”` : "Add top-level";
+  }
+
+  function explore(id) {
+    const c = rows.get(id);
+    if (!c) return;
+    path.push({ id: c.id, name: c.name });
+    $("catSearch").value = "";
+    load();
+  }
+
+  function goTo(index) {
+    path = index < 0 ? [] : path.slice(0, index + 1);
+    $("catSearch").value = "";
+    load();
+  }
+
+  function resetForm() {
+    $("categoryForm").reset();
+    $("catId").value = "";
+    $("catParent").value = "";
+    $("catName").classList.remove("is-invalid");
+    $("catPreview").classList.add("d-none");
+    $("catPreview").removeAttribute("src");
+    $("catParentInfo").classList.add("d-none");
+  }
+
+  function openCreate(parent) {
+    resetForm();
+    $("catParent").value = parent ? parent.id : "";
+    $("categoryModalTitle").textContent = parent ? "New sub-category" : "New category";
+    if (parent) {
+      $("catParentInfo").textContent = `Will be created under “${parent.name}”.`;
+      $("catParentInfo").classList.remove("d-none");
+    }
+    $("catSaveBtn").textContent = "Create";
+    modal().show();
+  }
+
+  function openEdit(id) {
+    const c = rows.get(id);
+    if (!c) return;
+    resetForm();
+    $("catId").value = c.id;
+    $("catName").value = c.name;
+    $("catActive").value = c.is_active ? "1" : "0";
+    if (c.image) { $("catPreview").src = c.image; $("catPreview").classList.remove("d-none"); }
+    $("categoryModalTitle").textContent = "Edit category";
+    $("catSaveBtn").textContent = "Save changes";
+    modal().show();
+  }
+
+  async function save(ev) {
+    ev.preventDefault();
+    const id = $("catId").value;
+    const name = $("catName").value.trim();
+    if (!name) { $("catName").classList.add("is-invalid"); $("catName").focus(); return; }
+    const file = $("catImage").files[0];
+    if (file && file.size > MAX_BYTES) { Admin.toast("Image must be 2 MB or smaller.", "warning"); return; }
+
+    const fd = new FormData();
+    fd.append("name", name);
+    fd.append("is_active", $("catActive").value);
+    if (file) fd.append("image", file);
+    // Only a new category gets a parent; editing never moves a category.
+    if (!id && $("catParent").value) fd.append("parent", $("catParent").value);
+
+    const btn = $("catSaveBtn");
+    btn.disabled = true;
+    const res = await Admin.api(id ? `${API}${id}/` : API, { method: id ? "PATCH" : "POST", body: fd });
+    btn.disabled = false;
+    if (!res.ok) return;   // Admin.api already showed a friendly message
+    modal().hide();
+    Admin.toast(id ? "Category updated." : "Category created.", "success");
+    load();
+  }
+
+  async function remove(id) {
+    const c = rows.get(id);
+    if (!c) return;
+    const extra = c.children_count ? ` Its ${c.children_count} sub-categor${c.children_count === 1 ? "y" : "ies"} will be removed too.` : "";
+    const ok = await Admin.confirm({ title: `Delete “${c.name}”?`, text: "Products keep their data, but the category disappears from the shop." + extra,
+                                     confirmText: "Delete" });
+    if (!ok) return;
+    const res = await Admin.api(`${API}${id}/`, { method: "DELETE" });
+    if (res.ok) { Admin.toast("Category deleted.", "success"); load(); }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    $("categoryForm").addEventListener("submit", save);
+    $("catName").addEventListener("input", () => $("catName").classList.remove("is-invalid"));
+    $("catSearch").addEventListener("input", render);
+    $("catImage").addEventListener("change", (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      $("catPreview").src = URL.createObjectURL(f);
+      $("catPreview").classList.remove("d-none");
+    });
+    $("categoryBody").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-action]");
+      if (!b) return;
+      const id = Number(b.dataset.id);
+      ({ explore, edit: openEdit, delete: remove })[b.dataset.action](id);
+    });
+    $("catBreadcrumbs").addEventListener("click", (e) => {
+      const a = e.target.closest("a[data-crumb]");
+      if (!a) return;
+      e.preventDefault();
+      goTo(Number(a.dataset.crumb));
+    });
+    load();
+  });
+
+  return { openCreate, currentParent, reload: load };
+})();
+</script>
 {% endblock %}

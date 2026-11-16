@@ -101,7 +101,7 @@ function getInventory(){
 
 fetch(INVENTORY_API,{
 headers:{
-"Authorization":`Bearer ${localStorage.getItem("access_token")}`
+"Authorization":`Bearer ${sessionStorage.getItem("access_token")}`
 }
 })
 .then(res=>res.json())
@@ -142,7 +142,7 @@ fetch(INVENTORY_API,{
 method:"POST",
 
 headers:{
-"Authorization":`Bearer ${localStorage.getItem("access_token")}`,
+"Authorization":`Bearer ${sessionStorage.getItem("access_token")}`,
 "Content-Type":"application/json"
 },
 
@@ -169,7 +169,7 @@ function getVariants(){
 fetch(`${window.location.origin}/Adminpanel/Products/api/v1/product-variants/`,{
 
 headers:{
-"Authorization":`Bearer ${localStorage.getItem("access_token")}`
+"Authorization":`Bearer ${sessionStorage.getItem("access_token")}`
 }
 
 })

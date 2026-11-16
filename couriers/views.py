@@ -222,7 +222,8 @@ def settings_page(request):
     providers = CourierProvider.objects.annotate(
         n_cities=Count("cities", filter=Q(cities__is_active=True), distinct=True)
     ).prefetch_related("credentials")
-    base = request.build_absolute_uri("/").rstrip("/")
+    from django.conf import settings as dj_settings
+    base = (getattr(dj_settings, "SITE_URL", "") or request.build_absolute_uri("/")).rstrip("/")
     rows = []
     for p in providers:
         creds = []

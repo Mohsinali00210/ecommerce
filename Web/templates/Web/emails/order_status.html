@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{ title }}</title></head>
+<body style="margin:0;padding:0;background:#f4f5fa;font-family:Arial,Helvetica,sans-serif;color:#1d2233">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5fa;padding:24px 12px">
+<tr><td align="center">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden">
+    <tr><td style="background:#0f1424;padding:18px 24px;color:#ffffff;font-size:18px;font-weight:bold;letter-spacing:.5px">SHAN ZEE</td></tr>
+    <tr><td style="padding:28px 24px 8px">
+      <div style="font-size:12px;color:#6b7290;text-transform:uppercase;letter-spacing:.08em">Order #{{ order.order_number }}</div>
+      <h1 style="font-size:22px;margin:8px 0 10px">{{ title }}</h1>
+      <p style="margin:0 0 6px;line-height:1.6;color:#3b4260">Hi {{ order.user.full_name|default:"there" }},</p>
+      <p style="margin:0;line-height:1.6;color:#3b4260">{{ message }}</p>
+    </td></tr>
+
+    {% if steps %}
+    <tr><td style="padding:18px 24px 4px">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+        {% for s in steps %}
+        <td align="center" style="font-size:11px;color:{% if s.done %}#5b4cf0{% else %}#9aa0b8{% endif %};{% if s.current %}font-weight:bold;{% endif %}padding:0 2px">
+          <div style="width:22px;height:22px;line-height:22px;border-radius:11px;margin:0 auto 6px;background:{% if s.done %}#5b4cf0{% else %}#e7e9f2{% endif %};color:#fff;font-size:12px">{% if s.done %}&#10003;{% else %}&nbsp;{% endif %}</div>
+          {{ s.label }}
+        </td>
+        {% endfor %}
+      </tr></table>
+    </td></tr>
+    {% endif %}
+
+    {% if shipment and shipment.tracking_number %}
+    <tr><td style="padding:16px 24px 0">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fc;border:1px solid #e7e9f2;border-radius:10px;font-size:14px">
+        <tr><td style="padding:10px 14px;color:#6b7290">Courier</td><td style="padding:10px 14px;text-align:right">{{ shipment.provider.name }}</td></tr>
+        <tr><td style="padding:10px 14px;color:#6b7290">Tracking number</td><td style="padding:10px 14px;text-align:right;font-weight:bold">{{ shipment.tracking_number }}</td></tr>
+        {% if shipment.cod_amount and status == "out_for_delivery" %}<tr><td style="padding:10px 14px;color:#6b7290">Please keep ready</td><td style="padding:10px 14px;text-align:right;font-weight:bold">Rs {{ shipment.cod_amount|floatformat:0 }}</td></tr>{% endif %}
+      </table>
+    </td></tr>
+    {% endif %}
+
+    <tr><td style="padding:24px" align="center">
+      <a href="{{ order_url }}" style="display:inline-block;background:#5b4cf0;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:bold;font-size:14px">View your order</a>
+      <p style="font-size:12px;color:#9aa0b8;margin:14px 0 0">This link is private to you - please don't share it.</p>
+    </td></tr>
+    <tr><td style="padding:16px 24px;border-top:1px solid #eef0f6;font-size:12px;color:#9aa0b8;text-align:center">
+      Total Rs {{ order.total_amount|floatformat:0 }} · {{ order.get_payment_method_display }}<br>
+      Questions? Just reply to this email.
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>

@@ -63,8 +63,17 @@ def adjust_variant_stock(variant_id, delta):
 class Order(BaseAuditModel):
     PAYMENT_METHODS = [
         ('cod', 'Cash on Delivery'),
-        ('card', 'Card Payment'),
-        ('wallet', 'Wallet'),
+        ('bank', 'Bank Transfer'),
+        ('online', 'Online (card / wallet)'),
+        ('card', 'Card Payment'),      # legacy
+        ('wallet', 'Wallet'),          # legacy
+    ]
+    PAYMENT_STATUS = [
+        ('pending', 'Pending'),
+        ('paid', 'Paid'),
+        ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
+        ('refunded', 'Refunded'),
     ]
     ORDER_STATUS = [
         ('pending', 'Pending'),
@@ -98,7 +107,7 @@ class Order(BaseAuditModel):
     shipping_charges = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS, default='cod')
     status = models.CharField(max_length=20, choices=ORDER_STATUS, default='pending')
-    payment_status = models.CharField(max_length=20, choices=ORDER_STATUS, default='pending')
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS, default='pending')
     placed_at = models.DateTimeField(auto_now_add=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
     transaction_id = models.CharField(max_length=100, blank=True, null=True)

@@ -86,14 +86,14 @@
             .then(data => {
                 TOKEN=data.access;
             // Save access token
-            localStorage.setItem("access_token", data.access);
+            sessionStorage.setItem("access_token", data.access);
             })
             .catch(err => console.error(err)); {% endcomment %}
         loadReviews();
         function loadReviews() {
             fetch("{% url 'AdminReviewList' %}", {
                 headers: {
-                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                    "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
                 }
             })
             .then(res => res.json())
@@ -143,7 +143,7 @@
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                    "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
                 },
                 body: JSON.stringify({
                     rating: document.getElementById("ReviewRating").value,
@@ -165,7 +165,7 @@
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                    "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
                 },
                 body: JSON.stringify({
                     is_active: false

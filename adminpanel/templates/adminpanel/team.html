@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Team & roles{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div><h2>Team &amp; roles</h2><p>Who can use the admin panel, and what each person can do.</p></div>
+  <form class="d-flex gap-2" id="teamAddForm">
+    <input type="email" name="email" class="form-control form-control-sm" placeholder="Registered email" aria-label="Email of the person to add" required style="width:230px">
+    <select name="role" class="form-select form-select-sm" aria-label="Role">
+      {% for r in roles %}<option value="{{ r.name }}">{{ r.name }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-primary btn-sm text-nowrap" type="submit"><i class="bi bi-person-plus me-1"></i>Add to team</button>
+  </form>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead><tr><th>Member</th><th>Roles</th><th>Admin access</th><th class="text-end"></th></tr></thead>
+          <tbody>
+          {% for m in staff %}
+            <tr data-user="{{ m.pk }}">
+              <td><div class="d-flex align-items-center gap-2">
+                <span class="sz-avatar">{{ m.full_name|default:m.email|first|upper }}</span>
+                <div><div class="fw-semibold">{{ m.full_name|default:"—" }}</div><small class="text-muted">{{ m.email }}</small></div></div></td>
+              <td>
+                {% if m.is_superuser %}<span class="badge bg-dark">Super Admin</span>
+                {% else %}
+                <div class="d-flex flex-wrap gap-2">
+                  {% for r in roles %}
+                  <div class="form-check form-check-inline m-0">
+                    <input class="form-check-input" type="checkbox" id="r{{ m.pk }}-{{ forloop.counter }}" value="{{ r.name }}"
+                           {% if r in m.groups.all %}checked{% endif %} {% if m.pk == request.user.pk %}disabled{% endif %}>
+                    <label class="form-check-label small" for="r{{ m.pk }}-{{ forloop.counter }}">{{ r.name }}</label>
+                  </div>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </td>
+              <td>{% if m.is_superuser %}<span class="badge bg-success">Always</span>{% else %}
+                <div class="form-check form-switch m-0">
+                  <input class="form-check-input" type="checkbox" role="switch" data-staff {% if m.is_staff %}checked{% endif %}
+                         {% if m.pk == request.user.pk %}disabled{% endif %} aria-label="Admin access for {{ m.email }}">
+                </div>{% endif %}</td>
+              <td class="text-end">{% if not m.is_superuser and m.pk != request.user.pk %}
+                <button class="btn btn-outline-primary btn-sm" type="button" data-save>Save</button>{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-header">What each role can do</div>
+      <ul class="list-group list-group-flush small">
+        {% for name, perms in role_perms.items %}
+        <li class="list-group-item"><div class="fw-semibold mb-1">{{ name }}</div>
+          <div class="d-flex flex-wrap gap-1">{% for p in perms %}<span class="badge bg-secondary">{{ p }}</span>{% endfor %}</div></li>
+        {% endfor %}
+        <li class="list-group-item text-muted">Super admins can do everything, including managing roles and logs.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-save]");
+  if (!btn) return;
+  const row = btn.closest("tr");
+  const fd = new FormData();
+  row.querySelectorAll("input[type=checkbox][value]").forEach((c) => { if (c.checked) fd.append("roles", c.value); });
+  const staff = row.querySelector("[data-staff]");
+  fd.append("is_staff", staff && !staff.checked ? "0" : "1");
+  const ok = await Admin.confirm({ title: "Update access?", text: "This changes what this person can see and do in the admin panel.", confirmText: "Update" });
+  if (!ok) return;
+  const res = await Admin.api("{% url 'admin_team_update' 0 %}".replace("/0/", `/${row.dataset.user}/`), { method: "POST", body: fd, auth: false });
+  if (res.ok) Admin.toast("Access updated.", "success");
+});
+document.getElementById("teamAddForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const res = await Admin.api("{% url 'admin_team_add' %}", { method: "POST", body: new FormData(e.target), auth: false });
+  if (res.ok) { Admin.toast("Added to the team.", "success"); setTimeout(() => location.reload(), 700); }
+});
+</script>
+{% endblock %}
