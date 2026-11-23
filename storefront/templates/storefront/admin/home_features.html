@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Home page features{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div><h2>Home page features</h2>
+    <p>The trust bar under the home page banner (Free Shipping, Cash on Delivery, Returns...).</p></div>
+  <a href="/" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm"><i class="bi bi-box-arrow-up-right me-1"></i>View home page</a>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header"><i class="bi bi-eye me-1 text-primary"></i> Preview</div>
+  <div class="card-body">
+    <div class="row g-3" id="featPreview"></div>
+    <div class="small text-muted mt-2">
+      {% if threshold %}<code>{threshold}</code> shows as <strong>{{ threshold|floatformat:"0g" }}</strong> — the free-shipping amount from
+      {% else %}Free shipping is <strong>off</strong>, so <code>{threshold}</code> shows nothing. Turn it on in{% endif %}
+      {% if "manage_settings" in admin_perms %}<a href="{% url 'admin_store_settings' %}">Store settings → Shipping</a>{% else %}Store settings → Shipping{% endif %}.
+    </div>
+  </div>
+</div>
+
+<form method="post" novalidate>{% csrf_token %}
+  {{ formset.management_form }}
+  {% if formset.non_form_errors %}<div class="alert alert-danger">{{ formset.non_form_errors|join:" " }}</div>{% endif %}
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-list-ol me-1 text-primary"></i> Tiles <span class="text-muted small">(lowest order first; 4 fit one row)</span></span>
+    </div>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0" id="featTable">
+        <thead class="table-light small"><tr>
+          <th style="width:190px">Icon</th><th>Title</th><th>Subtitle</th><th style="width:170px">Link (optional)</th>
+          <th style="width:90px">Order</th><th style="width:70px">Show</th><th style="width:70px">Delete</th></tr></thead>
+        <tbody>
+        {% for f in formset.forms %}
+          <tr class="feat-row{% if not f.instance.pk %} table-warning bg-opacity-10{% endif %}">
+            {% for h in f.hidden_fields %}{{ h }}{% endfor %}
+            <td><div class="input-group input-group-sm"><span class="input-group-text feat-icon-prev"><i class="bi {{ f.instance.icon|default:'bi-plus-lg' }}"></i></span>{{ f.icon }}</div>{% for e in f.icon.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+            <td>{{ f.title }}{% for e in f.title.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}{% if not f.instance.pk %}<div class="form-text small">New tile</div>{% endif %}</td>
+            <td>{{ f.subtitle }}{% for e in f.subtitle.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+            <td>{{ f.link_url }}{% for e in f.link_url.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+            <td>{{ f.sort_order }}</td>
+            <td class="text-center"><div class="form-check form-switch d-inline-block m-0">{{ f.is_active }}</div></td>
+            <td class="text-center">{% if f.instance.pk %}<div class="form-check d-inline-block m-0">{{ f.DELETE }}</div>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if "manage_marketing" in admin_perms %}
+    <div class="card-footer d-flex justify-content-between align-items-center">
+      <span class="small text-muted">Fill the last row to add a tile. Save to add another.</span>
+      <button class="btn btn-primary btn-sm"><i class="bi bi-check2 me-1"></i>Save</button>
+    </div>
+    {% endif %}
+  </div>
+</form>
+<datalist id="szIconList">{% for i in icons %}<option value="{{ i }}">{% endfor %}</datalist>
+{% endblock %}
+
+{% block extra_js %}
+{{ threshold|default_if_none:""|floatformat:0|json_script:"featThreshold" }}
+<script>
+(function () {
+  var threshold = JSON.parse(document.getElementById("featThreshold").textContent) || "";
+  if (threshold) threshold = Number(threshold).toLocaleString();
+  var table = document.getElementById("featTable"), prev = document.getElementById("featPreview");
+  function esc(t) { var d = document.createElement("div"); d.textContent = t; return d.innerHTML; }
+  function iconOf(v) { v = (v || "").trim(); if (!v) return "bi-check-circle"; return v.indexOf("bi-") === 0 ? v : "bi-" + v; }
+  function render() {
+    var rows = Array.from(table.querySelectorAll(".feat-row")).map(function (tr) {
+      var get = function (n) { var el = tr.querySelector('[name$="-' + n + '"]'); return el ? (el.type === "checkbox" ? el.checked : el.value) : ""; };
+      var icon = iconOf(get("icon"));
+      var p = tr.querySelector(".feat-icon-prev i"); if (p) p.className = "bi " + icon;
+      return { icon: icon, title: get("title"), sub: get("subtitle"), order: parseInt(get("sort_order"), 10) || 0,
+               show: get("is_active"), del: get("DELETE") };
+    }).filter(function (r) { return r.title && r.show && !r.del; })
+      .sort(function (a, b) { return a.order - b.order; });
+    var col = rows.length >= 4 ? 3 : rows.length === 3 ? 4 : 6;
+    prev.innerHTML = rows.length ? rows.map(function (r) {
+      return '<div class="col-md-' + col + '"><div class="d-flex align-items-center gap-3 p-3 border rounded-3 h-100">' +
+        '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:44px;height:44px;background:#e8f7ee;color:#198754;font-size:1.3rem"><i class="bi ' + esc(r.icon) + '"></i></div>' +
+        '<div><div class="fw-semibold">' + esc(r.title) + '</div><small class="text-muted">' + esc(r.sub.split("{threshold}").join(threshold)) + '</small></div></div></div>';
+    }).join("") : '<div class="col-12 text-muted small">No tiles are shown — the section is hidden on the home page.</div>';
+  }
+  table.addEventListener("input", render);
+  table.addEventListener("change", render);
+  render();
+})();
+</script>
+{% endblock %}

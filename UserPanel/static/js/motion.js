@@ -254,7 +254,8 @@
     var fill = $('i', meter), msg = $('.msg', meter);
     function num(t) { return parseFloat(String(t).replace(/[^0-9.]/g, '')) || 0; }
     function update() {
-      var v = num(sub.textContent);
+      // the cart publishes the amount after discounts in data-amount; fall back to the subtotal text
+      var v = meter.dataset.amount != null ? parseFloat(meter.dataset.amount) || 0 : num(sub.textContent);
       var pct = Math.min(100, Math.round(v / goal * 100));
       fill.style.width = pct + '%';
       var ok = v >= goal;
@@ -266,6 +267,7 @@
     update();
     // the cart JS rewrites the subtotal on quantity / selection changes
     new MutationObserver(update).observe(sub, { childList: true, characterData: true, subtree: true });
+    meter.addEventListener('sz:amount', update);
   }
 
   /* ---------- cart: slide-out when a row is removed ----------------- */

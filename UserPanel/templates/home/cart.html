@@ -67,11 +67,13 @@
 
           {% if cart and items %}
 
-            <!-- Free-shipping progress (goal matches the "free shipping over PKR 3,500" promise; change data-goal if the rule changes) -->
-            <div class="mz-ship mb-3" id="mzShipMeter" data-goal="3500">
+            <!-- Free-shipping progress (goal comes from Admin > Store settings > Shipping) -->
+            {% if free_shipping_threshold %}
+            <div class="mz-ship mb-3" id="mzShipMeter" data-goal="{{ free_shipping_threshold|floatformat:"0g" }}">
               <div class="msg small"></div>
               <div class="bar"><i></i></div>
             </div>
+            {% endif %}
 
             {% for item in items %}
 
@@ -267,6 +269,9 @@
                 <div class="small text-muted mb-2 {% if not shipping_capped %}d-none{% endif %}" id="summaryShippingNote">
                     Shipping is capped at RS {{ max_shipping|floatformat:0 }}.
                 </div>
+                <div class="small text-success mb-2 {% if not free_shipping_applied %}d-none{% endif %}" id="summaryFreeNote">
+                    <i class="bi bi-stars me-1"></i>Free shipping on orders over RS {{ free_shipping_threshold|floatformat:"0g" }}.
+                </div>
 
                 <hr>
 
@@ -325,7 +330,8 @@
   //   promo_price   price after the promotion, or null when no promotion is running
   //   min_qty       the promotion only applies once quantity >= min_qty (0/1 = any quantity)
   //   shipping      shipping + additional shipping for the line, 0 when the product ships free
-  // CART.max_shipping = the cap on the shipping sum
+  // CART.max_shipping = the cap on the shipping sum (null = no cap)
+  // CART.free_threshold = goods amount (after discounts) that makes shipping free (null = off)
   const CART = {{ cart_json|safe }};
 
   const money = (n) => `RS ${(Math.round(Number(n) * 100) / 100).toFixed(2)}`;
@@ -429,10 +435,18 @@
       shippingRaw += line.shipping;
     });
 
-    const shipping = Math.min(shippingRaw, CART.max_shipping);
-    const capped = shippingRaw > CART.max_shipping;
-    const total = original - discount + shipping;
+    // same rules as adminpanel/shipping.py: cap first, then the free-shipping threshold
+    const cappedShipping = CART.max_shipping == null ? shippingRaw : Math.min(shippingRaw, CART.max_shipping);
+    const goods = original - discount;
+    const freeByThreshold = CART.free_threshold != null && goods > 0 && goods >= CART.free_threshold && shippingRaw > 0;
+    const shipping = freeByThreshold ? 0 : cappedShipping;
+    const capped = !freeByThreshold && cappedShipping < shippingRaw;
+    const total = goods + shipping;
     const isFree = original > 0 && shipping === 0;
+    const meter = document.getElementById("mzShipMeter");
+    if (meter) { meter.dataset.amount = goods; meter.dispatchEvent(new Event("sz:amount")); }
+    const freeNote = document.getElementById("summaryFreeNote");
+    if (freeNote) freeNote.classList.toggle("d-none", !freeByThreshold);
 
     document.getElementById("summarySubtotal").textContent = money(original);
 

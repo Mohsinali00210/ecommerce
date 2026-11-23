@@ -4,7 +4,7 @@
 
 # def send_verification_email(user):
 #     verification_url = (
-#         f"http://localhost:8000/api/v1/auth/verify-email/"
+#         f"https://shanzee.com/api/v1/auth/verify-email/"
 #         f"{user.email_verification_token}/"
 #     )
 

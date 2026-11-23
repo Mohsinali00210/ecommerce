@@ -551,19 +551,19 @@ def search_products(request):
     # ----- Facets are computed from facet_base_qs (pre option-filter), so
     # ----- checking one option value doesn't make the others disappear.
     category_facets = (
-        Category.objects.filter(products__in=facet_base_qs)
+        Category.objects.filter(products__in=facet_base_qs, is_active=True)
         .annotate(count=Count("products", filter=Q(products__in=facet_base_qs), distinct=True))
         .filter(count__gt=0)
         .order_by("name")
     )
     brand_facets = (
-        Brand.objects.filter(product__in=facet_base_qs)
+        Brand.objects.filter(product__in=facet_base_qs, is_active=True)
         .annotate(count=Count("product", filter=Q(product__in=facet_base_qs), distinct=True))
         .filter(count__gt=0)
         .order_by("name")
     )
     tag_facets = (
-        Tag.objects.filter(product__in=facet_base_qs)
+        Tag.objects.filter(product__in=facet_base_qs, is_active=True)
         .annotate(count=Count("product", filter=Q(product__in=facet_base_qs), distinct=True))
         .filter(count__gt=0)
         .order_by("name")
@@ -596,7 +596,12 @@ def search_products(request):
 
     qs = (
         qs.select_related("brand")
-          .prefetch_related("images", "tags", "category", active_promo_prefetch(now))
+        .prefetch_related(
+            "images",
+            "tags",
+            Prefetch("category", queryset=Category.objects.filter(is_active=True)),
+            active_promo_prefetch(now),
+        )
     )
     qs = with_review_stats(qs)      # <-- new
 
@@ -655,7 +660,7 @@ def home(request):
         Product.objects
         .filter(status="active")
         .annotate(is_wishlisted=Exists(wishlist_exists))
-        .prefetch_related("images", "variants", "category", promo_prefetch)
+        .prefetch_related("images", "variants", Prefetch("category", queryset=Category.objects.filter(is_active=True)), promo_prefetch)
     )
     apply_promotion_info(featured_products)
 
@@ -663,7 +668,7 @@ def home(request):
         Product.objects
         .filter(is_active=True)
         .annotate(is_wishlisted=Exists(wishlist_exists))
-        .prefetch_related("images", active_promo_prefetch(current_date))
+        .prefetch_related("images", Prefetch("category", queryset=Category.objects.filter(is_active=True)), active_promo_prefetch(current_date))
     )
 
     best_sellers = apply_promotion_info(
@@ -674,7 +679,7 @@ def home(request):
     )
 
     # ----- Categories / hero slides -----
-    categories = Category.objects.filter(parent__isnull=True)
+    categories = Category.objects.filter(parent__isnull=True, is_active=True).order_by("name")
 
     hero_slides = list(
         Picture.objects
@@ -933,7 +938,7 @@ TWO_PLACES = Decimal("0.01")
 ZERO = Decimal("0.00")
  
 # Shipping in the cart never exceeds this amount (RS).
-MAX_SHIPPING_CHARGE = Decimal("450.00")
+# Shipping cap / free-shipping threshold now live in Admin > Store settings (adminpanel/shipping.py).
 
 def get_active_promotion(product, now):
     """One query per product. Newest running promotion wins."""
@@ -955,8 +960,9 @@ def item_shipping(product):
  
  
 def cap_shipping(raw_total):
-    """Cart shipping = sum of the lines, but never more than MAX_SHIPPING_CHARGE."""
-    return min(Decimal(raw_total), MAX_SHIPPING_CHARGE)
+    """Cart shipping = sum of the lines, capped at Store settings > max shipping charge."""
+    from adminpanel import shipping as shipping_rules
+    return shipping_rules.cap(raw_total)
 def promo_min_qty(promo):
     """
     Minimum quantity the customer must buy for the promotion to apply.
@@ -1052,20 +1058,13 @@ def price_cart_item(item, qty):
  
  
 def summarize_lines(lines):
-    """Totals for a list of price_cart_item() results."""
+    """Totals for a list of price_cart_item() results (cap + free-shipping threshold
+    from Store settings, see adminpanel/shipping.py)."""
+    from adminpanel import shipping as shipping_rules
     subtotal = sum((l["line_original"] for l in lines), ZERO)
     discount = sum((l["line_saved"] for l in lines), ZERO)
     shipping_raw = sum((l["shipping"] for l in lines), ZERO)
-    shipping_total = cap_shipping(shipping_raw)
- 
-    return {
-        "subtotal": subtotal,                         # at list prices, before discounts
-        "discount": discount,                         # promotion savings
-        "shipping_raw": shipping_raw,                 # before the cap
-        "shipping_total": shipping_total,             # capped
-        "shipping_capped": shipping_raw > MAX_SHIPPING_CHARGE,
-        "final_total": subtotal - discount + shipping_total,
-    }
+    return shipping_rules.totals(subtotal, discount, shipping_raw)
 # def ProductDetails(request, slug, sku=None):
 #     """
 #     URLs:
@@ -1241,7 +1240,7 @@ def ProductDetails(request, slug, sku=None):
     related_products = list(with_review_stats(
         Product.objects
         .filter(
-            category__in=product.category.all(),
+            category__in=product.category.filter(is_active=True),
             brand=product.brand,
             is_active=True,
             status="active",
@@ -1422,7 +1421,9 @@ def CheckoutPage(request):
         "shipping_raw": totals["shipping_raw"],
         "shipping_total": totals["shipping_total"],   # capped, free-shipping products add 0
         "shipping_capped": totals["shipping_capped"],
-        "max_shipping": MAX_SHIPPING_CHARGE,
+        "max_shipping": totals["max_shipping"],
+        "free_shipping_applied": totals["free_shipping_applied"],
+        "free_shipping_threshold": totals["free_shipping_threshold"],
         "final_total": totals["final_total"],
         "estimated_date": estimated_date,
     }
@@ -1511,7 +1512,10 @@ def MyCart(request):
     estimated_date = now + timedelta(days=max(handling_days) if handling_days else 0)
 
     cart_json = json.dumps(
-        {"lines": browser_lines, "max_shipping": float(MAX_SHIPPING_CHARGE)},
+        {"lines": browser_lines,
+         "max_shipping": float(totals["max_shipping"]) if totals["max_shipping"] is not None else None,
+         "free_threshold": float(totals["free_shipping_threshold"])
+         if totals["free_shipping_threshold"] is not None else None},
         cls=DjangoJSONEncoder,
     )
 
@@ -1523,7 +1527,9 @@ def MyCart(request):
         "shipping_raw": totals["shipping_raw"],
         "shipping_total": totals["shipping_total"],
         "shipping_capped": totals["shipping_capped"],
-        "max_shipping": MAX_SHIPPING_CHARGE,
+        "max_shipping": totals["max_shipping"],
+        "free_shipping_applied": totals["free_shipping_applied"],
+        "free_shipping_threshold": totals["free_shipping_threshold"],
         "final_total": totals["final_total"],
         "estimated_date": estimated_date,
         "cart_json": cart_json,
@@ -2272,7 +2278,7 @@ def best_deals(request):
     deals_qs = deals_qs.distinct()
 
     category_facets = (
-        Category.objects.filter(products__in=deals_qs)
+        Category.objects.filter(products__in=deals_qs,is_active=True)
         .annotate(count=Count("products", filter=Q(products__in=deals_qs), distinct=True))
         .filter(count__gt=0)
         .order_by("name")
@@ -2285,7 +2291,7 @@ def best_deals(request):
     else:
         deals_qs = deals_qs.order_by("-effective_discount", "-sold")
 
-    deals_qs = deals_qs.select_related("brand").prefetch_related("images", "category")
+    deals_qs = deals_qs.select_related("brand").prefetch_related("images", Prefetch("category", queryset=Category.objects.filter(is_active=True)))
 
     paginator = Paginator(deals_qs, PAGE_SIZE)
     page_obj = paginator.get_page(request.GET.get("page"))

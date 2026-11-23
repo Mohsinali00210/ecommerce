@@ -21,6 +21,42 @@
         </div>
       {% endfor %}
     </div>
+    {% if webhook_prefix %}
+    <div class="mt-3 p-3 rounded border bg-light">
+      <label class="form-label small fw-semibold mb-1"><i class="bi bi-broadcast me-1"></i>Webhook (push) URL to give the courier</label>
+      <div class="input-group input-group-sm">
+        <input class="form-control font-monospace" id="whPreview" readonly value="{{ webhook_url }}" onclick="this.select()">
+        <button type="button" class="btn btn-outline-secondary" id="whCopy" title="Copy"><i class="bi bi-clipboard"></i></button>
+        <button type="button" class="btn btn-outline-secondary" id="whNew" title="Generate a new random token"><i class="bi bi-shuffle"></i> New token</button>
+      </div>
+      <div class="form-text small">Method POST, <code>Content-Type: application/json</code>. No other header is needed: the token authenticates the call.
+        Edit the token above to change the link; the site address comes from the courier's "Webhook site address" (or SITE_URL). Save to apply.</div>
+    </div>
+    {{ webhook_prefix|json_script:"whPrefix" }}
+    <script>
+    (function () {
+      var prefix = JSON.parse(document.getElementById("whPrefix").textContent);
+      var input = document.getElementById("id_webhook_token");
+      var out = document.getElementById("whPreview");
+      if (!input) return;
+      function show() {
+        var t = input.value.trim().replace(/^\/+|\/+$/g, "");
+        out.value = t ? prefix + t + "/" : "(a new token is generated when you save)";
+      }
+      input.addEventListener("input", show);
+      show();
+      document.getElementById("whCopy").addEventListener("click", function () {
+        navigator.clipboard.writeText(out.value);
+        if (window.Admin && Admin.toast) Admin.toast("Webhook URL copied");
+      });
+      document.getElementById("whNew").addEventListener("click", function () {
+        var a = new Uint8Array(24); crypto.getRandomValues(a);
+        input.value = btoa(String.fromCharCode.apply(null, a)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        show();
+      });
+    })();
+    </script>
+    {% endif %}
     <button class="btn btn-dark btn-sm mt-3">Save</button>
   </form>
 </div>

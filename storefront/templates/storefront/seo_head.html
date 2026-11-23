@@ -1,0 +1,26 @@
+<title>{{ meta.title }}</title>
+{% if meta.description %}<meta name="description" content="{{ meta.description }}">{% endif %}
+<meta name="robots" content="{{ meta.robots }}">
+{% if meta.canonical %}<link rel="canonical" href="{{ meta.canonical }}">{% endif %}
+{% if meta.google_verification %}<meta name="google-site-verification" content="{{ meta.google_verification }}">{% endif %}
+{% if meta.bing_verification %}<meta name="msvalidate.01" content="{{ meta.bing_verification }}">{% endif %}
+<!-- Open Graph / social sharing -->
+<meta property="og:site_name" content="{{ meta.site_name }}">
+<meta property="og:type" content="{{ meta.og_type }}">
+<meta property="og:title" content="{{ meta.title }}">
+{% if meta.description %}<meta property="og:description" content="{{ meta.description }}">{% endif %}
+{% if meta.canonical %}<meta property="og:url" content="{{ meta.canonical }}">{% endif %}
+<meta property="og:locale" content="en_PK">
+{% if meta.image %}<meta property="og:image" content="{{ meta.image }}">
+<meta property="og:image:alt" content="{{ meta.title }}">{% endif %}
+{% if meta.price is not None %}<meta property="product:price:amount" content="{{ meta.price|floatformat:2 }}">
+<meta property="product:price:currency" content="PKR">
+<meta property="product:availability" content="{{ meta.availability }}">{% endif %}
+<meta name="twitter:card" content="{% if meta.image %}summary_large_image{% else %}summary{% endif %}">
+{% if meta.twitter %}<meta name="twitter:site" content="{{ meta.twitter }}">{% endif %}
+<meta name="twitter:title" content="{{ meta.title }}">
+{% if meta.description %}<meta name="twitter:description" content="{{ meta.description }}">{% endif %}
+{% if meta.image %}<meta name="twitter:image" content="{{ meta.image }}">{% endif %}
+{% if meta.ld %}<script type="application/ld+json">{{ meta.ld|safe }}</script>{% endif %}
+{% if meta.ga4 %}<script async src="https://www.googletagmanager.com/gtag/js?id={{ meta.ga4|urlencode }}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ meta.ga4|escapejs }}');</script>{% endif %}

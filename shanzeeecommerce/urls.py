@@ -7,6 +7,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from couriers.urls import public_urls as courier_public_urls
 from Web.views_public import order_public
 from payments.urls import admin_urlpatterns as payment_admin_urls
+from storefront.urls import admin_urlpatterns as storefront_admin_urls
+from storefront.urls import public_urlpatterns as storefront_public_urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -15,12 +17,14 @@ urlpatterns = [
     path('Adminpanel/Reports/', include('reports.urls')),
     path('Adminpanel/Couriers/', include('couriers.urls')),
     path('Adminpanel/Payments/', include(payment_admin_urls)),
+    path('Adminpanel/Storefront/', include(storefront_admin_urls)),
     path('Adminpanel/', include('adminpanel.urls')),
     path('couriers/', include(courier_public_urls)),
     path('order/view/<str:token>/', order_public, name='order_public'),
     path('payments/', include('payments.urls')),
     path('chat/', include('chat.urls')),
     path('web', include('Web.urls')),
+    path("", include(storefront_public_urls)),   # robots.txt, sitemap.xml, merchant feed, IndexNow key
     path("", include("UserPanel.urls")),
     # The duplicate "userpanel" include was removed: it registered the "home"
     # namespace twice (nothing linked to /userpanel...).

@@ -45,6 +45,8 @@ ADMIN_RULES = [
     (r"^/Adminpanel/Team/", "manage_roles", "manage_roles"),
     (r"^/Adminpanel/Reports/", "view_dashboard", "view_dashboard"),
     (r"^/Adminpanel/Settings/", "manage_settings", "manage_settings"),
+    (r"^/Adminpanel/Storefront/seo/", "manage_marketing", "manage_marketing"),
+    (r"^/Adminpanel/Storefront/", "view_catalog", "manage_marketing"),
     (r"^/Adminpanel/Backups/", "manage_backups", "manage_backups"),
     (r"^/Adminpanel/Requests/", "view_orders", "manage_orders"),
     (r"^/Adminpanel/Payments/gateway/", "manage_finance", "manage_finance"),

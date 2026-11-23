@@ -167,7 +167,7 @@ TWO_PLACES = Decimal("0.01")
 ZERO = Decimal("0.00")
  
 # Shipping in the cart never exceeds this amount (RS).
-MAX_SHIPPING_CHARGE = Decimal("450.00")
+# Shipping cap / free-shipping threshold now live in Admin > Store settings (adminpanel/shipping.py).
 # ---------------------------------------------------------------------------
 # 1) Small change to your existing helper: let it prefetch from a Product
 #    queryset as well as a CartItem queryset. Existing callers are unaffected.
@@ -180,23 +180,17 @@ def promo_min_qty(promo):
     return int(promo.compare_at or 0) if promo else 0
 
 def cap_shipping(raw_total):
-    """Cart shipping = sum of the lines, but never more than MAX_SHIPPING_CHARGE."""
-    return min(Decimal(raw_total), MAX_SHIPPING_CHARGE)
+    """Cart shipping = sum of the lines, capped at Store settings > max shipping charge."""
+    from adminpanel import shipping as shipping_rules
+    return shipping_rules.cap(raw_total)
 def summarize_lines(lines):
-    """Totals for a list of price_cart_item() results."""
+    """Totals for a list of price_cart_item() results (cap + free-shipping threshold
+    from Store settings, see adminpanel/shipping.py)."""
+    from adminpanel import shipping as shipping_rules
     subtotal = sum((l["line_original"] for l in lines), ZERO)
     discount = sum((l["line_saved"] for l in lines), ZERO)
     shipping_raw = sum((l["shipping"] for l in lines), ZERO)
-    shipping_total = cap_shipping(shipping_raw)
- 
-    return {
-        "subtotal": subtotal,                         # at list prices, before discounts
-        "discount": discount,                         # promotion savings
-        "shipping_raw": shipping_raw,                 # before the cap
-        "shipping_total": shipping_total,             # capped
-        "shipping_capped": shipping_raw > MAX_SHIPPING_CHARGE,
-        "final_total": subtotal - discount + shipping_total,
-    }
+    return shipping_rules.totals(subtotal, discount, shipping_raw)
  
 def promo_for_qty(promo, qty):
     """Return the promotion only if `qty` reaches its minimum quantity, else None."""

@@ -27,12 +27,15 @@ class StoreSettingsForm(forms.ModelForm):
         model = StoreSettings
         fields = ["online_payments_enabled", "cod_enabled", "cod_max_amount", "bank_transfer_enabled",
                   "bank_transfer_details", "online_payment_timeout_minutes",
+                  "free_shipping_enabled", "free_shipping_threshold", "max_shipping_charge",
                   "email_order_confirmation", "email_status_changes", "email_statuses", "email_admin_new_order",
                   "backup_schedule_enabled", "backup_hour", "backup_keep", "backup_include_media"]
         widgets = {"bank_transfer_details": forms.Textarea(attrs={"rows": 4})}
 
     def __init__(self, *a, **kw):
         super().__init__(*a, **kw)
+        for f in ("free_shipping_threshold", "max_shipping_charge"):
+            self.fields[f].required = False
         from Web.models import Order
         self.fields["email_statuses"].choices = [c for c in Order.ORDER_STATUS if c[0] not in ("pending",)]
         for name, f in self.fields.items():
@@ -42,6 +45,22 @@ class StoreSettingsForm(forms.ModelForm):
                 w.attrs["role"] = "switch"
             elif not isinstance(w, forms.CheckboxSelectMultiple):
                 w.attrs["class"] = "form-control"
+
+    def clean_free_shipping_threshold(self):
+        v = self.cleaned_data.get("free_shipping_threshold")
+        if v is None:
+            return self.instance.free_shipping_threshold
+        if v < 0:
+            raise forms.ValidationError("Enter an amount of 0 or more.")
+        return v
+
+    def clean_max_shipping_charge(self):
+        v = self.cleaned_data.get("max_shipping_charge")
+        if v is None:
+            return self.instance.max_shipping_charge
+        if v < 0:
+            raise forms.ValidationError("Enter an amount of 0 or more (0 = no cap).")
+        return v
 
     def clean_backup_hour(self):
         h = self.cleaned_data["backup_hour"]

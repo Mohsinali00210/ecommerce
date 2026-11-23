@@ -1,0 +1,52 @@
+{% if note.kind != "none" %}
+<div class="small mb-3 sz-ship-note"{% if threshold and price_el and note.kind != "free_item" %} data-threshold="{{ threshold|floatformat:2 }}" data-price-el="{{ price_el }}"{% endif %}>
+  <div class="d-flex align-items-start gap-2">
+    <i class="bi bi-truck mt-1"></i>
+    <div>
+      {% if note.kind == "free_item" %}
+        <div>Shipping: {% if item_charge > 0 %}<span class="price-was">RS {{ item_charge|floatformat:2 }}</span>{% endif %}
+          <strong class="text-success">FREE</strong> on this item</div>
+      {% else %}
+        <div class="sz-ship-free{% if note.kind != 'free_threshold' %} d-none{% endif %}">
+          Shipping: <strong class="text-success">FREE</strong>
+          <span class="text-muted-custom">— this item qualifies for free shipping</span>
+        </div>
+        <div class="sz-ship-paid{% if note.kind == 'free_threshold' %} d-none{% endif %}">
+          {% if item_charge > 0 %}Shipping: <strong>RS {{ item_charge|floatformat:2 }}</strong>
+          {% else %}Shipping: <span class="text-muted-custom">calculated at checkout</span>{% endif %}
+        </div>
+        {% if threshold %}
+        <div class="sz-ship-hint text-muted-custom{% if note.kind == 'free_threshold' %} d-none{% endif %}">
+          <i class="bi bi-gift me-1"></i>Free shipping on orders over <strong>RS {{ threshold|floatformat:"0g" }}</strong>
+          — add <strong class="sz-ship-remaining">RS {{ note.remaining|default:0|floatformat:"0g" }}</strong> more to your order.
+        </div>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% if threshold and price_el and note.kind != "free_item" %}
+<script>
+(function () {
+  // Keep the note right when a variant with a different price is picked.
+  var box = document.currentScript.previousElementSibling;
+  if (!box || box.dataset.bound) return;
+  box.dataset.bound = "1";
+  var priceEl = document.getElementById(box.dataset.priceEl);
+  if (!priceEl) return;
+  var goal = parseFloat(box.dataset.threshold) || 0;
+  var free = box.querySelector(".sz-ship-free"), paid = box.querySelector(".sz-ship-paid"),
+      hint = box.querySelector(".sz-ship-hint"), rem = box.querySelector(".sz-ship-remaining");
+  function num(t) { return parseFloat(String(t).replace(/[^0-9.]/g, "")) || 0; }
+  function update() {
+    var price = num(priceEl.textContent), ok = goal > 0 && price >= goal;
+    free.classList.toggle("d-none", !ok);
+    paid.classList.toggle("d-none", ok);
+    if (hint) hint.classList.toggle("d-none", ok);
+    if (rem) rem.textContent = "RS " + Math.max(goal - price, 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
+  new MutationObserver(update).observe(priceEl, { childList: true, characterData: true, subtree: true });
+})();
+</script>
+{% endif %}
+{% endif %}

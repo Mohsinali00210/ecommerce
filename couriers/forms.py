@@ -1,3 +1,4 @@
+import re
 from django import forms
 
 from .adapters import adapter_choices
@@ -67,7 +68,7 @@ class ProviderForm(_Bootstrap, forms.ModelForm):
     class Meta:
         model = CourierProvider
         fields = ["name", "code", "adapter", "environment", "live_base_url", "sandbox_base_url",
-                  "tracking_url_template", "is_active", "is_default", "auto_book_enabled",
+                  "tracking_url_template", "webhook_base_url", "is_active", "is_default", "auto_book_enabled",
                   "auto_book_on_status", "auto_book_payment_methods", "default_weight_grams",
                   "default_shipment_type", "sort_order"]
 
@@ -97,12 +98,25 @@ class CredentialForm(_Bootstrap, forms.ModelForm):
     class Meta:
         model = CourierCredential
         fields = ["label", "environment", "api_key", "api_password", "account_number", "extra",
-                  "extra_secret", "is_active"]
+                  "extra_secret", "webhook_token", "is_active"]
         widgets = {"extra": forms.Textarea(attrs={"rows": 2})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["webhook_token"].required = False
+        self.fields["webhook_token"].widget.attrs["autocomplete"] = "off"
         self._style()
+
+    def clean_webhook_token(self):
+        token = (self.cleaned_data.get("webhook_token") or "").strip().strip("/")
+        if not token:  # empty = keep the current link (or create one for a new credential)
+            return self.instance.webhook_token if self.instance.pk else \
+                CourierCredential._meta.get_field("webhook_token").default()
+        if not re.fullmatch(r"[A-Za-z0-9_-]{16,64}", token):
+            raise forms.ValidationError("Use 16 to 64 characters: letters, digits, - or _ only.")
+        if CourierCredential.objects.exclude(pk=self.instance.pk).filter(webhook_token=token).exists():
+            raise forms.ValidationError("This token is already used by another credential.")
+        return token
 
     def save(self, commit=True):
         obj = super().save(commit=False)

@@ -1,4 +1,4 @@
-{% load static %}
+{% load static storefront_tags %}
 <style>
   /* Options with no stock (marked by JS) */
   [data-product-quick-view] .sold-out { opacity: .35; cursor: not-allowed; position: relative; }
@@ -68,26 +68,12 @@
     <h4 class="font-display mb-2">{{ product.name }}</h4>
 
     <div class="price-row mb-2">
-      <span class="price-now fs-4 qv-price-now">RS {{ pricing.final|floatformat:2 }}</span>
+      <span class="price-now fs-4 qv-price-now" id="qvPriceNow">RS {{ pricing.final|floatformat:2 }}</span>
       <span class="price-was qv-price-was {% if not pricing.was %}d-none{% endif %}">{% if pricing.was %}RS {{ pricing.was|floatformat:2 }}{% endif %}</span>
     </div>
 
-    <!-- Shipping line -->
-    {% if product.shipping_enabled %}
-      <div class="small mb-2">
-        <i class="bi bi-truck me-1"></i> Shipping:
-        {% if product.free_shipping %}
-          {% if product.shipping_charges > 0 %}
-            <span class="price-was">RS {{ product.shipping_charges|floatformat:2 }}</span>
-          {% endif %}
-          <strong class="text-success">FREE</strong>
-        {% elif product.shipping_charges > 0 %}
-          <strong>RS {{ product.shipping_charges|floatformat:2 }}</strong>
-        {% else %}
-          <span class="text-muted-custom">Calculated at checkout</span>
-        {% endif %}
-      </div>
-    {% endif %}
+    <!-- Shipping line (rules: Admin > Store settings > Shipping) -->
+    {% shipping_note product pricing.final "qvPriceNow" %}
 
     <p class="text-muted-custom small mb-3">{{ product.description|striptags|truncatewords:30 }}</p>
 

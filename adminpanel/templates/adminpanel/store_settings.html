@@ -2,7 +2,7 @@
 {% block title %}Store settings{% endblock %}
 {% block content %}
 <div class="sz-page-head">
-  <div><h2>Store settings</h2><p>Payments, customer emails and automatic backups.</p></div>
+  <div><h2>Store settings</h2><p>Payments, shipping, customer emails and automatic backups.</p></div>
 </div>
 <form method="post" novalidate>{% csrf_token %}
   {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
@@ -33,6 +33,18 @@
           <div style="max-width:260px">
             <label class="form-label small" for="{{ form.online_payment_timeout_minutes.id_for_label }}">Cancel unpaid online orders after (minutes)</label>{{ form.online_payment_timeout_minutes }}
           </div>
+        </div>
+      </div>
+      <div class="card mt-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-truck me-1 text-primary"></i> Shipping</span>
+          <a href="{% url 'storefront_home_features' %}" class="small">Home page features</a>
+        </div>
+        <div class="card-body row g-3">
+          <div class="col-12"><div class="form-check form-switch">{{ form.free_shipping_enabled }} <label class="form-check-label" for="{{ form.free_shipping_enabled.id_for_label }}">Free shipping above an order amount</label></div></div>
+          <div class="col-sm-6"><label class="form-label small" for="{{ form.free_shipping_threshold.id_for_label }}">Free shipping from (Rs, after discounts)</label>{{ form.free_shipping_threshold }}{% for e in form.free_shipping_threshold.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+          <div class="col-sm-6"><label class="form-label small" for="{{ form.max_shipping_charge.id_for_label }}">Maximum shipping per order (Rs, 0 = no cap)</label>{{ form.max_shipping_charge }}{% for e in form.max_shipping_charge.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+          <div class="col-12 small text-muted">Used by the cart, checkout, order placement, product pages, quick view, the home page "Free Shipping" tile ({threshold}) and the Google product feed. Products marked "Free shipping" always ship free.</div>
         </div>
       </div>
     </div>

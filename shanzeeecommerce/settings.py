@@ -43,13 +43,9 @@ if not SECRET_KEY:
     else:
         raise ImproperlyConfigured("Set DJANGO_SECRET_KEY in the environment (.env).")
 
-ALLOWED_HOSTS = env_list(
-    "DJANGO_ALLOWED_HOSTS",
-    "shanzee.com,www.shanzee.com,127.0.0.1,localhost"
-)
-# CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", "")
-
-SITE_URL = env("SITE_URL", "http://127.0.0.1:8000").rstrip("/")
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", "")
+SITE_URL = env("SITE_URL", "https://shanzee.com").rstrip("/")
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", True)
@@ -61,10 +57,6 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = "same-origin"
     X_FRAME_OPTIONS = "DENY"
-    CSRF_TRUSTED_ORIGINS = [
-        "https://shanzee.com",
-        "https://www.shanzee.com",
-    ]
 
 # ---------------------------------------------------------------------------
 # Applications
@@ -96,6 +88,8 @@ INSTALLED_APPS = [
     'couriers',
     'adminpanel',
     'payments',
+    'storefront',
+    'django.contrib.sitemaps',
 ]
 
 MIDDLEWARE = [

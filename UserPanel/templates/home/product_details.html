@@ -1,8 +1,7 @@
 {% extends "base2.html" %}
 {% block body_class %}theme-product{% endblock %}
-{% load static %}
+{% load static storefront_tags %}
 
-{% block title %}{{ product.name }} — Shan Zee{% endblock %}
 {% block meta_description %}{{ product.description|default:product.name|truncatewords:25 }}{% endblock %}
 
 {% block content %}
@@ -892,22 +891,8 @@ body{
           <span class="price-was fs-5 {% if not pricing.was %}d-none{% endif %}" id="priceWas">{% if pricing.was %}RS {{ pricing.was|floatformat:2 }}{% endif %}</span>
         </div>
 
-        {# Shipping line #}
-        {% if product.shipping_enabled %}
-          <div class="small mb-3" id="shippingLine">
-            <i class="bi bi-truck me-1"></i> Shipping:
-            {% if product.free_shipping %}
-              {% if product.shipping_charges > 0 %}
-                <span class="price-was">RS {{ product.shipping_charges|floatformat:2 }}</span>
-              {% endif %}
-              <strong class="text-success">FREE</strong>
-            {% elif product.shipping_charges > 0 %}
-              <strong>RS {{ product.shipping_charges|floatformat:2 }}</strong>
-            {% else %}
-              <span class="text-muted-custom">Calculated at checkout</span>
-            {% endif %}
-          </div>
-        {% endif %}
+        {# Shipping line (rules: Admin > Store settings > Shipping) #}
+        {% shipping_note product pricing.final "priceNow" %}
         {% comment %} <p class="text-muted-custom">{{ product.description }}</p> {% endcomment %}
 
         {# ---- Variant option groups (color, size, etc.) ---- #}

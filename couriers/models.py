@@ -94,6 +94,10 @@ class CourierProvider(TimeStamped):
     default_shipment_type = models.CharField(max_length=30, blank=True,
                                              help_text="Courier service type, e.g. overnight")
     sort_order = models.PositiveIntegerField(default=0)
+    webhook_base_url = models.URLField(
+        blank=True, verbose_name="Webhook site address",
+        help_text="Public address of your store used in webhook links, e.g. https://shanzee.com "
+                  "(empty = SITE_URL from settings)")
 
     class Meta:
         ordering = ["sort_order", "name"]
@@ -117,6 +121,13 @@ class CourierProvider(TimeStamped):
         from .adapters import get_adapter_class
         return get_adapter_class(self.adapter)(self, credential or self.get_credential())
 
+    def public_base(self):
+        return (self.webhook_base_url or getattr(settings, "SITE_URL", "") or "").rstrip("/")
+
+    def webhook_url(self, credential):
+        from django.urls import reverse
+        return self.public_base() + reverse("couriers_public:webhook", args=[self.code, credential.webhook_token])
+
     def tracking_url(self, tracking_number):
         if not self.tracking_url_template or not tracking_number:
             return ""
@@ -139,7 +150,8 @@ class CourierCredential(TimeStamped):
     extra_secret = EncryptedTextField(blank=True,
                                       help_text="Any other secret a courier needs (stored encrypted)")
     webhook_token = models.CharField(max_length=64, unique=True, default=_new_token,
-                                     help_text="Secret part of the webhook URL")
+                                     help_text="Secret last part of the webhook URL (16-64 letters, "
+                                               "digits, - or _). Changing it breaks the old link.")
     is_active = models.BooleanField(default=True)
     last_verified_at = models.DateTimeField(null=True, blank=True)
     last_error = models.TextField(blank=True)

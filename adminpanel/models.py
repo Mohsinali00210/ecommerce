@@ -25,6 +25,16 @@ class StoreSettings(models.Model):
     online_payment_timeout_minutes = models.PositiveIntegerField(
         default=60, help_text="Unpaid online orders are cancelled (stock released) after this long")
 
+    # --- Shipping -------------------------------------------------------------
+    free_shipping_enabled = models.BooleanField(
+        default=True, help_text="Orders at or above the amount below ship free")
+    free_shipping_threshold = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("3500.00"),
+        help_text="Order amount (after discounts) that unlocks free shipping, Rs")
+    max_shipping_charge = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("450.00"),
+        help_text="Cart shipping is never more than this, Rs (0 = no cap)")
+
     # --- Customer emails ------------------------------------------------------
     email_order_confirmation = models.BooleanField(default=True)
     email_status_changes = models.BooleanField(default=True)
@@ -68,6 +78,10 @@ class StoreSettings(models.Model):
         if not self.cod_enabled:
             return False
         return self.cod_max_amount is None or Decimal(total or 0) <= self.cod_max_amount
+
+    def free_shipping_for(self, amount):
+        return bool(self.free_shipping_enabled and self.free_shipping_threshold is not None
+                    and Decimal(amount or 0) >= self.free_shipping_threshold)
 
     def emails_status(self, status):
         return self.email_status_changes and status in (self.email_statuses or [])

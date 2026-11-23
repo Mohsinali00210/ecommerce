@@ -222,14 +222,12 @@ def settings_page(request):
     providers = CourierProvider.objects.annotate(
         n_cities=Count("cities", filter=Q(cities__is_active=True), distinct=True)
     ).prefetch_related("credentials")
-    from django.conf import settings as dj_settings
-    base = (getattr(dj_settings, "SITE_URL", "") or request.build_absolute_uri("/")).rstrip("/")
     rows = []
     for p in providers:
         creds = []
         for c in p.credentials.all():
             creds.append({"obj": c, "key": CourierCredential.mask(c.api_key),
-                          "webhook": base + reverse("couriers_public:webhook", args=[p.code, c.webhook_token])})
+                          "webhook": p.webhook_url(c)})
         rows.append({"p": p, "creds": creds, "adapter": p.get_adapter()})
     return render(request, "couriers/settings.html", {
         "rows": rows, "shippers": ShipperProfile.objects.all(),
@@ -240,7 +238,8 @@ def settings_page(request):
     })
 
 
-def _edit(request, form_cls, instance, title, back="couriers:settings", extra=None, initial=None):
+def _edit(request, form_cls, instance, title, back="couriers:settings", extra=None, initial=None,
+          context=None):
     form = form_cls(request.POST or None, instance=instance, initial=initial)
     if request.method == "POST" and form.is_valid():
         obj = form.save(commit=False)
@@ -250,7 +249,7 @@ def _edit(request, form_cls, instance, title, back="couriers:settings", extra=No
         messages.success(request, f"{title} saved.")
         return redirect(back)
     return render(request, "couriers/edit.html", {"form": form, "title": title, "back": back,
-                                                  "instance": instance})
+                                                  "instance": instance, **(context or {})})
 
 
 @staff_required
@@ -266,7 +265,9 @@ def credential_edit(request, provider_id, pk=None):
 
     def attach(c):
         c.provider = provider
-    return _edit(request, CredentialForm, obj, f"{provider.name} credentials", extra=attach)
+    ctx = {"webhook_url": provider.webhook_url(obj) if obj else "",
+           "webhook_prefix": provider.public_base() + f"/couriers/webhook/{provider.code}/"}
+    return _edit(request, CredentialForm, obj, f"{provider.name} credentials", extra=attach, context=ctx)
 
 
 @staff_required

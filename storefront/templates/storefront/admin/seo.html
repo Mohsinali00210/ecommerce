@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}SEO & search engines{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div><h2>SEO &amp; search engines</h2>
+    <p>Google Search Console, Bing Webmaster Tools, sitemap, social sharing tags, instant indexing and the Google Merchant feed.</p></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-7">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-clipboard-check me-1 text-primary"></i> Checklist</div>
+      <ul class="list-group list-group-flush small">
+        {% for c in checks %}
+        <li class="list-group-item d-flex gap-2">
+          <i class="bi {% if c.ok %}bi-check-circle-fill text-success{% else %}bi-exclamation-circle text-warning{% endif %} mt-1"></i>
+          <div>{{ c.text }}{% if not c.ok and c.tip %}<div class="text-muted">{{ c.tip }}</div>{% endif %}</div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-xl-5">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-link-45deg me-1 text-primary"></i> Your search-engine links</div>
+      <div class="card-body small">
+        <div class="mb-2"><div class="fw-semibold">Sitemap <span class="text-muted fw-normal">— submit in Google &amp; Bing</span></div>
+          <div class="input-group input-group-sm"><input class="form-control font-monospace" readonly value="{{ links.sitemap }}" onclick="this.select()"><a class="btn btn-outline-secondary" href="/sitemap.xml" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i></a></div>
+          <div class="text-muted">{{ counts.products }} products, {{ counts.categories }} categories, {{ counts.posts }} blog posts</div></div>
+        <div class="mb-2"><div class="fw-semibold">robots.txt</div>
+          <div class="input-group input-group-sm"><input class="form-control font-monospace" readonly value="{{ links.robots }}" onclick="this.select()"><a class="btn btn-outline-secondary" href="/robots.txt" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i></a></div></div>
+        <div class="mb-2"><div class="fw-semibold">Google Merchant Center feed</div>
+          <div class="input-group input-group-sm"><input class="form-control font-monospace" readonly value="{{ links.feed }}" onclick="this.select()"><a class="btn btn-outline-secondary" href="{% url 'storefront_merchant_feed' %}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i></a></div>
+          {% if not s.merchant_feed_enabled %}<div class="text-danger">Feed is turned off below.</div>{% endif %}</div>
+        <div><div class="fw-semibold">IndexNow key file</div>
+          <div class="input-group input-group-sm"><input class="form-control font-monospace" readonly value="{{ links.indexnow_key }}" onclick="this.select()"><a class="btn btn-outline-secondary" href="/{{ s.indexnow_key }}.txt" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i></a></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+  <div class="row g-3">
+    <div class="col-xl-6">
+      <div class="card mb-3">
+        <div class="card-header"><i class="bi bi-search me-1 text-primary"></i> Titles &amp; descriptions</div>
+        <div class="card-body row g-2">
+          {% include "storefront/admin/_f.html" with f=form.site_address col="col-12" %}
+          {% include "storefront/admin/_f.html" with f=form.site_name col="col-md-6" %}
+          {% include "storefront/admin/_f.html" with f=form.title_suffix col="col-md-6" %}
+          {% include "storefront/admin/_f.html" with f=form.home_title col="col-12" %}
+          {% include "storefront/admin/_f.html" with f=form.default_description col="col-12" %}
+          <div class="col-12 small text-muted">Products and blog posts use their own <em>Meta title / Meta description</em> (in the product and post editors) and fall back to their name and text.</div>
+        </div>
+      </div>
+      <div class="card mb-3">
+        <div class="card-header"><i class="bi bi-share me-1 text-primary"></i> Social sharing (Open Graph)</div>
+        <div class="card-body row g-2">
+          {% include "storefront/admin/_f.html" with f=form.default_share_image col="col-md-6" %}
+          {% include "storefront/admin/_f.html" with f=form.twitter_handle col="col-md-6" %}
+          <div class="col-12 small text-muted">Product pages share their first product photo, price and stock; blog posts share their featured image.</div>
+        </div>
+      </div>
+      <div class="card mb-3">
+        <div class="card-header"><i class="bi bi-shop me-1 text-primary"></i> Business details <span class="small text-muted">(Google rich results)</span></div>
+        <div class="card-body row g-2">
+          {% include "storefront/admin/_f.html" with f=form.logo col="col-md-6" %}
+          {% include "storefront/admin/_f.html" with f=form.phone col="col-md-6" %}
+          {% include "storefront/admin/_f.html" with f=form.email col="col-md-6" %}
+          {% include "storefront/admin/_f.html" with f=form.street_address col="col-md-6" %}
+          {% include "storefront/admin/_f.html" with f=form.city col="col-md-4" %}
+          {% include "storefront/admin/_f.html" with f=form.region col="col-md-4" %}
+          {% include "storefront/admin/_f.html" with f=form.postal_code col="col-md-2" %}
+          {% include "storefront/admin/_f.html" with f=form.country col="col-md-2" %}
+          {% include "storefront/admin/_f.html" with f=form.social_links col="col-md-8" %}
+          {% include "storefront/admin/_f.html" with f=form.return_days col="col-md-4" %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6">
+      <div class="card mb-3">
+        <div class="card-header"><i class="bi bi-google me-1 text-primary"></i> Google Search Console &amp; Bing Webmaster Tools</div>
+        <div class="card-body row g-2">
+          {% include "storefront/admin/_f.html" with f=form.google_site_verification col="col-12" %}
+          {% include "storefront/admin/_f.html" with f=form.bing_site_verification col="col-12" %}
+          {% include "storefront/admin/_f.html" with f=form.google_analytics_id col="col-md-6" %}
+          <div class="col-12"><div class="form-check form-switch">{{ form.hide_from_search_engines }} <label class="form-check-label" for="{{ form.hide_from_search_engines.id_for_label }}">Hide the whole site from search engines</label></div>
+            <div class="form-text small">Only for a test/staging copy. Leave <strong>off</strong> on the live shop.</div></div>
+          {% include "storefront/admin/_f.html" with f=form.robots_extra col="col-12" %}
+        </div>
+      </div>
+
+      <div class="card mb-3" id="sitemap-pages">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-diagram-3 me-1 text-primary"></i> Sitemap pages <span class="small text-muted">(sitemap-pages.xml)</span></span>
+          <a href="/sitemap-pages.xml" target="_blank" rel="noopener" class="small">Open <i class="bi bi-box-arrow-up-right"></i></a>
+        </div>
+        <div class="card-body">
+          <label class="form-label small mb-1">Built-in pages</label>
+          <div class="d-flex flex-wrap gap-3 mb-2">
+            {% for cb in form.sitemap_builtin_pages %}<div class="form-check m-0">{{ cb.tag }}<label class="form-check-label small" for="{{ cb.id_for_label }}">{{ cb.choice_label }}</label></div>{% endfor %}
+          </div>
+          {% for e in form.sitemap_builtin_pages.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          <label class="form-label small mb-1" for="{{ form.sitemap_extra_pages.id_for_label }}">Extra pages (one per line)</label>
+          {{ form.sitemap_extra_pages }}
+          {% for e in form.sitemap_extra_pages.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          <div class="form-text small">Write a path like <code>/about-us/</code> or a full <code>https://</code> link of this site.
+            Optional: <code>| priority 0.0-1.0 | how often</code> (daily, weekly, monthly...). Products, categories and blog posts are added automatically in their own sitemaps.</div>
+          <div class="mt-3 small fw-semibold">Currently in sitemap-pages.xml ({{ sitemap_pages|length }})</div>
+          <div class="table-responsive"><table class="table table-sm small mb-0 align-middle">
+            <thead class="table-light"><tr><th>Link</th><th>Page</th><th>Priority</th><th>How often</th></tr></thead>
+            <tbody>{% for url, prio, freq, label in sitemap_pages %}
+              <tr><td><a href="{{ url }}" target="_blank" rel="noopener" class="font-monospace">{{ url }}</a></td><td>{{ label }}</td><td>{{ prio }}</td><td>{{ freq }}</td></tr>
+            {% endfor %}</tbody></table></div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header"><i class="bi bi-lightning-charge me-1 text-primary"></i> Instant indexing</div>
+        <div class="card-body row g-2">
+          <div class="col-12"><div class="form-check form-switch">{{ form.indexnow_enabled }} <label class="form-check-label fw-semibold" for="{{ form.indexnow_enabled.id_for_label }}">IndexNow — Bing, Yandex, Seznam, Naver, Yep</label></div>
+            <div class="form-text small">New or changed products and blog posts are sent automatically within a minute. No account needed.</div></div>
+          {% include "storefront/admin/_f.html" with f=form.indexnow_key col="col-12" %}
+          <hr class="my-2">
+          <div class="col-12"><div class="form-check form-switch">{{ form.google_indexing_enabled }} <label class="form-check-label fw-semibold" for="{{ form.google_indexing_enabled.id_for_label }}">Google Indexing API</label></div>
+            {% for e in form.google_indexing_enabled.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            <div class="form-text small">Needs a Google Cloud service account. Google officially supports this API only for job and live-event pages,
+              so for products the sitemap in Search Console is still the main route; quota 200 URLs a day.</div></div>
+          <div class="col-12">
+            <label class="form-label small mb-1" for="{{ form.google_service_account.id_for_label }}">Service account JSON key
+              {% if service_email %}<span class="badge bg-success-subtle text-success-emphasis ms-1">saved: {{ service_email }}</span>{% endif %}</label>
+            {{ form.google_service_account }}
+            {% for e in form.google_service_account.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            <div class="form-text small">Stored encrypted. Leave empty to keep the saved key.</div>
+            {% if service_email %}<div class="form-check mt-1">{{ form.clear_google_key }} <label class="form-check-label small" for="{{ form.clear_google_key.id_for_label }}">Remove the saved key</label></div>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header"><i class="bi bi-bag me-1 text-primary"></i> Google Merchant Center (free product listings)</div>
+        <div class="card-body row g-2">
+          <div class="col-12"><div class="form-check form-switch">{{ form.merchant_feed_enabled }} <label class="form-check-label" for="{{ form.merchant_feed_enabled.id_for_label }}">Publish the product feed</label></div></div>
+          {% include "storefront/admin/_f.html" with f=form.merchant_default_brand col="col-md-6" %}
+          {% include "storefront/admin/_f.html" with f=form.merchant_google_category col="col-md-6" %}
+          <div class="col-12 small text-muted">Products without a photo are left out (Google requires one). Price, sale price, stock, shipping and free shipping come from the shop automatically.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% if "manage_marketing" in admin_perms %}
+  <div class="sz-sticky-actions d-flex justify-content-end gap-2 mb-4">
+    <button class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Save SEO settings</button>
+  </div>
+  {% endif %}
+</form>
+
+{% if "manage_marketing" in admin_perms %}
+<div class="card mb-3">
+  <div class="card-header"><i class="bi bi-send me-1 text-primary"></i> Send pages to search engines now</div>
+  <div class="card-body row g-3 align-items-end">
+    <form method="post" action="{% url 'storefront_seo_tool' 'submit-url' %}" class="col-lg-6">{% csrf_token %}
+      <label class="form-label small">One page (full link or a path like /product/my-shirt/)</label>
+      <div class="input-group input-group-sm">
+        <input name="url" class="form-control" required placeholder="{{ site }}/product/...">
+        <button class="btn btn-outline-primary">IndexNow</button>
+        <button class="btn btn-outline-primary" formaction="{% url 'storefront_seo_tool' 'google-url' %}" {% if not service_email %}disabled title="Add a Google service account key first"{% endif %}>Google</button>
+      </div>
+    </form>
+    <div class="col-lg-6 d-flex flex-wrap gap-2">
+      <form method="post" action="{% url 'storefront_seo_tool' 'submit-all' %}" data-confirm="Send every public product, category and blog page to IndexNow?">{% csrf_token %}
+        <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-collection me-1"></i>Send all pages to IndexNow</button></form>
+      <form method="post" action="{% url 'storefront_seo_tool' 'test-google' %}">{% csrf_token %}
+        <button class="btn btn-outline-secondary btn-sm" {% if not service_email %}disabled{% endif %}><i class="bi bi-plug me-1"></i>Test Google key</button></form>
+      <form method="post" action="{% url 'storefront_seo_tool' 'new-indexnow-key' %}" data-confirm="Create a new IndexNow key? The old key file stops working.">{% csrf_token %}
+        <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-clockwise me-1"></i>New IndexNow key</button></form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header"><i class="bi bi-clock-history me-1 text-primary"></i> Indexing log</div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 small">
+      <thead class="table-light"><tr><th>When</th><th>Engine</th><th>Pages</th><th>Result</th><th>By</th></tr></thead>
+      <tbody>
+      {% for l in logs %}
+        <tr>
+          <td class="text-nowrap">{{ l.created_at|date:"d M, H:i" }}</td>
+          <td>{{ l.get_engine_display }}{% if l.action != "updated" %} <span class="text-muted">({{ l.action }})</span>{% endif %}</td>
+          <td>{% if l.urls|length == 1 %}<span class="font-monospace">{{ l.urls.0|truncatechars:60 }}</span>{% else %}{{ l.urls|length }} pages{% endif %}</td>
+          <td>{% if l.ok %}<span class="text-success"><i class="bi bi-check-circle"></i>{% else %}<span class="text-danger"><i class="bi bi-x-circle"></i>{% endif %} {{ l.message|truncatechars:140 }}</span></td>
+          <td>{{ l.created_by.email|default:"automatic" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-muted">Nothing sent yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll("[data-counter]").forEach(function (el) {
+  var max = parseInt(el.dataset.counter, 10), out = document.createElement("div");
+  out.className = "form-text small text-end"; el.insertAdjacentElement("afterend", out);
+  function upd() { var n = el.value.length; out.textContent = n + " / " + max; out.classList.toggle("text-danger", n > max); }
+  el.addEventListener("input", upd); upd();
+});
+</script>
+{% endblock %}
