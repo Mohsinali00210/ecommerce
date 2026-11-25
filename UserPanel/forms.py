@@ -163,6 +163,15 @@ class WithdrawalForm(forms.ModelForm):
             "bank_name": forms.TextInput(attrs={"class": "form-control"}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only the methods switched on in Admin > Withdrawals > Payout settings
+        from payments.models import PayoutMethod
+        enabled = {m.code: m.name for m in PayoutMethod.objects.filter(is_enabled=True)}
+        if enabled:
+            self.fields["method"].choices = [(c, l) for c, l in WithdrawalRequest.METHODS if c in enabled]
+        self.fields["account_number"].help_text = "Mobile account number, IBAN or account number"
+
     def clean(self):
         data = super().clean()
         if data.get("method") == "bank" and not data.get("bank_name"):

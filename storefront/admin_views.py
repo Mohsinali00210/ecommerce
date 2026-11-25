@@ -6,7 +6,8 @@ import re
 from django import forms
 from django.contrib import messages
 from django.forms import modelformset_factory
-from django.shortcuts import redirect, render
+from django.db.models import Count
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
@@ -17,7 +18,7 @@ from payments.validators import validate_image
 
 from . import seo
 from .indexing import IndexingError, google_submit, indexnow_submit, test_google_credentials
-from .models import HomeFeature, IndexingLog, SeoSettings
+from .models import HomeFeature, IndexingLog, MerchantProduct, SeoSettings
 from .sitemaps import BUILTIN_PAGES, page_entries
 
 ICON_CHOICES = ["bi-truck", "bi-cash-coin", "bi-arrow-repeat", "bi-shield-check", "bi-shield-lock",
@@ -126,7 +127,9 @@ class SeoForm(forms.ModelForm):
                   "google_site_verification", "bing_site_verification", "google_analytics_id",
                   "hide_from_search_engines", "robots_extra", "sitemap_builtin_pages", "sitemap_extra_pages",
                   "indexnow_enabled", "indexnow_key", "google_indexing_enabled", "google_service_account",
-                  "merchant_feed_enabled", "merchant_default_brand", "merchant_google_category"]
+                  "merchant_feed_enabled", "merchant_default_brand", "merchant_google_category",
+                  "merchant_api_enabled", "merchant_auto_sync", "merchant_account_id", "merchant_data_source_id",
+                  "merchant_feed_label", "merchant_content_language"]
         widgets = {"social_links": forms.Textarea(attrs={"rows": 3}),
                    "robots_extra": forms.Textarea(attrs={"rows": 2}),
                    "sitemap_extra_pages": forms.Textarea(attrs={
@@ -252,6 +255,23 @@ class SeoForm(forms.ModelForm):
                 data.get("google_service_account") or (self.instance.google_service_account
                                                          and not data.get("clear_google_key"))):
             self.add_error("google_indexing_enabled", "Add the service account JSON key first.")
+        if data.get("merchant_api_enabled"):
+            if not (data.get("google_service_account") or (self.instance.google_service_account
+                                                           and not data.get("clear_google_key"))):
+                self.add_error("merchant_api_enabled", "Add the service account JSON key first (Instant indexing card).")
+            for f in ("merchant_account_id", "merchant_data_source_id"):
+                if not (data.get(f) or "").strip():
+                    self.add_error(f, "Needed for the Merchant API.")
+        for f in ("merchant_account_id", "merchant_data_source_id"):
+            v = (data.get(f) or "").strip()
+            if v and not v.isdigit():
+                self.add_error(f, "Numbers only.")
+            data[f] = v
+        label = (data.get("merchant_feed_label") or "PK").strip().upper()
+        if not re.fullmatch(r"[A-Z0-9_-]{1,20}", label):
+            self.add_error("merchant_feed_label", "Letters, digits, - and _ only (e.g. PK).")
+        data["merchant_feed_label"] = label
+        data["merchant_content_language"] = (data.get("merchant_content_language") or "en").strip().lower()[:2]
         return data
 
     def save(self, commit=True):
@@ -293,6 +313,8 @@ def seo_settings(request):
         "form": form, "s": obj, "site": site, "checks": checks,
         "service_email": _service_email(obj.google_service_account),
         "logs": IndexingLog.objects.select_related("created_by")[:25],
+        "merchant_rows": MerchantProduct.objects.select_related("product")[:15],
+        "merchant_counts": {r["status"]: r["n"] for r in MerchantProduct.objects.values("status").annotate(n=Count("id"))},
         "links": {
             "sitemap": f"{site}/sitemap.xml", "robots": f"{site}/robots.txt",
             "indexnow_key": f"{site}/{obj.indexnow_key}.txt",
@@ -356,6 +378,21 @@ def seo_tool(request, action):
                                       "Owner of your property in Search Console.")
         except IndexingError as exc:
             messages.error(request, str(exc))
+    elif action == "merchant-test":
+        from .merchant import MerchantError, test_connection
+        try:
+            messages.success(request, test_connection() + " Make sure the service account e-mail is a user in "
+                                                           "Merchant Center.")
+        except (MerchantError, IndexingError) as exc:
+            messages.error(request, str(exc))
+    elif action == "merchant-sync":
+        if not s.merchant_api_enabled:
+            messages.error(request, "Switch the Merchant API on and save first.")
+        else:
+            from .tasks import merchant_sync_all
+            merchant_sync_all.delay(request.user.pk)
+            messages.success(request, "All public products are being sent to Google Merchant Center. "
+                                      "Results appear in the log below.")
     elif action == "new-indexnow-key":
         from .models import _indexnow_key
         s = SeoSettings.objects.get(pk=s.pk)
@@ -365,3 +402,20 @@ def seo_tool(request, action):
     else:
         messages.error(request, "Unknown action.")
     return redirect("storefront_seo")
+
+
+def merchant_preview(request, pk):
+    """The exact ProductInput JSON the Merchant API receives for one product (admin check)."""
+    from django.http import JsonResponse
+
+    from products.models import Product
+
+    from .merchant import product_input
+    product = get_object_or_404(Product, pk=pk)
+    status = getattr(product, "merchant_status", None)
+    return JsonResponse({
+        "product": product_input(product),
+        "public": seo.public_products().filter(pk=pk).exists(),
+        "last_sync": {"status": status.status, "message": status.message,
+                      "at": status.synced_at.isoformat() if status and status.synced_at else None} if status else None,
+    }, json_dumps_params={"indent": 2, "ensure_ascii": False})

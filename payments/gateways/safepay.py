@@ -39,6 +39,22 @@ def _first(d, *keys):
 @register("safepay")
 class SafepayGateway(BaseGateway):
     display_name = "Safepay"
+    checkout_label = "Card / JazzCash / Easypaisa"
+    checkout_description = "Pay securely online via Safepay"
+    credential_labels = {"api_key": "Public / client API key", "secret_key": "Secret key",
+                         "webhook_secret": "Webhook signing secret"}
+    default_urls = ("https://sandbox.api.getsafepay.com", "https://api.getsafepay.com")
+
+    def test_connection(self):
+        super().test_connection()
+        body = {"client": self.gateway.api_key, "amount": 1.0, "currency": "PKR", "environment": self.env}
+        try:
+            r = requests.post(self.gateway.base_url + "/order/v1/init", json=body, timeout=self.timeout)
+        except requests.RequestException as exc:
+            raise GatewayError(f"Could not reach Safepay: {exc.__class__.__name__}")
+        if r.status_code >= 400:
+            raise GatewayError(f"Safepay refused the API key (HTTP {r.status_code}).")
+        return "Safepay accepted the API key."
 
     @property
     def env(self):

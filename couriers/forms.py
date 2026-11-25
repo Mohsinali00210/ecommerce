@@ -173,3 +173,66 @@ class ManualStatusForm(_Bootstrap, forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._style()
+
+
+# ---------------------------------------------------------------------------
+# Weight-based shipping rates
+# ---------------------------------------------------------------------------
+from django.forms import inlineformset_factory  # noqa: E402
+
+from .models import ShippingTariff, TariffSlab  # noqa: E402
+
+
+class TariffForm(_Bootstrap, forms.ModelForm):
+    class Meta:
+        model = ShippingTariff
+        fields = ["name", "provider", "service_type", "origin_city", "origin_province", "is_active", "is_default",
+                  "extra_step_grams", "extra_within_city", "extra_same_province", "extra_other_province", "notes"]
+        labels = {"extra_step_grams": "Extra step (grams)", "extra_within_city": "Extra per step - within city",
+                  "extra_same_province": "Extra per step - Zone A", "extra_other_province": "Extra per step - Zone B"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style()
+
+    def clean_is_default(self):
+        v = self.cleaned_data["is_default"]
+        if v:
+            ShippingTariff.objects.exclude(pk=self.instance.pk).filter(is_default=True).update(is_default=False)
+        return v
+
+    def clean_origin_province(self):
+        from .tariffs import normalize_province, province_label
+        v = (self.cleaned_data.get("origin_province") or "").strip()
+        if v and not normalize_province(v):
+            raise forms.ValidationError("Unknown province. Use e.g. Punjab, Sindh, KPK, Balochistan, Islamabad.")
+        return province_label(normalize_province(v)) if v else ""
+
+
+class SlabForm(forms.ModelForm):
+    class Meta:
+        model = TariffSlab
+        fields = ["max_grams", "within_city", "same_province", "other_province"]
+        widgets = {f: forms.NumberInput(attrs={"class": "form-control form-control-sm", "min": "0",
+                                                "step": "1" if f == "max_grams" else "0.01"})
+                   for f in ["max_grams", "within_city", "same_province", "other_province"]}
+
+
+class _SlabFormSet(forms.BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        seen = set()
+        for f in self.forms:
+            if not getattr(f, "cleaned_data", None) or f.cleaned_data.get("DELETE"):
+                continue
+            g = f.cleaned_data.get("max_grams")
+            if g in seen:
+                raise forms.ValidationError(f"Two rows have the same weight limit ({g} g).")
+            if g is not None:
+                seen.add(g)
+        if not seen:
+            raise forms.ValidationError("Add at least one weight slab.")
+
+
+SlabFormSet = inlineformset_factory(ShippingTariff, TariffSlab, form=SlabForm, formset=_SlabFormSet,
+                                    extra=2, can_delete=True)

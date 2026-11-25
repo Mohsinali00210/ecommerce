@@ -319,6 +319,7 @@ class WithdrawalRequest(BaseAuditModel):
     )
     STATUS = (
         ("pending", "Pending"),
+        ("processing", "Processing (sent to provider)"),
         ("paid", "Approved & Paid"),
         ("rejected", "Rejected"),
         ("failed", "Payout Failed"),
@@ -328,7 +329,9 @@ class WithdrawalRequest(BaseAuditModel):
                              related_name="withdrawal_requests")
     wallet = models.ForeignKey(UserWallet, on_delete=models.CASCADE,
                                related_name="withdrawals")
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)          # taken from the wallet
+    fee = models.DecimalField(max_digits=12, decimal_places=2, default=0)  # withdrawal charge
+    net_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)  # sent to the user
 
     method = models.CharField(max_length=20, choices=METHODS)
     account_title = models.CharField(max_length=120)
@@ -352,6 +355,11 @@ class WithdrawalRequest(BaseAuditModel):
 
     def __str__(self):
         return f"{self.user.email} - {self.amount} - {self.status}"
+
+    @property
+    def payout_amount(self):
+        """What is actually sent: amount minus the fee (old requests had no fee)."""
+        return self.net_amount if self.net_amount is not None else self.amount - (self.fee or 0)
 from django.conf import settings
 from django.db import models
 

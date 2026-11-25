@@ -50,6 +50,7 @@ ADMIN_RULES = [
     (r"^/Adminpanel/Backups/", "manage_backups", "manage_backups"),
     (r"^/Adminpanel/Requests/", "view_orders", "manage_orders"),
     (r"^/Adminpanel/Payments/gateway/", "manage_finance", "manage_finance"),
+    (r"^/Adminpanel/Payments/(payouts|transactions)/", "manage_finance", "manage_finance"),
     (r"^/Adminpanel/Payments/", "view_orders", "manage_finance"),
     # shipping
     (r"^/Adminpanel/Couriers/settings/", "manage_shipping", "manage_shipping"),

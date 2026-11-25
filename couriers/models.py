@@ -6,6 +6,7 @@ If the courier has an API shape no adapter covers yet, add one adapter
 class in couriers/adapters/ (see adapters/base.py).
 """
 import re
+from decimal import Decimal
 import secrets
 
 from django.conf import settings
@@ -422,3 +423,73 @@ class WebhookLog(models.Model):
 
     def __str__(self):
         return f"Webhook {self.provider_id} @ {self.received_at:%Y-%m-%d %H:%M}"
+
+
+# ---------------------------------------------------------------------------
+# Weight-based shipping tariffs (what the customer pays, by weight and zone)
+# ---------------------------------------------------------------------------
+class ShippingZone(models.TextChoices):
+    WITHIN_CITY = "within_city", "Within city"
+    SAME_PROVINCE = "same_province", "Zone A - same province"
+    OTHER_PROVINCE = "other_province", "Zone B - other province"
+
+
+class ShippingTariff(TimeStamped):
+    """A courier's price list: weight slabs x 3 zones (see couriers/tariffs.py)."""
+    name = models.CharField(max_length=120, help_text="e.g. Leopards Overnight - COD")
+    provider = models.ForeignKey(CourierProvider, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name="tariffs")
+    service_type = models.CharField(max_length=30, blank=True, default="overnight")
+    origin_city = models.CharField(
+        max_length=100, blank=True,
+        help_text="City you ship from. Empty = city of the default pickup address (Courier settings)")
+    origin_province = models.CharField(
+        max_length=60, blank=True,
+        help_text="Province you ship from. Empty = worked out from the origin city")
+    extra_step_grams = models.PositiveIntegerField(
+        default=500, help_text="Above the heaviest slab, charge the 'extra' amount for every started step")
+    extra_within_city = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    extra_same_province = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    extra_other_province = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    is_active = models.BooleanField(default=True)
+    is_default = models.BooleanField(default=False, help_text="The tariff the shop charges customers with")
+    notes = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["-is_default", "name"]
+        constraints = [
+            models.UniqueConstraint(fields=["is_default"], condition=Q(is_default=True),
+                                    name="one_default_tariff"),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def default(cls):
+        return (cls.objects.filter(is_default=True, is_active=True).prefetch_related("slabs").first()
+                or cls.objects.filter(is_active=True).prefetch_related("slabs").first())
+
+    def extra_for(self, zone):
+        return {ShippingZone.WITHIN_CITY: self.extra_within_city,
+                ShippingZone.SAME_PROVINCE: self.extra_same_province}.get(zone, self.extra_other_province)
+
+
+class TariffSlab(models.Model):
+    """Price for parcels up to `max_grams` (and above the previous slab)."""
+    tariff = models.ForeignKey(ShippingTariff, on_delete=models.CASCADE, related_name="slabs")
+    max_grams = models.PositiveIntegerField(help_text="Upper weight limit of this slab, grams (inclusive)")
+    within_city = models.DecimalField(max_digits=10, decimal_places=2)
+    same_province = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Zone A - same province")
+    other_province = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Zone B - other province")
+
+    class Meta:
+        ordering = ["max_grams"]
+        constraints = [models.UniqueConstraint(fields=["tariff", "max_grams"], name="uniq_tariff_slab")]
+
+    def __str__(self):
+        return f"{self.tariff} <= {self.max_grams} g"
+
+    def price_for(self, zone):
+        return {ShippingZone.WITHIN_CITY: self.within_city,
+                ShippingZone.SAME_PROVINCE: self.same_province}.get(zone, self.other_province)

@@ -21,4 +21,4 @@ def choices():
     return [(c, cls.display_name) for c, cls in sorted(_REGISTRY.items())]
 
 
-from . import safepay  # noqa: E402,F401
+from . import easypaisa, jazzcash, safepay, stripe, testgateway  # noqa: E402,F401

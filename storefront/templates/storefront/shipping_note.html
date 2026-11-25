@@ -12,7 +12,30 @@
           <span class="text-muted-custom">— this item qualifies for free shipping</span>
         </div>
         <div class="sz-ship-paid{% if note.kind == 'free_threshold' %} d-none{% endif %}">
-          {% if item_charge > 0 %}Shipping: <strong>RS {{ item_charge|floatformat:2 }}</strong>
+          {% if weight %}
+            {% if weight.yours is not None %}
+              Shipping: <strong>RS {{ weight.yours|floatformat:2 }}</strong>
+              <span class="text-muted-custom">to {{ weight.city }} ({{ weight.your_zone }})</span>
+            {% elif weight.min == weight.max %}
+              Shipping: <strong>RS {{ weight.min|floatformat:2 }}</strong>
+            {% else %}
+              Shipping: <strong>RS {{ weight.min|floatformat:0 }} – {{ weight.max|floatformat:0 }}</strong>
+              <span class="text-muted-custom">depending on your city</span>
+            {% endif %}
+            <a class="ms-1 small" data-bs-toggle="collapse" href="#{{ uid }}" role="button" aria-expanded="false"
+               aria-controls="{{ uid }}">Rates</a>
+            <div class="collapse" id="{{ uid }}">
+              <table class="table table-sm small mt-2 mb-1" style="max-width:340px">
+                <thead><tr><th>Delivery to</th><th class="text-end">{{ weight.kg|floatformat:"-2" }} kg</th></tr></thead>
+                <tbody>
+                {% for r in weight.rows %}
+                  <tr{% if r.label == weight.your_zone %} class="table-success"{% endif %}><td>{{ r.label }}</td><td class="text-end">RS {{ r.price|floatformat:0 }}</td></tr>
+                {% endfor %}
+                </tbody>
+              </table>
+              <div class="text-muted-custom">Charged by parcel weight. Several items share one parcel at checkout.</div>
+            </div>
+          {% elif item_charge > 0 %}Shipping: <strong>RS {{ item_charge|floatformat:2 }}</strong>
           {% else %}Shipping: <span class="text-muted-custom">calculated at checkout</span>{% endif %}
         </div>
         {% if threshold %}

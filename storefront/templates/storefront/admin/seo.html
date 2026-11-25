@@ -146,6 +146,17 @@
           {% include "storefront/admin/_f.html" with f=form.merchant_default_brand col="col-md-6" %}
           {% include "storefront/admin/_f.html" with f=form.merchant_google_category col="col-md-6" %}
           <div class="col-12 small text-muted">Products without a photo are left out (Google requires one). Price, sale price, stock, shipping and free shipping come from the shop automatically.</div>
+          <hr class="my-2">
+          <div class="col-12"><div class="form-check form-switch">{{ form.merchant_api_enabled }} <label class="form-check-label fw-semibold" for="{{ form.merchant_api_enabled.id_for_label }}">Merchant API &mdash; push products to Google directly</label></div>
+            {% for e in form.merchant_api_enabled.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            <div class="form-text small">Uses the service account JSON key above (add its e-mail as a user in Merchant Center, and enable the
+              &ldquo;Merchant API&rdquo; in Google Cloud). Create an <b>API</b> data source in Merchant Center &gt; Settings &gt; Data sources and paste its ID.
+              Products update within minutes instead of waiting for the daily feed fetch.</div></div>
+          {% include "storefront/admin/_f.html" with f=form.merchant_auto_sync col="col-12" %}
+          {% include "storefront/admin/_f.html" with f=form.merchant_account_id col="col-md-6" %}
+          {% include "storefront/admin/_f.html" with f=form.merchant_data_source_id col="col-md-6" %}
+          {% include "storefront/admin/_f.html" with f=form.merchant_feed_label col="col-md-6" %}
+          {% include "storefront/admin/_f.html" with f=form.merchant_content_language col="col-md-6" %}
         </div>
       </div>
     </div>
@@ -178,6 +189,35 @@
         <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-clockwise me-1"></i>New IndexNow key</button></form>
     </div>
   </div>
+</div>
+{% endif %}
+
+{% if "manage_marketing" in admin_perms %}
+<div class="card mb-3">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span><i class="bi bi-bag-check me-1 text-primary"></i> Google Merchant API
+      {% if s.merchant_api_enabled %}<span class="badge bg-success ms-1">On</span>{% else %}<span class="badge bg-secondary ms-1">Off</span>{% endif %}</span>
+    <span class="small text-muted">synced {{ merchant_counts.synced|default:0 }} &middot; errors {{ merchant_counts.error|default:0 }} &middot; removed {{ merchant_counts.removed|default:0 }}</span>
+  </div>
+  <div class="card-body d-flex flex-wrap gap-2 align-items-end">
+    <form method="post" action="{% url 'storefront_seo_tool' 'merchant-test' %}">{% csrf_token %}
+      <button class="btn btn-outline-secondary btn-sm" {% if not service_email %}disabled title="Add a Google service account key first"{% endif %}><i class="bi bi-plug me-1"></i>Test Merchant connection</button></form>
+    <form method="post" action="{% url 'storefront_seo_tool' 'merchant-sync' %}" data-confirm="Send all {{ counts.products }} public products to Google Merchant Center?">{% csrf_token %}
+      <button class="btn btn-outline-primary btn-sm" {% if not s.merchant_api_enabled %}disabled{% endif %}><i class="bi bi-cloud-upload me-1"></i>Send all products now</button></form>
+    <form class="d-flex gap-1" onsubmit="event.preventDefault(); var v=this.pid.value.trim(); if(v) window.open('{% url 'storefront_merchant_preview' 0 %}'.replace('/0/','/'+encodeURIComponent(v)+'/'),'_blank');">
+      <input name="pid" class="form-control form-control-sm" style="width:150px" placeholder="Product ID" aria-label="Product ID">
+      <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-filetype-json me-1"></i>Preview API data</button></form>
+  </div>
+  {% if merchant_rows %}
+  <div class="table-responsive"><table class="table table-sm mb-0 small align-middle">
+    <thead class="table-light"><tr><th>Product</th><th>Offer ID</th><th>Status</th><th>Message</th><th>When</th></tr></thead>
+    <tbody>{% for m in merchant_rows %}<tr>
+      <td><a href="{% url 'storefront_merchant_preview' m.product_id %}" target="_blank" rel="noopener">{{ m.product.name|truncatechars:40 }}</a></td>
+      <td class="font-monospace">{{ m.offer_id }}</td>
+      <td><span class="badge {% if m.status == 'synced' %}bg-success{% elif m.status == 'error' %}bg-danger{% else %}bg-secondary{% endif %}">{{ m.status }}</span></td>
+      <td>{{ m.message|truncatechars:120 }}</td><td class="text-nowrap">{{ m.synced_at|date:"d M, H:i" }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
 </div>
 {% endif %}
 

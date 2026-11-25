@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex"><title>Test payment · Shan Zee</title>
+<style>
+ body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:#fff8e6;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#0f1424}
+ .box{width:100%;max-width:440px;background:#fff;border-radius:18px;padding:30px 26px;box-shadow:0 20px 60px rgba(16,24,40,.12);border-top:6px solid #f0ad00}
+ .tag{display:inline-block;background:#f0ad00;color:#3b2a00;font-weight:700;font-size:12px;padding:3px 10px;border-radius:99px;letter-spacing:.04em}
+ h1{font-size:20px;margin:12px 0 4px} p{color:#6b7290;line-height:1.5;margin:0 0 18px}
+ dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0 0 22px} dt{color:#6b7290} dd{margin:0;font-weight:600;text-align:right}
+ button{display:block;width:100%;border:0;padding:12px;border-radius:10px;font-weight:600;font-size:15px;cursor:pointer;margin-bottom:10px}
+ .ok{background:#198754;color:#fff} .fail{background:#dc3545;color:#fff} .cancel{background:#eef0f4;color:#0f1424}
+</style></head>
+<body>
+<main class="box" role="main">
+  <span class="tag">TEST MODE · NO REAL MONEY</span>
+  <h1>Simulated payment</h1>
+  <p>Choose what the payment provider should report back to the shop.</p>
+  <dl>
+    <dt>Order</dt><dd>{{ order.order_number }}</dd>
+    <dt>Amount</dt><dd>{{ payment.currency }} {{ payment.amount|floatformat:2 }}</dd>
+    <dt>Reference</dt><dd style="font-family:monospace;font-weight:500">{{ payment.tracker }}</dd>
+  </dl>
+  <form method="post">{% csrf_token %}
+    <button class="ok" name="outcome" value="paid">Simulate successful payment</button>
+    <button class="fail" name="outcome" value="failed">Simulate failed payment</button>
+    <button class="cancel" name="outcome" value="cancel">Cancel and go back</button>
+  </form>
+</main>
+</body></html>

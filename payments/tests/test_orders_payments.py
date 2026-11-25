@@ -299,7 +299,7 @@ class PaymentTests(Base):
         r = admin.post(reverse("admin_store_settings"), {"online_payments_enabled": "on", "email_statuses": [],
                                                          "online_payment_timeout_minutes": 60, "backup_hour": 3,
                                                          "backup_keep": 7})
-        self.assertContains(r, "Set up and activate Safepay first")
+        self.assertContains(r, "Set up and switch on a gateway first")
         r = admin.post(reverse("admin_store_settings"), {"online_payment_timeout_minutes": 60, "backup_hour": 3,
                                                          "backup_keep": 7})
         self.assertContains(r, "Keep at least one payment method on")

@@ -1,0 +1,83 @@
+{% extends "base2.html" %}
+{% block body_class %}theme-account{% endblock %}
+{% block content %}
+
+  <section class="py-4 border-bottom" style="border-color:var(--border) !important;">
+    <div class="container-xl">
+      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2 small">
+        <li class="breadcrumb-item"><a href="{% url 'home:home' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'home:user-profile' %}">My Account</a></li>
+        <li class="breadcrumb-item active">Transactions</li>
+      </ol></nav>
+      <h1 class="font-display mb-0 sz-title"><span class="sz-title-ico"><i class="bi bi-arrow-left-right"></i></span><span>Transaction History</span></h1>
+    </div>
+  </section>
+
+  <section class="py-5">
+    <div class="container-xl">
+      <div class="row g-4">
+        <div class="col-lg-3">
+          <div class="account-sidebar p-3">
+            <a href="{% url 'home:user-profile' %}" class="account-nav-link"><i class="bi bi-person me-2"></i>Profile</a>
+            <a href="{% url 'home:Orders' %}" class="account-nav-link"><i class="bi bi-box-seam me-2"></i>Orders</a>
+            <a href="{% url 'home:user-wallet' %}" class="account-nav-link"><i class="bi bi-wallet2 me-2"></i>Wallet</a>
+            <a href="{% url 'home:user-transactions' %}" class="account-nav-link active"><i class="bi bi-arrow-left-right me-2"></i>Transactions</a>
+            <a href="{% url 'home:user-address' %}" class="account-nav-link"><i class="bi bi-geo-alt me-2"></i>Addresses</a>
+            <a href="{% url 'home:Wishlist' %}" class="account-nav-link"><i class="bi bi-heart me-2"></i>Wishlist</a>
+            <a href="{% url 'home:Contact' %}" class="account-nav-link"><i class="bi bi-life-preserver me-2"></i>Support</a>
+            <a href="{% url 'logout' %}" class="account-nav-link text-danger"><i class="bi bi-box-arrow-right me-2"></i>Logout</a>
+          </div>
+        </div>
+
+        <div class="col-lg-9">
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3"><div class="p-3 border rounded h-100"><div class="small text-muted-custom">Wallet balance</div><div class="fs-5 font-display">Rs. {{ wallet.balance|floatformat:2 }}</div></div></div>
+            <div class="col-6 col-md-3"><div class="p-3 border rounded h-100"><div class="small text-muted-custom">Paid for orders</div><div class="fs-5 font-display">Rs. {{ totals.paid|floatformat:2 }}</div></div></div>
+            <div class="col-6 col-md-3"><div class="p-3 border rounded h-100"><div class="small text-muted-custom">Credited to wallet</div><div class="fs-5 font-display text-success">Rs. {{ totals.wallet_in|floatformat:2 }}</div></div></div>
+            <div class="col-6 col-md-3"><div class="p-3 border rounded h-100"><div class="small text-muted-custom">Withdrawn</div><div class="fs-5 font-display">Rs. {{ totals.withdrawn|floatformat:2 }}</div>
+              {% if totals.fees %}<div class="small text-muted-custom">charges Rs. {{ totals.fees|floatformat:2 }}</div>{% endif %}</div></div>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            {% for v, l in kinds %}
+              <a href="?kind={{ v }}" class="btn btn-sm {% if f_kind == v %}btn-brass{% else %}btn-outline-ink{% endif %}">{{ l }}</a>
+            {% endfor %}
+            <a href="{% url 'home:user-withdraw' %}" class="btn btn-sm btn-outline-ink ms-auto"><i class="bi bi-cash-coin me-1"></i>Withdraw</a>
+          </div>
+
+          <div class="border rounded">
+            {% for r in page %}
+              <div class="d-flex justify-content-between align-items-start gap-3 p-3 {% if not forloop.last %}border-bottom{% endif %}">
+                <div class="d-flex gap-3">
+                  <span class="fs-4 lh-1 {% if r.sign == '+' %}text-success{% else %}text-muted-custom{% endif %}">
+                    <i class="bi {% if r.kind == 'payment' %}bi-bag-check{% elif r.kind == 'withdrawal' %}bi-cash-coin{% else %}bi-wallet2{% endif %}"></i></span>
+                  <div>
+                    <div class="fw-semibold">
+                      {% if r.kind == "payment" and r.order %}<a href="{% url 'home:order-detail' r.order.order_number %}">{{ r.title }}</a>{% else %}{{ r.title }}{% endif %}
+                    </div>
+                    <div class="small text-muted-custom">{{ r.kind_label }}{% if r.detail %} &middot; {{ r.detail }}{% endif %}</div>
+                    <div class="small text-muted-custom">{{ r.date|date:"M d, Y H:i" }}{% if r.reference %} &middot; Ref {{ r.reference }}{% endif %}</div>
+                  </div>
+                </div>
+                <div class="text-end">
+                  <div class="fw-semibold {% if r.sign == '+' %}text-success{% endif %}">{{ r.sign }}Rs. {{ r.amount|floatformat:2 }}</div>
+                  <span class="badge {% if r.status == 'paid' or r.status == 'done' %}bg-success{% elif r.status == 'failed' or r.status == 'rejected' or r.status == 'expired' or r.status == 'cancelled' %}bg-danger{% elif r.status == 'refunded' %}bg-info text-dark{% else %}bg-warning text-dark{% endif %}">{{ r.status_label }}</span>
+                </div>
+              </div>
+            {% empty %}
+              <div class="p-5 text-center text-muted-custom small">No transactions yet.</div>
+            {% endfor %}
+          </div>
+
+          {% if page.paginator.num_pages > 1 %}
+          <nav class="mt-3"><ul class="pagination pagination-sm">
+            {% if page.has_previous %}<li class="page-item"><a class="page-link" href="?kind={{ f_kind }}&page={{ page.previous_page_number }}">&laquo;</a></li>{% endif %}
+            <li class="page-item disabled"><span class="page-link">Page {{ page.number }} of {{ page.paginator.num_pages }}</span></li>
+            {% if page.has_next %}<li class="page-item"><a class="page-link" href="?kind={{ f_kind }}&page={{ page.next_page_number }}">&raquo;</a></li>{% endif %}
+          </ul></nav>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

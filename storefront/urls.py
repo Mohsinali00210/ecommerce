@@ -9,6 +9,7 @@ admin_urlpatterns = [
     path("home-features/", admin_views.home_features, name="storefront_home_features"),
     path("seo/", admin_views.seo_settings, name="storefront_seo"),
     path("seo/tool/<slug:action>/", admin_views.seo_tool, name="storefront_seo_tool"),
+    path("seo/merchant/preview/<int:pk>/", admin_views.merchant_preview, name="storefront_merchant_preview"),
 ]
 
 # Mounted at the site root

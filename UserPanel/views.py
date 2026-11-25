@@ -1054,17 +1054,21 @@ def price_cart_item(item, qty):
         "line_saved": applied["off"] * qty,        # promotion saving
         "line_final": applied["final"] * qty,      # what the customer pays for the goods
         "shipping": item_shipping(product),        # 0 when the product ships free
+        # weight added to the parcel (0 = free item / no weight); see adminpanel/shipping.py
+        "weight_grams": _shipping_line_grams(product, variant, qty),
     }
  
  
-def summarize_lines(lines):
-    """Totals for a list of price_cart_item() results (cap + free-shipping threshold
-    from Store settings, see adminpanel/shipping.py)."""
+def _shipping_line_grams(product, variant, qty):
     from adminpanel import shipping as shipping_rules
-    subtotal = sum((l["line_original"] for l in lines), ZERO)
-    discount = sum((l["line_saved"] for l in lines), ZERO)
-    shipping_raw = sum((l["shipping"] for l in lines), ZERO)
-    return shipping_rules.totals(subtotal, discount, shipping_raw)
+    return shipping_rules.line_weight_grams(product, variant, qty)
+
+
+def summarize_lines(lines, destination=None):
+    """Totals for a list of price_cart_item() results: weight-based tariff for the
+    destination zone, flat charges, cap + free-shipping threshold (adminpanel/shipping.py)."""
+    from adminpanel import shipping as shipping_rules
+    return shipping_rules.summarize(lines, destination)
 # def ProductDetails(request, slug, sku=None):
 #     """
 #     URLs:
@@ -1351,17 +1355,12 @@ def _checkout_quantity(session_item, item):
     return min(qty, stock) if stock > 0 else qty
  
  
-@login_required   # the view reads request.user.* straight away, so anonymous users crashed anyway
-def CheckoutPage(request):
-    now = timezone.now()
- 
-    defaultaddresses = Address.objects.filter(user=request.user, is_default=True)
-    addresses = Address.objects.filter(user=request.user)
- 
+def _checkout_lines(request, now):
+    """Items ticked on the cart page, priced. Returns (items, lines, handling_days)."""
     # {cart_item_id: {"quantity": ..}} for the items ticked on the cart page
     checkout_items = request.session.get("checkout_items", [])
     checkout_lookup = {str(i["cart_item_id"]): i for i in checkout_items}
- 
+
     cart = (
         Cart.objects
         .filter(user=request.user, is_active=True)
@@ -1379,26 +1378,22 @@ def CheckoutPage(request):
         )
         .first()
     )
- 
-    filtered_items = []
-    lines = []
-    handling_days = []
- 
+
+    filtered_items, lines, handling_days = [], [], []
     if cart:
         for item in cart.items.all():
- 
             # skip items that weren't selected for checkout
             session_item = checkout_lookup.get(str(item.id))
             if session_item is None:
                 continue
- 
+
             ensure_item_variant(item)      # simple product: attach the default variant
             qty = _checkout_quantity(session_item, item)
             item.quantity = qty
- 
+
             line = price_cart_item(item, qty)
             lines.append(line)
- 
+
             # what the template shows for this line
             item.unit_price = line["full"]["price"]        # variant price
             item.unit_final = line["applied"]["final"]     # after the promotion
@@ -1406,16 +1401,14 @@ def CheckoutPage(request):
             item.line_original = line["line_original"]
             item.line_saved = line["line_saved"]
             item.line_final = line["line_final"]
- 
+
             handling_days.append(item.product.handling_time)
             filtered_items.append(item)
- 
-    totals = summarize_lines(lines)
- 
-    estimated_date = now + timedelta(days=max(handling_days) if handling_days else 0)
- 
-    context = {
-        "cart_items": filtered_items,
+    return filtered_items, lines, handling_days
+
+
+def _totals_context(totals):
+    return {
         "subtotal": totals["subtotal"],               # at list (variant) prices
         "total_off_price": totals["discount"],        # promotion savings
         "shipping_raw": totals["shipping_raw"],
@@ -1425,9 +1418,30 @@ def CheckoutPage(request):
         "free_shipping_applied": totals["free_shipping_applied"],
         "free_shipping_threshold": totals["free_shipping_threshold"],
         "final_total": totals["final_total"],
-        "estimated_date": estimated_date,
+        "weight_based": totals.get("weight_based", False),
+        "weight_kg": totals.get("weight_kg"),
+        "shipping_zone_label": totals.get("shipping_zone_label", ""),
+        "shipping_estimated": totals.get("shipping_estimated", False),
+        "shipping_city": totals.get("shipping_city", ""),
     }
- 
+
+
+@login_required   # the view reads request.user.* straight away, so anonymous users crashed anyway
+def CheckoutPage(request):
+    now = timezone.now()
+
+    defaultaddresses = Address.objects.filter(user=request.user, is_default=True)
+    addresses = Address.objects.filter(user=request.user)
+
+    filtered_items, lines, handling_days = _checkout_lines(request, now)
+
+    # Shipping is priced for the address pre-selected on the page (default address)
+    totals = summarize_lines(lines, destination=defaultaddresses.first())
+
+    estimated_date = now + timedelta(days=max(handling_days) if handling_days else 0)
+
+    context = {"cart_items": filtered_items, "estimated_date": estimated_date, **_totals_context(totals)}
+
     return render(
         request,
         "home/checkout.html",
@@ -1437,6 +1451,24 @@ def CheckoutPage(request):
             "addresses": addresses,
         },
     )
+
+
+@login_required
+def checkout_shipping_quote(request):
+    """Totals for the checkout items shipped to a saved address (?address_id=) or a typed
+    city/state (?city=&state=). The checkout page calls this when the address changes."""
+    from django.http import JsonResponse
+    destination = None
+    address_id = request.GET.get("address_id")
+    if address_id:
+        destination = Address.objects.filter(user=request.user, pk=address_id).first()
+    if destination is None and request.GET.get("city"):
+        destination = {"city": request.GET.get("city", "")[:100], "state": request.GET.get("state", "")[:100]}
+    _, lines, _ = _checkout_lines(request, timezone.now())
+    t = summarize_lines(lines, destination=destination)
+    data = _totals_context(t)
+    out = {k: (float(v) if isinstance(v, Decimal) else v) for k, v in data.items()}
+    return JsonResponse({"success": True, **out})
 
 
 @login_required
@@ -1493,6 +1525,7 @@ def MyCart(request):
         else:
             item.shipping_display = line["shipping"]
             item.shipping_amount = line["shipping"]
+        item.weight_kg = Decimal(line["weight_grams"]) / 1000 if line["weight_grams"] else None
         handling_days.append(product.handling_time)
 
         browser_lines[str(item.id)] = {
@@ -1501,21 +1534,23 @@ def MyCart(request):
             "promo_percent": float(line["full"]["percent_off"]),
             "min_qty": promo_min_qty(line["promo"]),
             "shipping": float(line["shipping"]),   # 0 when the product ships free
+            "weight": int(line["weight_grams"] // max(1, item.quantity)),  # grams per unit (0 = flat)
             "stock": stock,
             "preorder": preorder,                  # NEW: stock limits are ignored when True
         }
 
     # Totals only cover the items that start checked (enough stock or pre-order)
     purchasable_lines = [l for l, it in zip(lines, items) if not it.insufficient_stock]
-    totals = summarize_lines(purchasable_lines)
+    destination = (Address.objects.filter(user=request.user, is_default=True).first()
+                   or Address.objects.filter(user=request.user).first())
+    totals = summarize_lines(purchasable_lines, destination=destination)
+    from adminpanel import shipping as shipping_rules
+    browser = shipping_rules.browser_rules(destination)
 
     estimated_date = now + timedelta(days=max(handling_days) if handling_days else 0)
 
     cart_json = json.dumps(
-        {"lines": browser_lines,
-         "max_shipping": float(totals["max_shipping"]) if totals["max_shipping"] is not None else None,
-         "free_threshold": float(totals["free_shipping_threshold"])
-         if totals["free_shipping_threshold"] is not None else None},
+        {"lines": browser_lines, **browser},   # max_shipping, free_threshold, weight tariff
         cls=DjangoJSONEncoder,
     )
 
@@ -1533,6 +1568,12 @@ def MyCart(request):
         "final_total": totals["final_total"],
         "estimated_date": estimated_date,
         "cart_json": cart_json,
+        "weight_based": totals["weight_based"],
+        "weight_kg": totals["weight_kg"],
+        "shipping_zone_label": totals["shipping_zone_label"],
+        "shipping_estimated": totals["shipping_estimated"],
+        "shipping_city": totals["shipping_city"],
+        "weight_shipping_on": browser["weight"] is not None,
     }
     return render(request, "home/cart.html", context)
 from Web.models import OrderRequest, Order
@@ -2002,9 +2043,18 @@ def wallet_withdraw(request):
             return redirect("home:user-withdraw")
 
     history = WithdrawalRequest.objects.filter(user=request.user)[:20]
+    from payments.models import PayoutMethod
+    methods = list(PayoutMethod.objects.filter(is_enabled=True))
+    fee_rules = {m.code: {"fixed": float(m.fee_fixed), "percent": float(m.fee_percent), "min": float(m.fee_min),
+                          "max": float(m.fee_max) if m.fee_max is not None else None,
+                          "min_amount": float(m.min_amount),
+                          "max_amount": float(m.max_amount) if m.max_amount is not None else None,
+                          "text": m.fee_text(), "time": m.processing_time} for m in methods}
     return render(request, "home/WalletWithdraw.html", {
         "wallet": wallet, "form": form, "history": history,
-        "min_withdrawal": MIN_WITHDRAWAL,
+        "min_withdrawal": min([m.min_amount for m in methods], default=MIN_WITHDRAWAL),
+        "payout_methods": methods,
+        "fee_rules_json": json.dumps(fee_rules),
     })
 
 
@@ -2687,3 +2737,18 @@ def change_password(request):
         messages.success(request, "Your password has been changed.")
         return redirect("home:user-profile")
     return render(request, "home/ChangePassword.html", {"form": form})
+
+
+@login_required
+def transaction_history(request):
+    """Everything money-related for this customer: order payments, wallet movements, withdrawals."""
+    from payments import history
+    kind = request.GET.get("kind", "")
+    if kind not in dict(history.KINDS):
+        kind = ""
+    rows = history.rows(user=request.user, kind=kind)
+    wallet, _ = UserWallet.objects.get_or_create(user=request.user)
+    return render(request, "home/Transactions.html", {
+        "page": Paginator(rows, 20).get_page(request.GET.get("page")),
+        "kinds": history.KINDS, "f_kind": kind, "totals": history.totals(user=request.user), "wallet": wallet,
+    })

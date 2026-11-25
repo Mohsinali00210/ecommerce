@@ -1,7 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container-fluid py-4">
-  <h3 class="mb-3">Withdrawal Requests</h3>
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <h3 class="mb-0">Withdrawal Requests</h3>
+    <div class="d-flex gap-2">
+      <a href="{% url 'admin_transactions' %}?kind=withdrawal" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left-right me-1"></i>Transaction history</a>
+      <a href="{% url 'admin_payout_logs' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-journal-text me-1"></i>Payout logs</a>
+      <a href="{% url 'admin_payout_settings' %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-gear me-1"></i>Payout settings &amp; charges</a>
+    </div>
+  </div>
 
   {% for m in messages %}
     <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags }}{% endif %}">{{ m }}</div>
@@ -27,8 +34,10 @@
         <tr>
           <td>{{ w.pk }}</td>
           <td>{{ w.user.email }}</td>
-          <td>Rs. {{ w.amount|floatformat:2 }}</td>
-          <td>{{ w.get_method_display }}</td>
+          <td>Rs. {{ w.amount|floatformat:2 }}
+            {% if w.fee %}<br><small class="text-muted">charge Rs. {{ w.fee|floatformat:2 }}</small>
+            <br><small class="fw-semibold">send Rs. {{ w.payout_amount|floatformat:2 }}</small>{% endif %}</td>
+          <td>{{ w.get_method_display }}<br><small class="text-muted">{{ w.provider_label }}</small></td>
           <td>
             {{ w.account_title }}<br>
             <code>{{ w.account_number }}</code>
@@ -49,9 +58,23 @@
                 <i class="bi bi-eye"></i>
               </button>
 
+              {% if w.status == 'processing' %}
+                <button type="button" class="btn btn-sm btn-success js-process"
+                        data-mode="approve" data-label="Confirm paid" data-auto="0" data-confirming="1"
+                        data-action="{% url 'admin-withdrawal-approve' w.pk %}"
+                        data-id="{{ w.pk }}" data-user="{{ w.user.email }}"
+                        data-amount="{{ w.amount|floatformat:2 }}" data-fee="{{ w.fee|floatformat:2 }}"
+                        data-net="{{ w.payout_amount|floatformat:2 }}" data-ref="{{ w.gateway_reference }}"
+                        data-method="{{ w.get_method_display }}"
+                        data-title="{{ w.account_title }}" data-account="{{ w.account_number }}"
+                        data-bank="{{ w.bank_name }}"
+                        data-balance="{{ w.wallet.balance|floatformat:2 }}">Confirm paid</button>
+              {% endif %}
               {% if w.status == 'pending' or w.status == 'failed' %}
   <button type="button" class="btn btn-sm btn-success js-process"
-                        data-mode="approve"
+                        data-mode="approve" data-auto="{% if w.automatic %}1{% else %}0{% endif %}"
+                        data-provider="{{ w.provider_label }}"
+                        data-fee="{{ w.fee|floatformat:2 }}" data-net="{{ w.payout_amount|floatformat:2 }}"
                         data-label="{% if w.status == 'failed' %}Retry{% else %}Approve{% endif %}"
                         data-action="{% url 'admin-withdrawal-approve' w.pk %}"
                         data-id="{{ w.pk }}" data-user="{{ w.user.email }}"
@@ -112,6 +135,8 @@
         <table class="table table-sm mb-3">
           <tr><th style="width:40%">User</th><td id="pmUser"></td></tr>
           <tr><th>Requested amount</th><td id="pmAmount" class="fw-semibold"></td></tr>
+          <tr><th>Withdrawal charge</th><td id="pmFee"></td></tr>
+          <tr class="table-success"><th>Amount to send</th><td id="pmNet" class="fw-bold"></td></tr>
           <tr><th>Method</th><td id="pmMethod"></td></tr>
           <tr><th>Account title</th><td id="pmAcctTitle"></td></tr>
           <tr><th>Account number</th><td><code id="pmAcctNo"></code></td></tr>
@@ -126,8 +151,12 @@
           so the balance above is what the user has left.
         </div>
 
-        <div id="pmApproveNote" class="alert alert-success small mb-0">
-          Approving will send the amount to the account above.
+        <div id="pmApproveNote" class="alert alert-success small mb-2"></div>
+        <div id="pmRefWrap" class="mb-2">
+          <label class="form-label small mb-1" for="pmRef">Transaction reference / ID</label>
+          <input name="reference" id="pmRef" class="form-control" maxlength="120"
+                 placeholder="e.g. the JazzCash / bank transfer ID">
+          <div class="small text-muted mt-1">Required for manual transfers. Shown to the user.</div>
         </div>
 
         <div id="pmRejectWrap" class="d-none">
@@ -198,7 +227,18 @@ document.addEventListener("DOMContentLoaded", function () {
       $("pmBankRow").classList.toggle("d-none", !d.bank);
       $("pmBalance").textContent = "Rs. " + d.balance;
 
+      const auto = d.auto === "1";
+      $("pmFee").textContent = "Rs. " + (d.fee || "0.00");
+      $("pmNet").textContent = "Rs. " + (d.net || d.amount);
+      $("pmApproveNote").innerHTML = d.confirming
+        ? "The provider accepted this payout earlier. Confirm once the money has arrived."
+        : auto
+          ? `Approving sends <b>Rs. ${d.net || d.amount}</b> automatically via <b>${d.provider}</b> to the account above.`
+          : `Send <b>Rs. ${d.net || d.amount}</b> to the account above yourself (bank app / business portal), then enter the transaction reference and approve.`;
       $("pmApproveNote").classList.toggle("d-none", isReject);
+      $("pmRefWrap").classList.toggle("d-none", isReject || auto);
+      $("pmRef").required = !isReject && !auto;
+      $("pmRef").value = d.ref || "";
       $("pmRejectWrap").classList.toggle("d-none", !isReject);
       $("pmNote").required = isReject;
       $("pmNote").value = "";

@@ -5,10 +5,12 @@ from payments.services import available_methods
 register = template.Library()
 
 
-@register.inclusion_tag("payments/_checkout_options.html")
-def checkout_payment_options(total=None):
-    methods = available_methods(total)
-    first = next((m["code"] for m in methods if m["available"]), None)
+@register.inclusion_tag("payments/_checkout_options.html", takes_context=True)
+def checkout_payment_options(context, total=None):
+    request = context.get("request")
+    methods = available_methods(total, user=getattr(request, "user", None))
+    # Cash on delivery is pre-selected whenever it is available
+    first = next((m["value"] for m in methods if m["available"]), None)
     return {"methods": methods, "first": first}
 
 

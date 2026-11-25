@@ -75,7 +75,6 @@ def google_merchant_feed(request):
     if not s.merchant_feed_enabled:
         raise Http404
     from adminpanel import shipping
-    rules = shipping.rules()
     items = []
     qs = seo.public_products().select_related("brand").prefetch_related("images", "category")
     for p in qs.iterator(chunk_size=200):
@@ -85,10 +84,7 @@ def google_merchant_feed(request):
         final, was = seo.product_price(p)
         link = seo.product_url(p)
         cats = [c for c in p.category.all() if not c.is_deleted]
-        ship = Decimal("0") if (p.free_shipping or (rules["free_enabled"] and final >= rules["free_threshold"])) \
-            else (p.shipping_charges or Decimal("0")) + (p.additional_shipping_charges or Decimal("0"))
-        if rules["max_shipping"] is not None:
-            ship = min(ship, rules["max_shipping"])
+        ship = shipping.product_shipping_price(p, final)  # weight tariff (highest zone) or flat, capped
         availability = "preorder" if getattr(p, "available_for_preorder", False) else (
             "in_stock" if seo.in_stock(p) else "out_of_stock")
         brand = getattr(p.brand, "name", "") or s.merchant_default_brand or s.site_name

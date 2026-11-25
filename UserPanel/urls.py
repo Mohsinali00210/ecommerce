@@ -8,7 +8,8 @@ urlpatterns = [
     path("product/<int:product_id>/quick-view/", views.product_quick_view, name="product_quick_view"),
      path("product/<slug:slug>/", views.ProductDetails, name="Product_Details"),
     path("product/<slug:slug>/<str:sku>/", views.ProductDetails, name="Product_Details"), 
-    path("CheckoutPage/", views.CheckoutPage, name="MyCheckoutPage"), 
+    path("CheckoutPage/", views.CheckoutPage, name="MyCheckoutPage"),
+    path("CheckoutPage/shipping-quote/", views.checkout_shipping_quote, name="checkout-shipping-quote"), 
     path("MyCart/", views.MyCart, name="MyCart"), 
         path("Orders/", views.MyOrders, name="Orders"),
         path("orderdetail/<str:order_number>/", views.OrderDetail, name="order-detail"),
@@ -42,6 +43,7 @@ urlpatterns = [
         path("api/track-order/<str:number>/", views.TrackOrderAPIView.as_view(), name="track-order-api-detail"),
              path("api/topbar/", views.topbar_items, name="topbar-items"),
         path("wallet/withdraw/", views.wallet_withdraw, name="user-withdraw"),
+        path("transactions/", views.transaction_history, name="user-transactions"),
 
 ]
 

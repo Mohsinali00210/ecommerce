@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}{% if tariff %}Edit {{ tariff.name }}{% else %}Add tariff{% endif %}{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div><h2>{% if tariff %}{{ tariff.name }}{% else %}New shipping tariff{% endif %}</h2>
+    <p>Weight slabs and prices per zone. Prices are what the customer pays.</p></div>
+  <a href="{% url 'couriers:tariffs' %}" class="btn btn-outline-secondary btn-sm">Back to shipping rates</a>
+</div>
+{% for m in messages %}<div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags }}{% endif %} small">{{ m }}</div>{% endfor %}
+
+<form method="post">{% csrf_token %}
+  <div class="card mb-3" style="max-width:980px">
+    <div class="card-header">Tariff</div>
+    <div class="card-body row g-2">
+      {% if form.non_field_errors %}<div class="alert alert-danger small">{{ form.non_field_errors }}</div>{% endif %}
+      {% for field in form %}
+        <div class="{% if field.field.widget.input_type == 'checkbox' %}col-md-3 form-check ms-2{% elif field.name == 'notes' %}col-12{% else %}col-md-4{% endif %}">
+          {% if field.field.widget.input_type == 'checkbox' %}
+            {{ field }} <label class="form-check-label small" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+          {% else %}{% include "couriers/_field.html" %}{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card mb-3" style="max-width:980px">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>Weight slabs</span>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="addSlab"><i class="bi bi-plus-lg"></i> Add row</button>
+    </div>
+    {{ formset.management_form }}
+    {% if formset.non_form_errors %}<div class="alert alert-danger small m-2">{{ formset.non_form_errors }}</div>{% endif %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0" id="slabTable">
+        <thead class="table-light"><tr><th>Up to (grams)</th><th>Within city (Rs)</th><th>Zone A &ndash; same province (Rs)</th><th>Zone B &ndash; other province (Rs)</th><th class="text-center">Delete</th></tr></thead>
+        <tbody>
+        {% for f in formset %}
+          <tr class="slab-row">
+            {% for h in f.hidden_fields %}{{ h }}{% endfor %}
+            <td>{{ f.max_grams }}{% for e in f.max_grams.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+            <td>{{ f.within_city }}{% for e in f.within_city.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+            <td>{{ f.same_province }}{% for e in f.same_province.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+            <td>{{ f.other_province }}{% for e in f.other_province.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+            <td class="text-center">{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer small text-muted">
+      A slab covers parcels heavier than the row above, up to its own limit. Example: 250, 500, 1000 means
+      0&ndash;250 g, 250&ndash;500 g and 500 g&ndash;1 kg. Heavier parcels pay the last row plus the &ldquo;extra per step&rdquo; amounts.
+    </div>
+  </div>
+  <button class="btn btn-primary">Save tariff</button>
+</form>
+
+<template id="slabTpl">
+  <tr class="slab-row">
+    <td><input type="number" min="0" step="1" name="slabs-__prefix__-max_grams" class="form-control form-control-sm"></td>
+    <td><input type="number" min="0" step="0.01" name="slabs-__prefix__-within_city" class="form-control form-control-sm"></td>
+    <td><input type="number" min="0" step="0.01" name="slabs-__prefix__-same_province" class="form-control form-control-sm"></td>
+    <td><input type="number" min="0" step="0.01" name="slabs-__prefix__-other_province" class="form-control form-control-sm"></td>
+    <td></td>
+  </tr>
+</template>
+<script>
+document.getElementById("addSlab").addEventListener("click", function () {
+  const total = document.getElementById("id_slabs-TOTAL_FORMS");
+  const n = parseInt(total.value, 10);
+  const html = document.getElementById("slabTpl").innerHTML.replace(/__prefix__/g, n);
+  document.querySelector("#slabTable tbody").insertAdjacentHTML("beforeend", html);
+  total.value = n + 1;
+});
+</script>
+{% endblock %}

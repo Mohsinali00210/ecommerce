@@ -34,15 +34,32 @@ def home_features():
     return {"features": items}
 
 
-@register.inclusion_tag("storefront/shipping_note.html")
-def shipping_note(product, price, price_element_id=""):
-    """Free-shipping line for the product page and quick view.
+@register.inclusion_tag("storefront/shipping_note.html", takes_context=True)
+def shipping_note(context, product, price, price_element_id=""):
+    """Shipping line for the product page and quick view (free item, free-shipping threshold,
+    weight-based charge by zone, or the flat charge).
     `price_element_id`: element whose text changes when a variant is picked."""
     try:
         price = Decimal(str(price or 0))
     except Exception:
         price = Decimal("0")
-    note = shipping.product_note(product, price)
-    item_charge = (product.shipping_charges or Decimal("0")) + (product.additional_shipping_charges or Decimal("0"))
+    destination = None
+    request = context.get("request")
+    user = getattr(request, "user", None)
+    if user is not None and user.is_authenticated:
+        try:
+            from accounts.models import Address
+            destination = (Address.objects.filter(user=user, is_default=True).first()
+                           or Address.objects.filter(user=user).first())
+        except Exception:
+            destination = None
+    try:
+        note = shipping.product_note(product, price, destination)
+    except Exception:  # shipping info must never break the product page
+        note = {"kind": "paid"}
+    item_charge = note.get("flat")
+    if item_charge is None:
+        item_charge = (product.shipping_charges or Decimal("0")) + (product.additional_shipping_charges or Decimal("0"))
     return {"note": note, "product": product, "item_charge": item_charge, "price_el": price_element_id,
-            "threshold": note.get("threshold")}
+            "threshold": note.get("threshold"), "weight": note.get("weight"),
+            "uid": f"shipz{product.pk}{price_element_id}"}

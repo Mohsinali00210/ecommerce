@@ -34,6 +34,10 @@ class StoreSettings(models.Model):
     max_shipping_charge = models.DecimalField(
         max_digits=12, decimal_places=2, default=Decimal("450.00"),
         help_text="Cart shipping is never more than this, Rs (0 = no cap)")
+    weight_shipping_enabled = models.BooleanField(
+        default=True, verbose_name="Weight-based shipping",
+        help_text="Charge by parcel weight and destination zone using the default courier tariff "
+                  "(Shipping > Shipping rates). Products with no weight keep their own flat charge.")
 
     # --- Customer emails ------------------------------------------------------
     email_order_confirmation = models.BooleanField(default=True)

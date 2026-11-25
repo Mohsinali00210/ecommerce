@@ -721,21 +721,13 @@
                         </span>
 
                         <span>
-
-                            {% if items.shipping_capped %}
-                                <small class="text-decoration-line-through text-muted me-1">
-                                    RS {{ items.shipping_raw|floatformat:2 }}
-                                </small>
-                            {% endif %}
-
-                            {% if items.shipping_total > 0 %}
-                                RS {{ items.shipping_total|floatformat:2 }}
-                            {% else %}
-                                <strong class="text-success">FREE</strong>
-                            {% endif %}
-
+                            <small class="text-decoration-line-through text-muted me-1 {% if not items.shipping_capped %}d-none{% endif %}" id="coShippingWas">RS {{ items.shipping_raw|floatformat:2 }}</small>
+                            <span id="coShipping">{% if items.shipping_total > 0 %}RS {{ items.shipping_total|floatformat:2 }}{% else %}<strong class="text-success">FREE</strong>{% endif %}</span>
                         </span>
 
+                    </div>
+                    <div class="small text-muted mb-2 {% if not items.weight_based %}d-none{% endif %}" id="coShippingZone">
+                        <i class="bi bi-box-seam me-1"></i><span id="coShippingZoneText">{% if items.weight_based %}{{ items.weight_kg|floatformat:"-2" }} kg &middot; {% if items.shipping_estimated %}estimate &mdash; choose your address{% else %}{{ items.shipping_zone_label }}{% if items.shipping_city %} ({{ items.shipping_city }}){% endif %}{% endif %}{% endif %}</span>
                     </div>
 
                     {% if items.free_shipping_applied %}
@@ -762,7 +754,7 @@
                             Total
                         </span>
 
-                        <span>
+                        <span id="coTotal">
                             RS {{ items.final_total|floatformat:2 }}
                         </span>
 
@@ -1361,7 +1353,7 @@ if (checkoutForm) {
               // =================================
 
               if (orderData.payment_url) {
-                  // Online payment: continue on Safepay's secure page
+                  // Online payment: continue on the gateway's secure page
                   window.location.href = orderData.payment_url;
                   return;
               }
@@ -1416,5 +1408,45 @@ if (checkoutForm) {
       (d.cities || []).forEach((c) => { const o = document.createElement("option"); o.value = c; dl.appendChild(o); });
     }).catch(() => {});
   })();
+</script>
+
+<script>
+// Re-price shipping (weight x zone) whenever the delivery address changes.
+(function () {
+  const url = "{% url 'home:checkout-shipping-quote' %}";
+  const sel = document.getElementById("addressSelect");
+  const city = document.getElementById("shippingCity");
+  const state = document.getElementById("shippingState");
+  const money = (n) => "RS " + Number(n).toFixed(2);
+  let timer = null;
+  function apply(d) {
+    if (!d || !d.success) return;
+    const ship = document.getElementById("coShipping");
+    if (ship) ship.innerHTML = d.shipping_total > 0 ? money(d.shipping_total) : '<strong class="text-success">FREE</strong>';
+    const was = document.getElementById("coShippingWas");
+    if (was) { was.textContent = money(d.shipping_raw); was.classList.toggle("d-none", !d.shipping_capped); }
+    const total = document.getElementById("coTotal");
+    if (total) total.textContent = money(d.final_total);
+    const zone = document.getElementById("coShippingZone");
+    const zt = document.getElementById("coShippingZoneText");
+    if (zone && zt) {
+      zone.classList.toggle("d-none", !d.weight_based);
+      const kg = Number(d.weight_kg || 0).toFixed(2).replace(/\.?0+$/, "");
+      zt.textContent = kg + " kg · " + (d.shipping_estimated ? "estimate — choose your address"
+        : d.shipping_zone_label + (d.shipping_city ? " (" + d.shipping_city + ")" : ""));
+    }
+  }
+  function quote() {
+    const q = new URLSearchParams();
+    if (sel && sel.value) q.set("address_id", sel.value);
+    else if (city && city.value.trim()) { q.set("city", city.value.trim()); q.set("state", (state && state.value) || ""); }
+    fetch(url + "?" + q.toString(), { credentials: "same-origin" }).then(r => r.json()).then(apply).catch(() => {});
+  }
+  const later = () => { clearTimeout(timer); timer = setTimeout(quote, 400); };
+  if (sel) sel.addEventListener("change", quote);
+  if (city) city.addEventListener("input", () => { if (!sel || !sel.value) later(); });
+  if (state) state.addEventListener("input", () => { if (!sel || !sel.value) later(); });
+  if (sel && sel.value) quote();
+})();
 </script>
 {% endblock %}

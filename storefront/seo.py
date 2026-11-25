@@ -20,7 +20,7 @@ from .models import SeoSettings
 PRIVATE_URL_NAMES = {
     "MyCheckoutPage", "MyCart", "Orders", "order-detail", "Wishlist", "user-profile", "edit-profile",
     "change-password", "user-wallet", "user-address", "ContactHistory", "TicketDetail", "notifications",
-    "all-notifications", "user-withdraw", "wish-to-buy",
+    "all-notifications", "user-withdraw", "wish-to-buy", "user-transactions", "checkout-shipping-quote",
 }
 PRIVATE_PREFIXES = ("/Adminpanel/", "/admin/", "/accounts/", "/order/view/", "/payments/", "/couriers/",
                     "/api/", "/chat/")
@@ -170,7 +170,6 @@ def breadcrumb_ld(items):
 
 def product_ld(product, seo, price, url, images, reviews=None):
     from adminpanel import shipping
-    rules = shipping.rules()
     brand = getattr(getattr(product, "brand", None), "name", "") or seo.merchant_default_brand or seo.site_name
     offer = {
         "@type": "Offer", "url": url, "priceCurrency": "PKR", "price": f"{price:.2f}",
@@ -180,8 +179,7 @@ def product_ld(product, seo, price, url, images, reviews=None):
     }
     if getattr(product, "available_for_preorder", False):
         offer["availability"] = "https://schema.org/PreOrder"
-    ship_cost = Decimal("0") if (product.free_shipping or (rules["free_enabled"] and price >= rules["free_threshold"])) \
-        else (product.shipping_charges or Decimal("0")) + (product.additional_shipping_charges or Decimal("0"))
+    ship_cost = shipping.product_shipping_price(product, price)  # same price as the Merchant feed
     offer["shippingDetails"] = {
         "@type": "OfferShippingDetails",
         "shippingRate": {"@type": "MonetaryAmount", "value": f"{ship_cost:.2f}", "currency": "PKR"},

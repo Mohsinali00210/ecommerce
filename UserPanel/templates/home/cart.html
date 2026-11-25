@@ -125,7 +125,11 @@
                             </small>
                         {% else %}
                             <small class="text-muted d-block mt-1">
+                                {% if weight_shipping_on and item.weight_kg %}
+                                <i class="bi bi-truck me-1"></i>Shipping by weight ({{ item.weight_kg|floatformat:"-2" }} kg)
+                                {% else %}
                                 <i class="bi bi-truck me-1"></i>Shipping: RS {{ item.shipping_amount|floatformat:2 }}
+                                {% endif %}
                             </small>
                         {% endif %}
                         {% if item.product.available_for_preorder %}
@@ -266,6 +270,17 @@
                     </span>
 
                 </div>
+                {% if weight_shipping_on %}
+                <div class="small text-muted mb-2 {% if not weight_based %}d-none{% endif %}" id="summaryWeightRow">
+                    <i class="bi bi-box-seam me-1"></i>Parcel weight <span id="summaryWeight">{{ weight_kg|floatformat:"-2" }} kg</span>
+                    &middot;
+                    {% if shipping_estimated %}
+                        estimate (Zone B). Exact charge is shown at checkout for your address.
+                    {% else %}
+                        {{ shipping_zone_label }}{% if shipping_city %} ({{ shipping_city }}){% endif %}
+                    {% endif %}
+                </div>
+                {% endif %}
                 <div class="small text-muted mb-2 {% if not shipping_capped %}d-none{% endif %}" id="summaryShippingNote">
                     Shipping is capped at RS {{ max_shipping|floatformat:0 }}.
                 </div>
@@ -412,6 +427,14 @@
     }
     row.classList.toggle("opacity-75", !ok);
   }
+  // ---------- Weight-based shipping ----------
+  function weightCharge(grams) {
+    const w = CART.weight, slabs = w.slabs;
+    if (!slabs.length || grams <= 0) return 0;
+    for (const [max, price] of slabs) if (grams <= max) return price;
+    const [lastMax, lastPrice] = slabs[slabs.length - 1];
+    return lastPrice + w.extra * Math.ceil((grams - lastMax) / w.step);
+  }
   // ---------- Live summary (only the selected items) ----------
   function recomputeSummary() {
     if (!document.getElementById("summaryTotal")) return;   // empty cart: no summary card
@@ -419,6 +442,7 @@
     let original = 0;     // list price of the selected lines
     let discount = 0;     // promotion savings
     let shippingRaw = 0;  // sum of shipping before the cap (free-shipping lines add 0)
+    let grams = 0;        // weight-based shipping: one parcel for every weighed line
 
     document.querySelectorAll(".cart-item").forEach(row => {
       renderRow(row);
@@ -432,8 +456,15 @@
 
       original    += line.price * qty;
       discount    += p.was ? (p.was - p.final) * qty : 0;
-      shippingRaw += line.shipping;
+      if (CART.weight && line.weight > 0) grams += line.weight * qty;
+      else shippingRaw += line.shipping;
     });
+    // weight-based tariff (same as couriers/tariffs.py charge())
+    if (CART.weight && grams > 0) shippingRaw += weightCharge(grams);
+    const kgEl = document.getElementById("summaryWeight");
+    if (kgEl) kgEl.textContent = (grams / 1000).toFixed(2).replace(/\.?0+$/, "") + " kg";
+    const wRow = document.getElementById("summaryWeightRow");
+    if (wRow) wRow.classList.toggle("d-none", !(CART.weight && grams > 0));
 
     // same rules as adminpanel/shipping.py: cap first, then the free-shipping threshold
     const cappedShipping = CART.max_shipping == null ? shippingRaw : Math.min(shippingRaw, CART.max_shipping);

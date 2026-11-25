@@ -88,11 +88,15 @@
     <div class="collapse" id="couriersSubmenu">
       <a href="{% url 'couriers:dashboard' %}">Shipments &amp; booking</a>
       <a href="{% url 'couriers:dashboard' %}?status=attention">Needs attention <span class="badge bg-danger" data-unseen="shipments_attention"{% if not admin_unseen.shipments_attention %} hidden{% endif %}>{{ admin_unseen.shipments_attention|default:0 }}</span></a>
-      {% if "manage_shipping" in admin_perms %}<a href="{% url 'couriers:settings' %}">Courier settings</a>{% endif %}
+      {% if "manage_shipping" in admin_perms %}<a href="{% url 'couriers:tariffs' %}">Shipping rates (by weight)</a>
+      <a href="{% url 'couriers:settings' %}">Courier settings</a>{% endif %}
     </div>
     {% endif %}
     {% if "manage_finance" in admin_perms %}
     <a href="{% url 'admin-withdrawals' %}"><i class="bi bi-wallet2"></i><span class="menu-text">Withdrawals</span><span class="badge bg-danger" data-unseen="withdrawals"{% if not admin_unseen.withdrawals %} hidden{% endif %}>{{ admin_unseen.withdrawals|default:0 }}</span></a>
+    <a href="{% url 'admin_transactions' %}"><i class="bi bi-arrow-left-right"></i><span class="menu-text">Transactions</span></a>
+    <a href="{% url 'admin_payout_settings' %}"><i class="bi bi-cash-coin"></i><span class="menu-text">Payout settings</span></a>
+    <a href="{% url 'admin_payment_gateway' %}"><i class="bi bi-plug"></i><span class="menu-text">Payment gateways</span></a>
     {% endif %}
 
     {% if "view_catalog" in admin_perms %}

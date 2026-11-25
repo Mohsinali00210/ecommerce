@@ -103,8 +103,8 @@ def parse_service_account(raw):
     return info
 
 
-def _google_token(info):
-    key = f"google_indexing_token:{info['client_email']}"
+def _google_token(info, scope=GOOGLE_SCOPE):
+    key = f"google_token:{scope.rsplit('/', 1)[-1]}:{info['client_email']}"
     tok = cache.get(key)
     if tok:
         return tok
@@ -112,7 +112,7 @@ def _google_token(info):
     from cryptography.hazmat.primitives.asymmetric import padding
     now = int(time.time())
     header = {"alg": "RS256", "typ": "JWT", "kid": info.get("private_key_id", "")}
-    claims = {"iss": info["client_email"], "scope": GOOGLE_SCOPE, "aud": info.get("token_uri", GOOGLE_TOKEN_URL),
+    claims = {"iss": info["client_email"], "scope": scope, "aud": info.get("token_uri", GOOGLE_TOKEN_URL),
               "iat": now, "exp": now + 3600}
     signing_input = _b64(json.dumps(header).encode()) + b"." + _b64(json.dumps(claims).encode())
     try:

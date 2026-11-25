@@ -1090,6 +1090,12 @@ def admin_withdrawal_list(request):
     if status:
         qs = qs.filter(status=status)
     page = Paginator(qs, 20).get_page(request.GET.get("page"))
+    from payments.models import PayoutMethod
+    methods = {m.code: m for m in PayoutMethod.objects.all()}
+    for w in page:
+        pm = methods.get(w.method)
+        w.automatic = bool(pm and pm.automatic)
+        w.provider_label = pm.get_provider_display() if pm and pm.automatic else "Manual transfer"
     return render(request, "Other/withdrawal_list.html", {
         "withdrawals": page, "selected_status": status,
         "status_choices": WithdrawalRequest.STATUS,
@@ -1118,7 +1124,8 @@ def admin_withdrawal_history(request, pk):
 @staff_member_required
 @require_POST
 def admin_withdrawal_approve(request, pk):
-    ok, msg = approve_withdrawal(pk, request.user)
+    ok, msg = approve_withdrawal(pk, request.user, reference=request.POST.get("reference", ""),
+                                 note=request.POST.get("note", ""))
     (messages.success if ok else messages.error)(request, msg)
     return redirect("admin-withdrawals")
 

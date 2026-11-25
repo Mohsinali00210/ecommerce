@@ -27,7 +27,7 @@ class StoreSettingsForm(forms.ModelForm):
         model = StoreSettings
         fields = ["online_payments_enabled", "cod_enabled", "cod_max_amount", "bank_transfer_enabled",
                   "bank_transfer_details", "online_payment_timeout_minutes",
-                  "free_shipping_enabled", "free_shipping_threshold", "max_shipping_charge",
+                  "free_shipping_enabled", "free_shipping_threshold", "max_shipping_charge", "weight_shipping_enabled",
                   "email_order_confirmation", "email_status_changes", "email_statuses", "email_admin_new_order",
                   "backup_schedule_enabled", "backup_hour", "backup_keep", "backup_include_media"]
         widgets = {"bank_transfer_details": forms.Textarea(attrs={"rows": 4})}
@@ -74,9 +74,9 @@ class StoreSettingsForm(forms.ModelForm):
             raise forms.ValidationError("Keep at least one payment method on, or customers can't check out.")
         if data.get("online_payments_enabled"):
             from payments.models import PaymentGateway
-            if not PaymentGateway.online():
+            if not any(g.configured for g in PaymentGateway.objects.filter(is_active=True)):
                 self.add_error("online_payments_enabled",
-                               "Set up and activate Safepay first (Payments → Safepay settings).")
+                               "Set up and switch on a gateway first (Payments → Gateways).")
         return data
 
 
@@ -96,7 +96,7 @@ def store_settings(request):
         return redirect("admin_store_settings")
     from payments.models import PaymentGateway
     return render(request, "adminpanel/store_settings.html",
-                  {"form": form, "gateway": PaymentGateway.objects.filter(code="safepay").first()})
+                  {"form": form, "gateways": [g for g in PaymentGateway.objects.filter(is_active=True) if g.configured]})
 
 
 # ---------------------------------------------------------------------------

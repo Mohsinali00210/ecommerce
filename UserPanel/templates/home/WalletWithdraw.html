@@ -14,8 +14,26 @@
         <div class="p-3 mb-3 border rounded">
           <div class="small text-muted-custom">Available Balance</div>
           <div class="fs-3 font-display">Rs. {{ wallet.balance|floatformat:2 }}</div>
-          <div class="small text-muted-custom">Minimum withdrawal: Rs. {{ min_withdrawal }}</div>
+          <div class="small text-muted-custom">Minimum withdrawal: Rs. {{ min_withdrawal|floatformat:2 }}</div>
         </div>
+
+        {% if payout_methods %}
+        <div class="border rounded mb-3">
+          <div class="px-3 pt-3 fw-semibold small">Withdrawal charges</div>
+          <div class="table-responsive">
+            <table class="table table-sm small mb-0 align-middle">
+              <thead><tr><th class="ps-3">Method</th><th>Charge</th><th>Limits</th><th class="pe-3">Arrives</th></tr></thead>
+              <tbody>
+              {% for m in payout_methods %}
+                <tr><td class="ps-3">{{ m.name }}</td><td>{{ m.fee_text }}</td>
+                  <td>Rs. {{ m.min_amount|floatformat:0 }}{% if m.max_amount %} &ndash; {{ m.max_amount|floatformat:0 }}{% else %}+{% endif %}</td>
+                  <td class="pe-3">{{ m.processing_time }}</td></tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
 
 
           <!-- Guidance: withdraw -->
@@ -42,9 +60,17 @@
               {% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
             </div>
           {% endfor %}
+          <!-- Applicable charge (updates as you type) -->
+          <div class="border rounded p-3 mb-3 small" id="feeBox" aria-live="polite">
+            <div class="d-flex justify-content-between"><span>Withdrawal amount</span><strong id="feeAmount">Rs. 0.00</strong></div>
+            <div class="d-flex justify-content-between text-danger"><span>Charge <span class="text-muted-custom" id="feeRule"></span></span><strong id="feeValue">- Rs. 0.00</strong></div>
+            <hr class="my-2">
+            <div class="d-flex justify-content-between fs-6"><span>You will receive</span><strong class="text-success" id="feeNet">Rs. 0.00</strong></div>
+            <div class="text-danger mt-1 d-none" id="feeWarn"></div>
+          </div>
           <div class="alert alert-info small">
-            After you submit, the amount is held from your wallet. You will receive it
-            within <strong>2 working days</strong> once approved. If rejected, it is refunded to your wallet.
+            After you submit, the full amount is held from your wallet. You will receive the amount above
+            <strong id="feeTime">within 2 working days</strong> once approved. If rejected, the full amount is refunded to your wallet.
           </div>
           <button class="btn btn-brass w-100"><i class="bi bi-cash-coin me-1"></i>Request Withdrawal</button>
         </form>
@@ -57,14 +83,16 @@
             <div class="d-flex justify-content-between p-3 {% if not forloop.last %}border-bottom{% endif %}">
               <div>
                 <div class="fw-semibold">Rs. {{ w.amount|floatformat:2 }} → {{ w.get_method_display }}</div>
+                {% if w.fee %}<div class="small text-muted-custom">Charge Rs. {{ w.fee|floatformat:2 }} &middot; you receive Rs. {{ w.payout_amount|floatformat:2 }}</div>{% endif %}
                 <div class="small text-muted-custom">{{ w.requested_at|date:"M d, Y H:i" }}</div>
+                {% if w.status == 'paid' and w.gateway_reference %}<div class="small text-muted-custom">Ref: {{ w.gateway_reference }}</div>{% endif %}
                 {% if w.status == 'rejected' and w.admin_note %}
                   <div class="small text-danger">Reason: {{ w.admin_note }}</div>
                 {% endif %}
               </div>
               <span class="badge align-self-center
                 {% if w.status == 'paid' %}bg-success{% elif w.status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
-                {% if w.status == 'failed' %}Processing{% else %}{{ w.get_status_display }}{% endif %}
+                {% if w.status == 'failed' or w.status == 'processing' %}Processing{% else %}{{ w.get_status_display }}{% endif %}
               </span>
             </div>
           {% empty %}
@@ -82,5 +110,37 @@
   const bankWrap = document.getElementById("bankNameWrap");
   function toggleBank(){ bankWrap.style.display = method.value === "bank" ? "block" : "none"; }
   method.addEventListener("change", toggleBank); toggleBank();
+
+  // applicable charge, same rule as PayoutMethod.fee_for()
+  const FEES = {{ fee_rules_json|safe }};
+  const amountEl = document.getElementById("id_amount");
+  const rs = (n) => "Rs. " + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const BAL = {{ wallet.balance|floatformat:2|default:"0" }};
+  function feeFor(rule, amount) {
+    if (!rule) return 0;
+    let fee = rule.fixed + amount * rule.percent / 100;
+    fee = Math.max(fee, rule.min || 0);
+    if (rule.max != null) fee = Math.min(fee, rule.max);
+    return Math.min(Math.round(fee * 100) / 100, amount);
+  }
+  function updateFee() {
+    const rule = FEES[method.value];
+    const amount = parseFloat(amountEl.value) || 0;
+    const fee = feeFor(rule, amount);
+    document.getElementById("feeAmount").textContent = rs(amount);
+    document.getElementById("feeValue").textContent = "- " + rs(fee);
+    document.getElementById("feeNet").textContent = rs(Math.max(amount - fee, 0));
+    document.getElementById("feeRule").textContent = rule ? "(" + rule.text + ")" : "";
+    if (rule) document.getElementById("feeTime").textContent = rule.time;
+    let warn = "";
+    if (amount > BAL) warn = "More than your available balance.";
+    else if (rule && amount && amount < rule.min_amount) warn = "Minimum for this method is " + rs(rule.min_amount) + ".";
+    else if (rule && rule.max_amount != null && amount > rule.max_amount) warn = "Maximum for this method is " + rs(rule.max_amount) + ".";
+    const w = document.getElementById("feeWarn");
+    w.textContent = warn; w.classList.toggle("d-none", !warn);
+  }
+  method.addEventListener("change", updateFee);
+  amountEl.addEventListener("input", updateFee);
+  updateFee();
 </script>
 {% endblock %}

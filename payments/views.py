@@ -14,7 +14,7 @@ from accounts.error_logging import security_event
 from Web.order_emails import order_from_token, order_link
 
 from . import services
-from .gateways.base import GatewayError
+from .gateways.base import GatewayError, ReturnResult
 from .models import Payment, PaymentEvent, PaymentGateway
 from .validators import validate_receipt
 
@@ -35,6 +35,16 @@ def _after_payment_url(request, order):
 # ---------------------------------------------------------------------------
 # Customer: pay / return / cancel
 # ---------------------------------------------------------------------------
+def _go(request, session):
+    """Send the browser to the gateway: plain redirect, or an auto-submitted POST form."""
+    if session.post_fields:
+        resp = render(request, "payments/redirect_post.html",
+                      {"action": session.redirect_url, "fields": session.post_fields})
+        resp["Cache-Control"] = "no-store"
+        return resp
+    return redirect(session.redirect_url)
+
+
 @ratelimit(key="ip", rate="20/10m", block=True)
 def pay(request, token):
     """Start (or retry) the online payment for an order. Works from the email link."""
@@ -47,31 +57,51 @@ def pay(request, token):
     if not payment or payment.method != "online":
         return _message(request, "Nothing to pay online", "This order doesn't use online payment.", order)
     try:
-        url = services.start_online(payment, request)
+        session = services.start_online(payment, request)
     except services.PaymentNotAllowed as exc:
         return _message(request, "Payment unavailable", str(exc), order, status=409)
-    return redirect(url)
+    return _go(request, session)
 
 
-@csrf_exempt  # Safepay posts back here; the HMAC signature authenticates it
+HIDDEN_RETURN_FIELDS = {"sig", "pp_SecureHash", "pp_Password", "merchantHashedReq", "auth_token", "result"}
+
+
+@csrf_exempt  # gateways post back here; each adapter verifies the data (signature or server-side check)
 @ratelimit(key="ip", rate="30/10m", block=True)
 def payment_return(request, pk):
-    payment = get_object_or_404(Payment.objects.select_related("order", "gateway"), pk=pk, method="online")
+    payment = get_object_or_404(Payment.objects.select_related("order", "gateway", "order__user"), pk=pk,
+                                method="online")
     data = request.POST.dict() or request.GET.dict()
     order = payment.order
     if payment.status == "paid":
         return redirect(_after_payment_url(request, order))
-    tracker = data.get("tracker") or data.get("beacon")
     gateway = payment.gateway
-    verified = bool(gateway and tracker and tracker == payment.tracker and gateway.adapter().verify_return(data))
-    PaymentEvent.objects.create(payment=payment, gateway_code=gateway.code if gateway else "", kind="return",
-                                verified=verified, data={k: v for k, v in data.items() if k != "sig"})
-    if verified:
-        services.mark_paid(payment, reference=data.get("reference") or data.get("ref") or "", source="return")
+    if not gateway:
+        return _message(request, "Payment not found", "We couldn't match this payment.", order, status=400)
+    try:
+        result = gateway.adapter().handle_return(payment, data)
+    except GatewayError as exc:
+        result = ReturnResult("pending", reason=str(exc))
+    PaymentEvent.objects.create(payment=payment, gateway_code=gateway.code, kind=f"return_{result.event}",
+                                verified=result.verified,
+                                data={"reason": result.reason, "reference": result.reference,
+                                      **{k: v for k, v in data.items() if k not in HIDDEN_RETURN_FIELDS}})
+    if result.event == "redirect" and result.session:
+        return _go(request, result.session)
+    if result.event == "paid":
+        services.mark_paid(payment, reference=result.reference, source="return",
+                           data={"gateway": gateway.code})
         return redirect(_after_payment_url(request, order))
-    if data.get("sig"):
+    if result.event in ("failed", "cancelled"):
+        services.mark_failed(payment, status=result.event, reason=result.reason or "Payment not completed",
+                             data={"via": "return"})
+        return _message(request, "Payment not completed",
+                        (result.reason + ". " if result.reason else "") +
+                        "No money was taken. You can try again from your order page before the order expires.",
+                        order)
+    if data.get("sig") or data.get("pp_SecureHash"):
         security_event("payment_signature_invalid", request, severity="WARNING", payment=payment.pk)
-    # Not verifiable here - the webhook may still confirm it.
+    # Not verifiable here - the webhook / status check may still confirm it.
     return _message(request, "Confirming your payment",
                     "We're waiting for confirmation from the payment provider. "
                     "You'll get an email as soon as it's confirmed - no need to pay again.", order)
@@ -92,8 +122,9 @@ def webhook(request, code):
     gateway = PaymentGateway.objects.filter(code=code).first()
     if not gateway:
         raise Http404
+    adapter = gateway.adapter()
     try:
-        result = gateway.adapter().parse_webhook(request.body, request.headers)
+        result = adapter.parse_webhook(request.body, request.headers)
     except (GatewayError, ValueError) as exc:
         PaymentEvent.objects.create(gateway_code=code, kind="webhook_rejected", verified=False,
                                     data={"error": str(exc), "body": request.body[:2000].decode("utf-8", "replace")})
@@ -106,7 +137,32 @@ def webhook(request, code):
         services.mark_paid(payment, reference=result.reference, source="webhook")
     elif payment and result.event == "failed":
         services.mark_failed(payment, reason="Gateway reported failure", data={"via": "webhook"})
+    ack = getattr(adapter, "webhook_ack", None)
+    if ack:
+        body, ctype = ack()
+        return HttpResponse(body, content_type=ctype)
     return HttpResponse("ok")
+
+
+# ---------------------------------------------------------------------------
+# Test gateway (sandbox simulator)
+# ---------------------------------------------------------------------------
+@ratelimit(key="ip", rate="30/10m", block=True)
+def test_gateway(request, token):
+    from .gateways.testgateway import sign, unsign
+    info = unsign(token)
+    if not info:
+        return _message(request, "Link expired", "This test payment link is invalid or has expired.", status=404)
+    payment = get_object_or_404(Payment.objects.select_related("order", "gateway"), pk=info["p"], method="online")
+    if not payment.gateway or payment.gateway.code != "test" or payment.tracker != info["t"]:
+        raise Http404
+    if request.method == "POST":
+        outcome = request.POST.get("outcome")
+        if outcome == "cancel":
+            return redirect(info["c"])
+        result = sign({"p": payment.pk, "t": payment.tracker, "outcome": "paid" if outcome == "paid" else "failed"})
+        return render(request, "payments/redirect_post.html", {"action": info["r"], "fields": {"result": result}})
+    return render(request, "payments/test_gateway.html", {"payment": payment, "order": payment.order})
 
 
 # ---------------------------------------------------------------------------

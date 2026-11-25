@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Payment logs{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div><h2>Payment logs</h2><p>Everything that happened to payments: gateway sessions, customer returns, webhooks (accepted and rejected), status checks and staff actions.</p></div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'admin_transactions' %}" class="btn btn-outline-secondary btn-sm">Transaction history</a>
+    <a href="{% url 'admin_payment_gateway' %}" class="btn btn-outline-secondary btn-sm">Gateways</a>
+  </div>
+</div>
+<form class="card card-body mb-3 row g-2 flex-row" method="get">
+  <div class="col-md-3"><input class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Order no., reference, tracker"></div>
+  <div class="col-md-2"><select name="gateway" class="form-select form-select-sm"><option value="">All gateways</option>
+    {% for code, name in gateways %}<option value="{{ code }}"{% if f_gateway == code %} selected{% endif %}>{{ name }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><select name="kind" class="form-select form-select-sm"><option value="">All events</option>
+    {% for k in kinds %}<option value="{{ k }}"{% if f_kind == k %} selected{% endif %}>{{ k }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><select name="verified" class="form-select form-select-sm"><option value="">Verified or not</option>
+    <option value="1"{% if f_verified == "1" %} selected{% endif %}>Verified</option><option value="0"{% if f_verified == "0" %} selected{% endif %}>Not verified</option></select></div>
+  <div class="col-md-2"><button class="btn btn-sm btn-primary w-100">Filter</button></div>
+</form>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light"><tr><th>When</th><th>Event</th><th>Gateway</th><th>Payment</th><th>Verified</th><th>By</th><th>Details</th></tr></thead>
+      <tbody>
+      {% for e in page %}
+        <tr>
+          <td class="small text-nowrap">{{ e.created_at|date:"M d, H:i:s" }}</td>
+          <td><span class="badge {% if 'rejected' in e.kind or 'failed' in e.kind %}bg-danger{% elif e.kind == 'paid' or 'paid' in e.kind %}bg-success{% else %}bg-light text-dark border{% endif %}">{{ e.kind }}</span></td>
+          <td class="small">{{ e.gateway_code|default:"-" }}</td>
+          <td class="small">{% if e.payment %}<a href="{% url 'admin_payment_detail' e.payment_id %}">#{{ e.payment_id }}</a> &middot; {{ e.payment.order.order_number }}<div class="text-muted">{{ e.payment.get_method_display }} &middot; Rs {{ e.payment.amount|floatformat:2 }}</div>{% else %}-{% endif %}</td>
+          <td>{% if e.verified %}<i class="bi bi-shield-check text-success" title="Signature / server check passed"></i>{% else %}<i class="bi bi-dash text-muted"></i>{% endif %}</td>
+          <td class="small">{{ e.created_by.email|default:"system" }}</td>
+          <td class="small" style="max-width:380px"><details><summary class="text-muted">data</summary><pre class="small mb-0" style="white-space:pre-wrap;word-break:break-all">{{ e.data|pprint }}</pre></details></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No events.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% if page.paginator.num_pages > 1 %}
+<nav class="mt-3"><ul class="pagination pagination-sm">
+  {% if page.has_previous %}<li class="page-item"><a class="page-link" href="?{% if q %}q={{ q|urlencode }}&{% endif %}gateway={{ f_gateway }}&kind={{ f_kind }}&verified={{ f_verified }}&page={{ page.previous_page_number }}">&laquo;</a></li>{% endif %}
+  <li class="page-item disabled"><span class="page-link">Page {{ page.number }} of {{ page.paginator.num_pages }}</span></li>
+  {% if page.has_next %}<li class="page-item"><a class="page-link" href="?{% if q %}q={{ q|urlencode }}&{% endif %}gateway={{ f_gateway }}&kind={{ f_kind }}&verified={{ f_verified }}&page={{ page.next_page_number }}">&raquo;</a></li>{% endif %}
+</ul></nav>
+{% endif %}
+{% endblock %}

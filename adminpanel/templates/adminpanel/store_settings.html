@@ -14,11 +14,12 @@
           <div class="p-3 rounded mb-3" style="background:{% if form.instance.online_payments_enabled %}#e8f7ee{% else %}#fdecec{% endif %}">
             <div class="form-check form-switch m-0">
               {{ form.online_payments_enabled }}
-              <label class="form-check-label fw-semibold" for="{{ form.online_payments_enabled.id_for_label }}">Online payments (Safepay)</label>
+              <label class="form-check-label fw-semibold" for="{{ form.online_payments_enabled.id_for_label }}">Online payments</label>
             </div>
             <div class="small text-muted mt-1">Master switch. Off = customers can't choose or complete any online payment; the server also refuses it.
-              {% if gateway %}Safepay: {% if gateway.is_active %}<span class="text-success">active</span>{% else %}<span class="text-danger">not active</span>{% endif %}, {{ gateway.get_environment_display|lower }}.{% endif %}
-              <a href="{% url 'admin_payment_gateway' %}">Safepay settings</a></div>
+              Active gateways: {% for g in gateways %}<span class="text-success">{{ g.name }}</span> ({{ g.get_environment_display|lower }}){% if not forloop.last %}, {% endif %}{% empty %}<span class="text-danger">none</span>{% endfor %}.
+              Cash on delivery stays the default choice at checkout.
+              <a href="{% url 'admin_payment_gateway' %}">Gateway settings</a></div>
             {% for e in form.online_payments_enabled.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
           </div>
           <div class="form-check form-switch mb-2">{{ form.cod_enabled }} <label class="form-check-label" for="{{ form.cod_enabled.id_for_label }}">Cash on delivery</label></div>
@@ -44,6 +45,8 @@
           <div class="col-12"><div class="form-check form-switch">{{ form.free_shipping_enabled }} <label class="form-check-label" for="{{ form.free_shipping_enabled.id_for_label }}">Free shipping above an order amount</label></div></div>
           <div class="col-sm-6"><label class="form-label small" for="{{ form.free_shipping_threshold.id_for_label }}">Free shipping from (Rs, after discounts)</label>{{ form.free_shipping_threshold }}{% for e in form.free_shipping_threshold.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
           <div class="col-sm-6"><label class="form-label small" for="{{ form.max_shipping_charge.id_for_label }}">Maximum shipping per order (Rs, 0 = no cap)</label>{{ form.max_shipping_charge }}{% for e in form.max_shipping_charge.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+          <div class="col-12"><div class="form-check form-switch">{{ form.weight_shipping_enabled }} <label class="form-check-label" for="{{ form.weight_shipping_enabled.id_for_label }}">Weight-based shipping (charge by parcel weight and zone)</label></div>
+            <div class="small text-muted">Uses the default tariff in <a href="{% url 'couriers:tariffs' %}">Shipping rates</a>. Products without a weight keep their flat charge.</div></div>
           <div class="col-12 small text-muted">Used by the cart, checkout, order placement, product pages, quick view, the home page "Free Shipping" tile ({threshold}) and the Google product feed. Products marked "Free shipping" always ship free.</div>
         </div>
       </div>

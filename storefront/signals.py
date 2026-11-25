@@ -48,3 +48,23 @@ def post_changed(sender, instance, raw=False, **kwargs):
     except Exception:
         import logging
         logging.getLogger("storefront.indexing").exception("Could not queue post for indexing")
+
+
+@receiver(post_save, sender="products.Product", dispatch_uid="storefront_product_merchant")
+def product_merchant_sync(sender, instance, raw=False, **kwargs):
+    """Keep Google Merchant Center in step with the shop (Merchant API, when switched on)."""
+    if raw:
+        return
+    try:
+        from .models import SeoSettings
+        s = SeoSettings.get()
+        if not (s.merchant_api_enabled and s.merchant_auto_sync):
+            return
+        if not cache.add(f"merchant:queued:{instance.pk}", 1, 30):
+            return  # several saves in a row (admin form + inlines) -> one sync
+        from .tasks import merchant_sync_product
+        pk = instance.pk
+        transaction.on_commit(lambda: merchant_sync_product.apply_async(args=[pk], countdown=20))
+    except Exception:
+        import logging
+        logging.getLogger("storefront.merchant").exception("Could not queue product for Merchant API")

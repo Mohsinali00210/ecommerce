@@ -31,6 +31,10 @@ urlpatterns = [
     path("settings/status-mappings/<int:pk>/", views.mapping_edit, name="mapping_edit"),
     path("settings/status-mappings/<int:pk>/delete/", views.mapping_delete, name="mapping_delete"),
     path("settings/webhook-logs/<int:pk>/", views.webhook_log_detail, name="webhook_log"),
+    path("settings/rates/", views.tariff_list, name="tariffs"),
+    path("settings/rates/add/", views.tariff_edit, name="tariff_add"),
+    path("settings/rates/<int:pk>/", views.tariff_edit, name="tariff_edit"),
+    path("settings/rates/<int:pk>/action/", views.tariff_action, name="tariff_action"),
 ]
 
 # Mounted at /couriers/ (outside the admin panel prefix)

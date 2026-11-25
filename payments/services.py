@@ -15,7 +15,7 @@ log = logging.getLogger("app")
 METHOD_INFO = {
     "cod": ("Cash on delivery", "Pay when your order arrives", "bi-cash-stack"),
     "bank": ("Bank transfer", "Transfer to our account, then upload the receipt", "bi-bank"),
-    "online": ("Card / JazzCash / Easypaisa", "Pay securely online via Safepay", "bi-credit-card-2-front"),
+    "online": ("Card / JazzCash / Easypaisa", "Pay securely online", "bi-credit-card-2-front"),
 }
 
 
@@ -23,42 +23,66 @@ class PaymentNotAllowed(Exception):
     pass
 
 
-def available_methods(total=None):
-    """Payment methods customers can choose right now (respects every admin switch)."""
+def split_method(value):
+    """'online:jazzcash' -> ('online', 'jazzcash'); 'cod' -> ('cod', '')."""
+    method, _, gateway = (value or "cod").partition(":")
+    return method.strip().lower(), gateway.strip().lower()
+
+
+def available_methods(total=None, user=None):
+    """Payment methods customers can choose right now (respects every admin switch).
+    Cash on delivery comes first and is the default. Every active online gateway is its own
+    option, with value "online:<gateway code>"."""
     s = StoreSettings.get()
     out = []
     if s.cod_enabled:
         ok = total is None or s.cod_allowed_for(total)
-        out.append({"code": "cod", "available": ok,
+        out.append({"code": "cod", "value": "cod", "available": ok,
                     "reason": "" if ok else f"Not available above Rs {s.cod_max_amount:,.0f}"})
     if s.bank_transfer_enabled:
-        out.append({"code": "bank", "available": True, "reason": "", "details": s.bank_transfer_details})
-    if s.online_payments_enabled and PaymentGateway.online():
-        out.append({"code": "online", "available": True, "reason": ""})
+        out.append({"code": "bank", "value": "bank", "available": True, "reason": "",
+                    "details": s.bank_transfer_details})
     for m in out:
         m["label"], m["description"], m["icon"] = METHOD_INFO[m["code"]]
+    if s.online_payments_enabled:
+        for g in PaymentGateway.online_gateways(user=user):
+            cls = g.adapter_class()
+            out.append({"code": "online", "value": f"online:{g.code}", "gateway": g.code, "available": True,
+                        "reason": "", "label": g.label(), "description": cls.checkout_description,
+                        "icon": cls.checkout_icon, "sandbox": g.environment == "sandbox"})
     return out
 
 
-def validate_method(method, total):
-    allowed = {m["code"]: m for m in available_methods(total)}
-    m = allowed.get(method)
-    if not m:
-        if method == "online":
+def validate_method(method, total, gateway_code="", user=None):
+    """Raises PaymentNotAllowed; returns the PaymentGateway for online payments (else None)."""
+    methods = available_methods(total, user=user)
+    if method == "online":
+        options = [m for m in methods if m["code"] == "online"]
+        m = next((o for o in options if o["gateway"] == gateway_code), None) if gateway_code else             (options[0] if options else None)
+        if not m:
             raise PaymentNotAllowed("Online payment is currently unavailable. Please choose another method.")
+        return PaymentGateway.objects.get(code=m["gateway"])
+    m = next((o for o in methods if o["code"] == method), None)
+    if not m:
         raise PaymentNotAllowed("This payment method is not available.")
     if not m["available"]:
         raise PaymentNotAllowed(m["reason"])
+    return None
 
 
-def create_for_order(order, method):
-    """Called inside the checkout transaction."""
-    gateway = PaymentGateway.online() if method == "online" else None
+def create_for_order(order, method, gateway=None):
+    """Called inside the checkout transaction. `gateway`: PaymentGateway or its code."""
+    if method == "online":
+        if isinstance(gateway, str) or gateway is None:
+            gateway = PaymentGateway.online(code=gateway or None, user=getattr(order, "user", None))
+    else:
+        gateway = None
     p = Payment(order=order, method=method, amount=order.total_amount, gateway=gateway)
     if method == "online":
         p.set_expiry(StoreSettings.get().online_payment_timeout_minutes)
     p.save()
-    PaymentEvent.objects.create(payment=p, kind="created", data={"method": method})
+    PaymentEvent.objects.create(payment=p, gateway_code=gateway.code if gateway else "", kind="created",
+                                data={"method": method, "amount": str(p.amount)})
     return p
 
 
@@ -70,7 +94,7 @@ def start_online(payment, request):
     """Create a gateway session and return the URL to send the customer to."""
     if not StoreSettings.get().online_payments_enabled:
         raise PaymentNotAllowed("Online payment is currently unavailable.")
-    gateway = payment.gateway or PaymentGateway.online()
+    gateway = payment.gateway or PaymentGateway.online(user=getattr(payment.order, "user", None))
     if not gateway or not gateway.configured or not gateway.is_active:
         raise PaymentNotAllowed("Online payment is currently unavailable.")
     if not payment.can_retry:
@@ -86,8 +110,9 @@ def start_online(payment, request):
     payment.gateway, payment.tracker, payment.status = gateway, session.tracker, "pending"
     payment.save(update_fields=["gateway", "tracker", "status", "updated_at"])
     PaymentEvent.objects.create(payment=payment, gateway_code=gateway.code, kind="session_started",
-                                data={"tracker": session.tracker})
-    return session.redirect_url
+                                data={"tracker": session.tracker, "url": session.redirect_url,
+                                      "form_post": bool(session.post_fields)})
+    return session
 
 
 def mark_paid(payment, reference="", source="gateway", user=None, data=None):

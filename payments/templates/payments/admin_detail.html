@@ -30,6 +30,12 @@
     {% if can_manage %}
     <div class="card"><div class="card-header">Actions</div>
       <div class="card-body">
+        {% if p.method == "online" and p.gateway and p.tracker and p.status != "paid" and p.status != "refunded" %}
+        <form method="post" action="{% url 'admin_payment_action' p.pk %}" class="mb-3">{% csrf_token %}
+          <input type="hidden" name="action" value="check_status">
+          <button class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-arrow-repeat me-1"></i>Check status with {{ p.gateway.name }}</button>
+        </form>
+        {% endif %}
         {% if p.status != "paid" and p.status != "refunded" %}
         <form method="post" action="{% url 'admin_payment_action' p.pk %}" class="mb-3" data-confirm="Mark this payment as received? The customer gets a confirmation." data-confirm-danger="false">{% csrf_token %}
           <input type="hidden" name="action" value="mark_paid">
@@ -45,7 +51,7 @@
         </form>
         {% endif %}
         {% if p.status == "paid" %}
-        <form method="post" action="{% url 'admin_payment_action' p.pk %}" data-confirm="Record that this payment was refunded? (Do the refund in Safepay / your bank first.)">{% csrf_token %}
+        <form method="post" action="{% url 'admin_payment_action' p.pk %}" data-confirm="Record that this payment was refunded? (Do the refund in the gateway dashboard / your bank first.)">{% csrf_token %}
           <input type="hidden" name="action" value="refunded">
           <input name="note" class="form-control form-control-sm mb-2" placeholder="Refund note" aria-label="Refund note">
           <button class="btn btn-outline-danger btn-sm w-100">Record refund</button>

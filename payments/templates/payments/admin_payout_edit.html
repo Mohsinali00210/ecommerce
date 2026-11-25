@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ pm.name }} payouts{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div><h2>{{ pm.name }} withdrawals</h2><p>Charge, limits and how the money is sent.</p></div>
+  <a href="{% url 'admin_payout_settings' %}" class="btn btn-outline-secondary btn-sm">All methods</a>
+</div>
+<div class="row g-3">
+  <div class="col-lg-8">
+    <form method="post" class="card">{% csrf_token %}
+      <div class="card-body row g-3">
+        {% if form.non_field_errors %}<div class="col-12"><div class="alert alert-danger small mb-0">{{ form.non_field_errors }}</div></div>{% endif %}
+        {% for field in form %}
+          {% if field.name == "mode" %}<div class="col-12"><hr class="my-1"><div class="fw-semibold">Sending the money</div></div>{% endif %}
+          <div class="{% if field.field.widget.input_type == 'checkbox' %}col-12 form-check ms-2{% else %}col-md-6{% endif %}">
+            {% if field.field.widget.input_type == 'checkbox' %}{{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">Customers can choose {{ pm.name }}</label>
+            {% else %}{% include "couriers/_field.html" %}{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      <div class="card-footer"><button class="btn btn-primary">Save</button></div>
+    </form>
+  </div>
+  <div class="col-lg-4">
+    <div class="card"><div class="card-header">Charge examples (saved settings)</div>
+      <table class="table table-sm mb-0 small">
+        <thead><tr><th>Withdraw</th><th class="text-end">Charge</th><th class="text-end">Customer gets</th></tr></thead>
+        <tbody>{% for amount, fee, net in examples %}<tr><td>Rs {{ amount|floatformat:0 }}</td><td class="text-end">Rs {{ fee|floatformat:2 }}</td><td class="text-end">Rs {{ net|floatformat:2 }}</td></tr>{% endfor %}</tbody>
+      </table>
+      <div class="card-body small text-muted">Charge = fixed + % of the amount, then raised to the minimum / lowered to the maximum charge.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

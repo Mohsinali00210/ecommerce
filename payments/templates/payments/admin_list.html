@@ -2,8 +2,12 @@
 {% block title %}Payments{% endblock %}
 {% block content %}
 <div class="sz-page-head">
-  <div><h2>Payments</h2><p>Every payment attempt: cash on delivery, bank transfers and Safepay.</p></div>
-  <a href="{% url 'admin_payment_gateway' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-gear me-1"></i>Safepay settings</a>
+  <div><h2>Payments</h2><p>Every payment attempt: cash on delivery, bank transfers and online gateways.</p></div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'admin_transactions' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left-right me-1"></i>Transactions</a>
+    <a href="{% url 'admin_payment_logs' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-journal-text me-1"></i>Logs</a>
+    <a href="{% url 'admin_payment_gateway' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-gear me-1"></i>Gateways</a>
+  </div>
 </div>
 
 {% if to_review %}
@@ -13,7 +17,7 @@
 </div>
 {% endif %}
 {% if gateway and gateway.is_active and gateway.environment == "sandbox" %}
-<div class="alert alert-info small">Safepay is in <strong>sandbox</strong> mode: no real money is charged.</div>
+<div class="alert alert-info small">{{ gateway.name }} is in <strong>sandbox</strong> mode: no real money is charged.</div>
 {% endif %}
 
 <div class="card">

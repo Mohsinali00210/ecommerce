@@ -124,6 +124,18 @@ class SeoSettings(models.Model):
     merchant_google_category = models.CharField(
         max_length=200, blank=True,
         help_text="Default Google product category, e.g. 'Apparel & Accessories' or its number")
+    # Merchant API: push products straight to Merchant Center (instead of / as well as the feed)
+    merchant_api_enabled = models.BooleanField(
+        default=False, help_text="Send products to Google Merchant Center through the Merchant API")
+    merchant_auto_sync = models.BooleanField(
+        default=True, help_text="Send a product as soon as it is saved (and remove it when hidden)")
+    merchant_account_id = models.CharField(max_length=30, blank=True,
+                                           help_text="Merchant Center account ID (number at the top of Merchant Center)")
+    merchant_data_source_id = models.CharField(
+        max_length=30, blank=True, help_text="ID of an API data source (Merchant Center > Settings > Data sources)")
+    merchant_feed_label = models.CharField(max_length=20, default="PK", blank=True,
+                                           help_text="Feed label, usually the country code: PK")
+    merchant_content_language = models.CharField(max_length=5, default="en", blank=True)
 
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -151,7 +163,8 @@ class SeoSettings(models.Model):
 
 
 class IndexingLog(models.Model):
-    ENGINES = [("indexnow", "IndexNow (Bing & others)"), ("google", "Google Indexing API")]
+    ENGINES = [("indexnow", "IndexNow (Bing & others)"), ("google", "Google Indexing API"),
+               ("merchant", "Google Merchant API")]
     engine = models.CharField(max_length=10, choices=ENGINES)
     action = models.CharField(max_length=20, default="updated")
     urls = models.JSONField(default=list)
@@ -167,3 +180,19 @@ class IndexingLog(models.Model):
 
     def __str__(self):
         return f"{self.engine} {self.action} {len(self.urls)} url(s)"
+
+
+class MerchantProduct(models.Model):
+    """Last Merchant API result for each product."""
+    product = models.OneToOneField("products.Product", on_delete=models.CASCADE, related_name="merchant_status")
+    offer_id = models.CharField(max_length=60)
+    status = models.CharField(max_length=10, default="pending")  # pending / synced / removed / error
+    message = models.TextField(blank=True)
+    synced_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"{self.offer_id} ({self.status})"

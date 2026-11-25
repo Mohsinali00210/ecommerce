@@ -183,14 +183,16 @@ def cap_shipping(raw_total):
     """Cart shipping = sum of the lines, capped at Store settings > max shipping charge."""
     from adminpanel import shipping as shipping_rules
     return shipping_rules.cap(raw_total)
-def summarize_lines(lines):
-    """Totals for a list of price_cart_item() results (cap + free-shipping threshold
-    from Store settings, see adminpanel/shipping.py)."""
+def _shipping_line_grams(product, variant, qty):
     from adminpanel import shipping as shipping_rules
-    subtotal = sum((l["line_original"] for l in lines), ZERO)
-    discount = sum((l["line_saved"] for l in lines), ZERO)
-    shipping_raw = sum((l["shipping"] for l in lines), ZERO)
-    return shipping_rules.totals(subtotal, discount, shipping_raw)
+    return shipping_rules.line_weight_grams(product, variant, qty)
+
+
+def summarize_lines(lines, destination=None):
+    """Totals for a list of price_cart_item() results: weight-based tariff for the
+    destination zone, flat charges, cap + free-shipping threshold (adminpanel/shipping.py)."""
+    from adminpanel import shipping as shipping_rules
+    return shipping_rules.summarize(lines, destination)
  
 def promo_for_qty(promo, qty):
     """Return the promotion only if `qty` reaches its minimum quantity, else None."""
@@ -270,6 +272,8 @@ def price_cart_item(item, qty):
         "line_saved": applied["off"] * qty,        # promotion saving
         "line_final": applied["final"] * qty,      # what the customer pays for the goods
         "shipping": item_shipping(product),        # 0 when the product ships free
+        # weight added to the parcel (0 = free item / no weight); see adminpanel/shipping.py
+        "weight_grams": _shipping_line_grams(product, variant, qty),
     }
 def active_promos_prefetch(now=None, lookup="product__promotions"):
     """
@@ -294,7 +298,16 @@ def active_promos_prefetch(now=None, lookup="product__promotions"):
 
 class PlaceOrderSerializer(serializers.Serializer):
     address_id = serializers.IntegerField()
-    payment_method = serializers.ChoiceField(choices=["cod", "bank", "online"], default="cod")
+    # "cod" (default), "bank", "online" or "online:<gateway code>" (e.g. online:jazzcash)
+    payment_method = serializers.CharField(max_length=40, default="cod")
+    payment_gateway = serializers.SlugField(max_length=40, required=False, allow_blank=True)
+
+    def validate_payment_method(self, value):
+        from payments.services import split_method
+        method, _ = split_method(value)
+        if method not in ("cod", "bank", "online"):
+            raise serializers.ValidationError("Unknown payment method.")
+        return value
  
     checkout_items = serializers.ListField(
         child=serializers.DictField(),
@@ -419,7 +432,7 @@ class PlaceOrderSerializer(serializers.Serializer):
         # -------------------------------------------------
         # TOTALS: same function the cart uses (shipping is summed, then capped)
         # -------------------------------------------------
-        totals = summarize_lines([priced for *_, priced in lines])
+        totals = summarize_lines([priced for *_, priced in lines], destination=address)  # weight + zone
  
         goods_total = totals["subtotal"] - totals["discount"]  # after promotions
 
@@ -428,9 +441,10 @@ class PlaceOrderSerializer(serializers.Serializer):
         # server, so a disabled method can't be forced from the browser)
         # -------------------------------------------------
         from payments import services as payment_services
-        method = validated_data.get("payment_method", "cod")
+        method, gateway_code = payment_services.split_method(validated_data.get("payment_method", "cod"))
+        gateway_code = gateway_code or (validated_data.get("payment_gateway") or "").lower()
         try:
-            payment_services.validate_method(method, totals["final_total"])
+            gateway = payment_services.validate_method(method, totals["final_total"], gateway_code, user=user)
         except payment_services.PaymentNotAllowed as exc:
             raise serializers.ValidationError(str(exc))
  
@@ -475,7 +489,7 @@ class PlaceOrderSerializer(serializers.Serializer):
         CartItem.objects.filter(cart__user=user).filter(purchased).delete()
 
 
-        self.payment = payment_services.create_for_order(order, method)
+        self.payment = payment_services.create_for_order(order, method, gateway)
 
         # Let the view read the breakdown without recalculating.
         self.pricing = totals

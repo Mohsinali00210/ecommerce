@@ -435,3 +435,100 @@ def customer_tracking(request, order_number):
                        for e in s.events.all()[:50]],
         },
     })
+
+
+# ---------------------------------------------------------------------------
+# Shipping rates (weight-based tariffs the customer is charged with)
+# ---------------------------------------------------------------------------
+def _tariff_calc(request, tariff):
+    """The rate calculator on the page: ?grams=&city=&state="""
+    from decimal import Decimal as D
+
+    from .models import ShippingZone
+    from .tariffs import charge, origin, province_label, province_of, zone_for
+    try:
+        grams = max(0, int(request.GET.get("grams") or 0))
+    except ValueError:
+        grams = 0
+    city, state = (request.GET.get("city") or "").strip(), (request.GET.get("state") or "").strip()
+    o_city, o_prov = origin(tariff)
+    out = {"grams": grams, "city": city, "state": state, "origin_city": o_city,
+           "origin_province": province_label(o_prov)}
+    if grams:
+        out["rows"] = [{"label": z.label, "price": charge(tariff, grams, z)} for z in ShippingZone]
+        if city:
+            z = zone_for(tariff, city, state)
+            out["zone"] = ShippingZone(z).label
+            out["dest_province"] = province_label(province_of(city, state)) or "unknown (Zone B used)"
+            out["price"] = charge(tariff, grams, z)
+            out["kg"] = D(grams) / 1000
+    return out
+
+
+@staff_required
+def tariff_list(request):
+    from adminpanel.models import StoreSettings
+
+    from .models import ShippingTariff
+    s = StoreSettings.get()
+    if request.method == "POST" and request.POST.get("action") == "toggle":
+        s = StoreSettings.objects.get(pk=s.pk)
+        s.weight_shipping_enabled = request.POST.get("enabled") == "1"
+        s.updated_by = request.user
+        s.save()
+        messages.success(request, "Weight-based shipping is now " + ("on." if s.weight_shipping_enabled else "off."))
+        return redirect("couriers:tariffs")
+    tariffs = list(ShippingTariff.objects.select_related("provider").prefetch_related("slabs"))
+    for t in tariffs:
+        lo, t.rows = 0, []
+        for slab in t.slabs.all():
+            t.rows.append({"from": lo, "slab": slab})
+            lo = slab.max_grams
+    default = ShippingTariff.default()
+    return render(request, "couriers/tariffs.html", {
+        "tariffs": tariffs, "default": default, "store": s,
+        "calc": _tariff_calc(request, default) if default else None,
+    })
+
+
+@staff_required
+def tariff_edit(request, pk=None):
+    from .forms import SlabFormSet, TariffForm
+    from .models import ShippingTariff
+    tariff = get_object_or_404(ShippingTariff, pk=pk) if pk else None
+    form = TariffForm(request.POST or None, instance=tariff)
+    formset = SlabFormSet(request.POST or None, instance=tariff or ShippingTariff(), prefix="slabs")
+    if request.method == "POST":
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                obj = form.save()
+                formset.instance = obj
+                formset.save()
+            from accounts.error_logging import security_event
+            security_event("shipping_tariff_changed", request, severity="INFO", tariff=obj.pk,
+                           default=obj.is_default)
+            messages.success(request, f"'{obj.name}' saved.")
+            return redirect("couriers:tariffs")
+        messages.error(request, "Please fix the highlighted fields.")
+    return render(request, "couriers/tariff_edit.html", {"form": form, "formset": formset, "tariff": tariff})
+
+
+@staff_required
+@require_POST
+def tariff_action(request, pk):
+    from .models import ShippingTariff
+    t = get_object_or_404(ShippingTariff, pk=pk)
+    action = request.POST.get("action")
+    if action == "default":
+        with transaction.atomic():
+            ShippingTariff.objects.filter(is_default=True).update(is_default=False)
+            t.is_default, t.is_active = True, True
+            t.save(update_fields=["is_default", "is_active", "modified_at"])
+        messages.success(request, f"'{t.name}' is now the default tariff.")
+    elif action == "delete":
+        if t.is_default:
+            messages.error(request, "Make another tariff the default before deleting this one.")
+        else:
+            t.delete()
+            messages.success(request, "Tariff deleted.")
+    return redirect("couriers:tariffs")

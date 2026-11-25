@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Payment gateways{% endblock %}
+{% block content %}
+<div class="sz-page-head">
+  <div><h2>Payment gateways</h2><p>Switch online gateways on or off. Cash on delivery stays the default choice at checkout.</p></div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'admin_payment_logs' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-journal-text me-1"></i>Payment logs</a>
+    <a href="{% url 'admin_payments' %}" class="btn btn-outline-secondary btn-sm">Back to payments</a>
+  </div>
+</div>
+{% for m in messages %}<div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags }}{% endif %} small">{{ m }}</div>{% endfor %}
+
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead class="table-light"><tr><th>Gateway</th><th>Mode</th><th>Credentials</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+          {% for g in gateways %}
+            <tr>
+              <td><div class="fw-semibold"><i class="bi {{ g.cls.checkout_icon|default:'bi-credit-card' }} me-1"></i>{{ g.name }}</div>
+                <div class="small text-muted">At checkout: {{ g.label }}</div></td>
+              <td>{% if g.environment == "live" %}<span class="badge bg-danger">Live</span>{% else %}<span class="badge bg-warning text-dark">Sandbox</span>{% endif %}</td>
+              <td>{% if g.configured %}<span class="text-success small"><i class="bi bi-check-circle"></i> Complete</span>{% else %}<span class="text-muted small"><i class="bi bi-dash-circle"></i> Missing</span>{% endif %}</td>
+              <td>{% if g.is_active and g.configured %}<span class="badge bg-success">On</span>{% elif g.is_active %}<span class="badge bg-secondary" title="Switched on but credentials are missing">On (incomplete)</span>{% else %}<span class="badge bg-light text-dark border">Off</span>{% endif %}
+                {% if g.cls.sandbox_only %}<div class="small text-muted">staff only</div>{% endif %}</td>
+              <td class="text-end"><a href="{% url 'admin_payment_gateway_edit' g.code %}" class="btn btn-sm btn-outline-primary">Settings</a></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-4">No gateways.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card mb-3"><div class="card-header">At checkout right now</div>
+      <div class="card-body small">
+        {% if not store.online_payments_enabled %}
+          <div class="alert alert-warning py-2">Online payments are <b>off</b> in <a href="{% url 'admin_store_settings' %}">Store settings</a>: no gateway is offered, even if switched on here.</div>
+        {% endif %}
+        <ol class="ps-3 mb-0">
+        {% for m in checkout_methods %}
+          <li>{{ m.label }}{% if forloop.first %} <span class="badge bg-success">default</span>{% endif %}{% if not m.available %} <span class="text-muted">({{ m.reason }})</span>{% endif %}</li>
+        {% empty %}<li class="text-danger">No payment method is available.</li>{% endfor %}
+        </ol>
+        <div class="text-muted mt-2">(As seen by you. The test gateway is only shown to staff.)</div>
+      </div></div>
+    <div class="card"><div class="card-header">Testing</div>
+      <div class="card-body small">
+        <ol class="ps-3 mb-0">
+          <li>Switch on <b>Test gateway (sandbox)</b> and turn <em>Online payments</em> on in Store settings.</li>
+          <li>Sign in as staff, place an order and pick <em>Test payment</em>: you can simulate success, failure or cancel.</li>
+          <li>For real gateways, keep <em>Sandbox</em> mode with the provider's test credentials first, use <em>Test connection</em>, then place a test order.</li>
+          <li>Every step is recorded in <a href="{% url 'admin_payment_logs' %}">Payment logs</a>.</li>
+        </ol>
+      </div></div>
+  </div>
+</div>
+{% endblock %}
